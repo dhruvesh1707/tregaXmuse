@@ -1,0 +1,69 @@
+name: trega
+description: Trega — India's peer-to-peer marketplace for pre-owned gear. Buy, sell & bid on gaming, mobiles, laptops, cameras and music gear.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Firebase (primary backend — project: tregaxmuse)
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.6
+  firebase_messaging: ^15.1.5
+  cloud_functions: ^5.1.3
+
+  # Networking (DEPRECATED: kept only as fallback for legacy REST endpoints.
+  # All new code must use Firebase via lib/core/firebase/. Do not add new Dio calls.)
+  dio: ^5.7.0
+
+  # Media
+  image_picker: ^1.1.2
+  video_player: ^2.9.2
+  cached_network_image: ^3.4.1
+
+  # Utilities
+  intl: ^0.19.0
+  cupertino_icons: ^1.0.8
+
+  # Payments — Cashfree PG drop checkout (Android/iOS).
+  # NOTE: the SDK environment below (PRODUCTION) must match the backend
+  # `CASHFREE_ENV` secret in trega_functions.
+  # IMPORTANT: the package is `flutter_cashfree_pg_sdk` (Cashfree's current
+  # SDK). The old `cashfree_pg` package is discontinued (2022, Dart 2-only)
+  # and has a completely different Dart API — do NOT switch back.
+  # Pinned exact: Cashfree has replaced SDK packages before, so never let
+  # this float on ^.
+  flutter_cashfree_pg_sdk: 2.4.0+52
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo/trega_logo.png"
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: "assets/logo/trega_logo.png"
+  android: true
+  ios: true
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/logo/
