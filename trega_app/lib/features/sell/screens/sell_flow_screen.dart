@@ -246,7 +246,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _categoryId,
+                  initialValue: _categoryId,
                   decoration:
                       const InputDecoration(labelText: 'Category'),
                   items: categories
@@ -261,7 +261,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<Condition>(
-                  value: _condition,
+                  initialValue: _condition,
                   decoration:
                       const InputDecoration(labelText: 'Condition'),
                   items: Condition.values
@@ -303,7 +303,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                     hintText: '35000',
                   ),
                 ),
-                SwitchListTile(
+                const SwitchListTile(
                   title: const Text('Negotiable'),
                   subtitle: const Text(
                       'Bids & offers are on for every listing — no chats'),
