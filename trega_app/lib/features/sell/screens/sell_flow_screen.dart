@@ -134,7 +134,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     final feed = ref.watch(liveListingsProvider).valueOrNull;
     if (feed == null) return null;
     final prices = feed
-        .where((l) => l.categoryId == _categoryId)
+        .where((l) => l.product.categoryId == _categoryId)
         .map((l) => l.price)
         .toList()
       ..sort();
