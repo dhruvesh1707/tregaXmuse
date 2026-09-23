@@ -104,7 +104,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
           Expanded(
-            child: liveAsync.connectionState == ConnectionState.waiting
+            child: liveAsync.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : results.isEmpty
                     ? Center(
