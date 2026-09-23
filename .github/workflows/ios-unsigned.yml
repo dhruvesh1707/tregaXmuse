@@ -70,12 +70,14 @@ jobs:
         # `flutter build ios` hard-requires a Development Team selected in the
         # Xcode project before it will finish — even with --no-codesign — which
         # is impossible on a CI runner for a sideload build. So let Flutter
-        # only prepare the Xcode project (--config-only), then drive xcodebuild
-        # directly with signing disabled and package the .app into an IPA
-        # that Sideloadly can sign with a personal Apple ID.
+        # only prepare the Xcode project, then drive xcodebuild directly with
+        # signing disabled and package the .app into an IPA that Sideloadly
+        # can sign with a personal Apple ID.
+        # NOTE: --config-only alone still runs the pre-build certificate check
+        # (codesign defaults to true), so --no-codesign must be passed too.
         run: |
           cd trega_app
-          flutter build ios --release --config-only
+          flutter build ios --release --config-only --no-codesign
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
