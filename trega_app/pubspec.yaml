@@ -37,7 +37,12 @@ dependencies:
   # Payments — Cashfree PG drop checkout (Android/iOS).
   # NOTE: the SDK environment below (PRODUCTION) must match the backend
   # `CASHFREE_ENV` secret in trega_functions.
-  cashfree_pg: ^2.0.0
+  # IMPORTANT: the package is `flutter_cashfree_pg_sdk` (Cashfree's current
+  # SDK). The old `cashfree_pg` package is discontinued (2022, Dart 2-only)
+  # and has a completely different Dart API — do NOT switch back.
+  # Pinned exact: Cashfree has replaced SDK packages before, so never let
+  # this float on ^.
+  flutter_cashfree_pg_sdk: 2.4.0+52
 
 dev_dependencies:
   flutter_test:

@@ -210,7 +210,6 @@ class _CategoryRail extends StatelessWidget {
               ),
             ),
           ),
-        );
         },
       ),
     );

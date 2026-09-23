@@ -1,4 +1,4 @@
-import 'package:cashfree_pg/cashfree_pg.dart';
+import 'package:flutter_cashfree_pg_sdk/flutter_cashfree_pg_sdk.dart';
 import 'package:flutter/foundation.dart';
 
 /// Thin wrapper around the Cashfree PG SDK (drop checkout).
