@@ -7,6 +7,7 @@ import '../../../core/models/order.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../home/providers/listing_providers.dart';
 import 'order_tracking_screen.dart';
@@ -42,7 +43,13 @@ class OrdersScreen extends ConsumerWidget {
         if (snap.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: AppBar(title: const Text('My Orders')),
-            body: const Center(child: CircularProgressIndicator()),
+            body: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 4,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, i) => const RowSkeleton(),
+            ),
           );
         }
         if (snap.hasError) {
@@ -83,7 +90,11 @@ class _OrdersList extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final order = orders[i];
-                return _OrderCard(order: order);
+                return FadeSlideIn(
+                  delay: Duration(milliseconds: (i % 6) * 50),
+                  duration: const Duration(milliseconds: 400),
+                  child: _OrderCard(order: order),
+                );
               },
             ),
     );

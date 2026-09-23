@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../home/providers/listing_providers.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
@@ -103,7 +104,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           Expanded(
             child: liveAsync.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.68,
+                    ),
+                    itemCount: 6,
+                    itemBuilder: (context, i) =>
+                        const ProductCardSkeleton(),
+                  )
                 : liveAsync.hasError
                     ? Center(
                         child: Text(

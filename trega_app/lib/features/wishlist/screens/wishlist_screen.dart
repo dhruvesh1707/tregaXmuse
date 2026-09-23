@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 
@@ -36,7 +37,19 @@ class WishlistScreen extends ConsumerWidget {
         if (snap.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: AppBar(title: const Text('Wishlist')),
-            body: const Center(child: CircularProgressIndicator()),
+            body: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.68,
+              ),
+              itemCount: 6,
+              itemBuilder: (context, i) => const ProductCardSkeleton(),
+            ),
           );
         }
         if (snap.hasError) {
@@ -85,11 +98,14 @@ class _WishlistGrid extends StatelessWidget {
               itemCount: listings.length,
               itemBuilder: (context, i) {
                 final listing = listings[i];
-                return ProductCard(
-                  listing: listing,
-                  onTap: () => Navigator.of(context).pushNamed(
-                    ListingDetailScreen.routeName,
-                    arguments: listing.id,
+                return FadeSlideIn(
+                  delay: Duration(milliseconds: (i % 8) * 45),
+                  child: ProductCard(
+                    listing: listing,
+                    onTap: () => Navigator.of(context).pushNamed(
+                      ListingDetailScreen.routeName,
+                      arguments: listing.id,
+                    ),
                   ),
                 );
               },

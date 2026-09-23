@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'motion.dart';
+
 /// Primary / secondary button with Trega styling.
 ///
 /// Wraps [ElevatedButton] / [OutlinedButton] so button language stays
-/// consistent across features.
+/// consistent across features. Press feedback (scale + haptic) comes from
+/// [PressScale].
 class TregaButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -33,9 +36,11 @@ class TregaButton extends StatelessWidget {
             ],
           );
 
-    final button = secondary
-        ? OutlinedButton(onPressed: onPressed, child: child)
-        : ElevatedButton(onPressed: onPressed, child: child);
+    final button = PressScale(
+      child: secondary
+          ? OutlinedButton(onPressed: onPressed, child: child)
+          : ElevatedButton(onPressed: onPressed, child: child),
+    );
 
     if (!expanded) return button;
     return SizedBox(width: double.infinity, child: button);

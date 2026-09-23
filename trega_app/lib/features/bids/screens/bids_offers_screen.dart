@@ -6,6 +6,7 @@ import '../../../core/models/bid.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 
@@ -90,7 +91,13 @@ class _BidListAsync extends ConsumerWidget {
       stream: stream,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 4,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, i) => const RowSkeleton(),
+          );
         }
         if (snap.hasError) {
           return const EmptyState(
@@ -177,77 +184,86 @@ class _BidList extends ConsumerWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
         final bid = bids[i];
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.of(context).pushNamed(
-                          ListingDetailScreen.routeName,
-                          arguments: bid.listingId,
-                        ),
-                        child: Text(
-                          bid.listingTitle ?? 'Listing ${bid.listingId}',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                      ),
-                    ),
-                    StatusChip(
-                      label: bid.status.label,
-                      background: _statusColor(bid.status).withOpacity(0.12),
-                      foreground: _statusColor(bid.status),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${bid.buyerName ?? 'Buyer'} · ${timeAgo(bid.createdAt)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                if (bid.counterAmount != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Counter: ${formatINR(bid.counterAmount!)}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Text(
-                  formatINR(bid.amount),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(color: AppColors.primary),
-                ),
-                if (showActions && bid.status == BidStatus.open) ...[
-                  const SizedBox(height: 12),
+        return FadeSlideIn(
+          delay: Duration(milliseconds: (i % 6) * 50),
+          duration: const Duration(milliseconds: 400),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TODO: reject/counter via callables (same
-                            // pattern as accept below).
-                          },
-                          child: const Text('Reject'),
+                        child: InkWell(
+                          onTap: () => Navigator.of(context).pushNamed(
+                            ListingDetailScreen.routeName,
+                            arguments: bid.listingId,
+                          ),
+                          child: Text(
+                            bid.listingTitle ?? 'Listing ${bid.listingId}',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _respond(context, ref, bid, 'accept'),
-                          child: const Text('Accept'),
-                        ),
+                      StatusChip(
+                        label: bid.status.label,
+                        background: _statusColor(bid.status).withOpacity(0.12),
+                        foreground: _statusColor(bid.status),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${bid.buyerName ?? 'Buyer'} · ${timeAgo(bid.createdAt)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (bid.counterAmount != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Counter: ${formatINR(bid.counterAmount!)}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    formatINR(bid.amount),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(color: AppColors.primary),
+                  ),
+                  if (showActions && bid.status == BidStatus.open) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: PressScale(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                // TODO: reject/counter via callables (same
+                                // pattern as accept below).
+                              },
+                              child: const Text('Reject'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: PressScale(
+                            child: ElevatedButton(
+                              onPressed: () =>
+                                  _respond(context, ref, bid, 'accept'),
+                              child: const Text('Accept'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );

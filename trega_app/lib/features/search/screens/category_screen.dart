@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../home/providers/listing_providers.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
@@ -56,17 +57,31 @@ class CategoryScreen extends ConsumerWidget {
                       itemCount: listings.length,
                       itemBuilder: (context, i) {
                         final listing = listings[i];
-                        return ProductCard(
-                          listing: listing,
-                          onTap: () => Navigator.of(context).pushNamed(
-                            ListingDetailScreen.routeName,
-                            arguments: listing.id,
+                        return FadeSlideIn(
+                          delay: Duration(milliseconds: (i % 8) * 45),
+                          child: ProductCard(
+                            listing: listing,
+                            onTap: () => Navigator.of(context).pushNamed(
+                              ListingDetailScreen.routeName,
+                              arguments: listing.id,
+                            ),
                           ),
                         );
                       },
                     ),
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => GridView.builder(
+                padding: const EdgeInsets.all(16),
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.68,
+                ),
+                itemCount: 6,
+                itemBuilder: (context, i) => const ProductCardSkeleton(),
+              ),
               error: (_, __) => const EmptyState(
                 icon: Icons.cloud_off_outlined,
                 title: 'Couldn\'t load listings',

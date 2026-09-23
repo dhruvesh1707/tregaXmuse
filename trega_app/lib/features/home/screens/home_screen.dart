@@ -5,6 +5,7 @@ import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../bids/screens/bids_offers_screen.dart';
@@ -82,10 +83,19 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   )
                 : _ListingGrid(listings: listings),
-            loading: () => const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator()),
+            loading: () => SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.68,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => const ProductCardSkeleton(),
+                  childCount: 6,
+                ),
               ),
             ),
             error: (_, __) => const SliverToBoxAdapter(
@@ -102,6 +112,7 @@ class HomeScreen extends ConsumerWidget {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: (i) {
+          TregaHaptics.tap();
           // Bottom-nav destinations: Home / Search / Sell / Bids / Profile.
           switch (i) {
             case 1:
@@ -161,40 +172,45 @@ class _CategoryRail extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
           final category = categories[i];
-          return InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => Navigator.of(context).pushNamed(
-              CategoryScreen.routeName,
-              arguments: CategoryArgs(
-                categoryId: category.id,
-                categoryName: category.name,
+          return FadeSlideIn(
+            delay: Duration(milliseconds: i * 60),
+            duration: const Duration(milliseconds: 400),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => Navigator.of(context).pushNamed(
+                CategoryScreen.routeName,
+                arguments: CategoryArgs(
+                  categoryId: category.id,
+                  categoryName: category.name,
+                ),
+              ),
+              child: Container(
+                width: 84,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(category.icon, size: 28, color: AppColors.primary),
+                    const SizedBox(height: 6),
+                    Text(
+                      category.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Container(
-              width: 84,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(category.icon, size: 28, color: AppColors.primary),
-                  const SizedBox(height: 6),
-                  Text(
-                    category.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          );
+          ),
+        );
         },
       ),
     );
@@ -220,11 +236,15 @@ class _ListingGrid extends StatelessWidget {
         delegate: SliverChildBuilderDelegate(
           (context, i) {
             final listing = listings[i];
-            return ProductCard(
-              listing: listing,
-              onTap: () => Navigator.of(context).pushNamed(
-                ListingDetailScreen.routeName,
-                arguments: listing.id,
+            return FadeSlideIn(
+              // Staggered entrance: first two rows cascade in.
+              delay: Duration(milliseconds: (i % 8) * 45),
+              child: ProductCard(
+                listing: listing,
+                onTap: () => Navigator.of(context).pushNamed(
+                  ListingDetailScreen.routeName,
+                  arguments: listing.id,
+                ),
               ),
             );
           },

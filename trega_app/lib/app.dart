@@ -75,6 +75,42 @@ class TregaApp extends StatelessWidget {
       default:
         builder = (_) => const SplashScreen();
     }
-    return MaterialPageRoute(builder: builder, settings: settings);
+    return _TregaPageRoute(builder: builder, settings: settings);
   }
+}
+
+/// Trega's route transition: a quick fade with a gentle 5% rise.
+///
+/// One consistent transition language across the whole app feels more
+/// premium than per-screen effects, and it composes cleanly with the
+/// product-image Hero flights on the listing detail route.
+class _TregaPageRoute<T> extends PageRouteBuilder<T> {
+  _TregaPageRoute({
+    required WidgetBuilder builder,
+    required RouteSettings settings,
+  }) : super(
+          settings: settings,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              builder(context),
+          transitionDuration: const Duration(milliseconds: 300),
+          reverseTransitionDuration: const Duration(milliseconds: 220),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) {
+            final curved = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            );
+            return FadeTransition(
+              opacity: curved,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.05),
+                  end: Offset.zero,
+                ).animate(curved),
+                child: child,
+              ),
+            );
+          },
+        );
 }

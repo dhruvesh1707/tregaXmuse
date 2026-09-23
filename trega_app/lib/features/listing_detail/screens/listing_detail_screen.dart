@@ -8,6 +8,7 @@ import '../../../core/payments/cashfree_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/providers/listing_providers.dart';
 import '../../orders/screens/orders_screen.dart';
@@ -184,17 +185,27 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                   PageView.builder(
                     itemCount: product.imageUrls.length,
                     onPageChanged: (i) => setState(() => _page = i),
-                    itemBuilder: (context, i) => CachedNetworkImage(
-                      imageUrl: product.imageUrls[i],
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.primarySoft,
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppColors.primarySoft,
-                        child: const Icon(Icons.image_not_supported_outlined),
-                      ),
-                    ),
+                    itemBuilder: (context, i) {
+                      final image = CachedNetworkImage(
+                        imageUrl: product.imageUrls[i],
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.primarySoft,
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.primarySoft,
+                          child: const Icon(Icons.image_not_supported_outlined),
+                        ),
+                      );
+                      // Hero flight target for the feed card's photo.
+                      if (i == 0) {
+                        return Hero(
+                          tag: 'listing-photo-${listing.id}',
+                          child: image,
+                        );
+                      }
+                      return image;
+                    },
                   ),
                   if (product.videoUrl != null)
                     // TODO: replace with inline video_player preview.
@@ -234,12 +245,10 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                icon: Icon(
-                  listing.isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: listing.isLiked ? AppColors.error : null,
-                ),
-                onPressed: () => _toggleLike(listing),
+              LikeButton(
+                isLiked: listing.isLiked,
+                unlikedColor: Colors.white,
+                onTap: () => _toggleLike(listing),
               ),
               IconButton(
                 icon: const Icon(Icons.share_outlined),

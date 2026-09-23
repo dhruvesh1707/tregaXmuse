@@ -1,13 +1,20 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../firebase/firebase_providers.dart';
 import '../models/listing.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import 'condition_badge.dart';
+import 'motion.dart';
 
 /// Card used in home feed, search results, category and wishlist grids.
-class ProductCard extends StatelessWidget {
+///
+/// The product photo is a [Hero] into the listing detail gallery
+/// (tag `listing-photo-<id>`), and the heart toggles the wishlist via
+/// Firestore with a springy pop + haptic.
+class ProductCard extends ConsumerWidget {
   final Listing listing;
   final VoidCallback? onTap;
   final VoidCallback? onLikeToggle;
@@ -19,8 +26,16 @@ class ProductCard extends StatelessWidget {
     this.onLikeToggle,
   });
 
+  Future<void> _toggleLike(WidgetRef ref) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    await ref
+        .read(firestoreServiceProvider)
+        .toggleLike(listing.id, uid, listing.isLiked);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final product = listing.product;
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -35,20 +50,20 @@ class ProductCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (product.imageUrls.isNotEmpty)
-                    CachedNetworkImage(
-                      imageUrl: product.imageUrls.first,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.primarySoft,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                    Hero(
+                      tag: 'listing-photo-${listing.id}',
+                      child: CachedNetworkImage(
+                        imageUrl: product.imageUrls.first,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const ShimmerBox(
+                          borderRadius: BorderRadius.zero,
                         ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppColors.primarySoft,
-                        child: const Icon(
-                          Icons.image_not_supported_outlined,
-                          color: AppColors.textSecondary,
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.primarySoft,
+                          child: const Icon(
+                            Icons.image_not_supported_outlined,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
                     )
@@ -69,19 +84,10 @@ class ProductCard extends StatelessWidget {
                   Positioned(
                     top: 4,
                     right: 4,
-                    child: IconButton(
-                      icon: Icon(
-                        listing.isLiked
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-                        color: listing.isLiked
-                            ? AppColors.error
-                            : AppColors.textPrimary,
-                      ),
-                      onPressed: onLikeToggle ??
-                          () {
-                            // TODO: wire wishlist toggle -> POST /wishlist/:id
-                          },
+                    child: LikeButton(
+                      isLiked: listing.isLiked,
+                      unlikedColor: AppColors.textPrimary,
+                      onTap: onLikeToggle ?? () => _toggleLike(ref),
                     ),
                   ),
                 ],
