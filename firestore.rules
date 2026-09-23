@@ -25,7 +25,20 @@ service cloud.firestore {
       allow update: if signedIn()
         && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['name', 'avatarUrl']);
+             .hasOnly(['name', 'avatarUrl', 'email', 'settings',
+                       'fcmTokens', 'fcmTokenUpdatedAt']);
+
+      // ── users/{uid}/notifications/{notifId} ────────────────────
+      // In-app inbox, written server-side by Cloud Functions (bid / order /
+      // listing events). Clients may only flip `read`.
+      match /notifications/{notifId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow update: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['read']);
+        allow create, delete: if false;
+      }
     }
 
     // ── listings/{listingId} ─────────────────────────────────────
@@ -58,7 +71,21 @@ service cloud.firestore {
       );
       allow delete: if signedIn()
         && resource.data.sellerId == request.auth.uid
-        && resource.data.status == 'draft';
+        && resource.data.status != 'sold'; // sold items stay for order records
+
+      // ── listings/{listingId}/private/{docId} ───────────────────
+      // Owner-only listing data (pickup address). Never on the public
+      // listing doc — readable only by the seller and admins.
+      match /private/{docId} {
+        function isListingOwner() {
+          return signedIn()
+            && get(/databases/$(database)/documents/listings/$(listingId))
+                 .data.sellerId == request.auth.uid;
+        }
+        allow read: if isListingOwner() || isAdmin();
+        allow create, update: if isListingOwner();
+        allow delete: if false;
+      }
     }
 
     // ── bids/{bidId} ─────────────────────────────────────────────

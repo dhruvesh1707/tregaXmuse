@@ -7,6 +7,7 @@ class AppUser {
   final String id;
   final String name;
   final String phone;
+  final String? email;
   final String? avatarUrl;
   final bool isVerifiedSeller;
   final double rating;
@@ -17,6 +18,7 @@ class AppUser {
     required this.id,
     required this.name,
     required this.phone,
+    this.email,
     this.avatarUrl,
     this.isVerifiedSeller = false,
     this.rating = 0,
@@ -29,6 +31,7 @@ class AppUser {
       id: json['id'] as String,
       name: json['name'] as String,
       phone: json['phone'] as String? ?? '',
+      email: json['email'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       isVerifiedSeller: json['is_verified_seller'] as bool? ?? false,
       rating: (json['rating'] as num? ?? 0).toDouble(),
@@ -44,6 +47,7 @@ class AppUser {
       'id': id,
       'name': name,
       'phone': phone,
+      'email': email,
       'avatar_url': avatarUrl,
       'is_verified_seller': isVerifiedSeller,
       'rating': rating,
@@ -69,6 +73,7 @@ extension AppUserFirestore on AppUser {
       id: uid,
       name: data['name'] as String? ?? '',
       phone: data['phone'] as String? ?? '',
+      email: data['email'] as String?,
       avatarUrl: data['avatarUrl'] as String?,
       isVerifiedSeller: data['verifiedSeller'] as bool? ?? false,
       joinedAt: data['createdAt'] == null
@@ -81,6 +86,7 @@ extension AppUserFirestore on AppUser {
     return {
       'phone': phone,
       'name': name,
+      'email': email,
       'avatarUrl': avatarUrl,
       'role': 'buyer',
       'verifiedSeller': isVerifiedSeller,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user.dart';
 import 'firestore_service.dart';
@@ -30,6 +31,56 @@ class AuthService {
 
   final FirebaseAuth _auth;
   final FirestoreService _firestore;
+
+  /// SharedPreferences keys for the in-flight OTP attempt. If the OS kills
+  /// the app mid-verification (e.g. during the iOS reCAPTCHA round-trip),
+  /// the phone screen restores the OTP-entry state instead of dropping the
+  /// user back at the phone-number step.
+  static const _kPendingVerificationId = 'trega_pending_verification_id';
+  static const _kPendingPhone = 'trega_pending_phone';
+  static const _kPendingTs = 'trega_pending_ts';
+
+  /// How long a persisted OTP attempt stays restorable (Firebase SMS codes
+  /// live ~2 minutes; we allow a generous window for slow round-trips).
+  static const _pendingTtl = Duration(minutes: 10);
+
+  /// Persists an in-flight OTP attempt. Called when Firebase reports
+  /// `codeSent`.
+  static Future<void> savePendingVerification({
+    required String verificationId,
+    required String phoneNumber,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kPendingVerificationId, verificationId);
+    await prefs.setString(_kPendingPhone, phoneNumber);
+    await prefs.setInt(
+        _kPendingTs, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  /// Returns the persisted attempt, or `null` when there is none or it is
+  /// older than [_pendingTtl].
+  static Future<({String verificationId, String phoneNumber})?>
+      loadPendingVerification() async {
+    final prefs = await SharedPreferences.getInstance();
+    final verificationId = prefs.getString(_kPendingVerificationId);
+    final phone = prefs.getString(_kPendingPhone);
+    final ts = prefs.getInt(_kPendingTs);
+    if (verificationId == null || phone == null || ts == null) return null;
+    final age =
+        DateTime.now().millisecondsSinceEpoch - ts;
+    if (age > _pendingTtl.inMilliseconds) {
+      await clearPendingVerification();
+      return null;
+    }
+    return (verificationId: verificationId, phoneNumber: phone);
+  }
+
+  static Future<void> clearPendingVerification() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kPendingVerificationId);
+    await prefs.remove(_kPendingPhone);
+    await prefs.remove(_kPendingTs);
+  }
 
   User? get currentUser => _auth.currentUser;
 
@@ -69,7 +120,10 @@ class AuthService {
 
   /// Verifies the SMS code and signs the user in, creating the Firestore
   /// user document on first login.
-  Future<AppUser> verifyOtp({
+  ///
+  /// Returns the signed-in user plus whether this was their first-ever
+  /// sign-in (so the UI can route new users through profile setup).
+  Future<({AppUser user, bool isNewUser})> verifyOtp({
     required String verificationId,
     required String smsCode,
     required String phoneNumber,
@@ -85,13 +139,13 @@ class AuthService {
   }
 
   /// Signs in with an auto-retrieved credential (Android).
-  Future<AppUser> signInWithAutoCredential(
+  Future<({AppUser user, bool isNewUser})> signInWithAutoCredential(
     PhoneAuthCredential credential, {
     required String phoneNumber,
   }) =>
       _signInWithCredential(credential, phoneNumber: phoneNumber);
 
-  Future<AppUser> _signInWithCredential(
+  Future<({AppUser user, bool isNewUser})> _signInWithCredential(
     PhoneAuthCredential credential, {
     required String phoneNumber,
   }) async {
@@ -101,20 +155,24 @@ class AuthService {
       throw StateError('Firebase sign-in returned no user.');
     }
 
-    final appUser = AppUser(
-      id: firebaseUser.uid,
-      name: firebaseUser.displayName ?? '',
-      phone: phoneNumber,
-      avatarUrl: firebaseUser.photoURL,
-      joinedAt: DateTime.now(),
-    );
-
     // Create the users/{uid} doc on first sign-in; never overwrite existing.
-    await _firestore.ensureUser(appUser.id, phone: appUser.phone);
+    final isNewUser =
+        await _firestore.ensureUser(firebaseUser.uid, phone: phoneNumber);
     // Register this device for push notifications (best-effort; never
     // blocks sign-in). Token refreshes are picked up for the session.
-    unawaited(_registerFcmToken(appUser.id));
-    return appUser;
+    unawaited(_registerFcmToken(firebaseUser.uid));
+
+    final stored = await _firestore.getUser(firebaseUser.uid);
+    final appUser = stored ??
+        AppUser(
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName ?? '',
+          phone: phoneNumber,
+          avatarUrl: firebaseUser.photoURL,
+          joinedAt: DateTime.now(),
+        );
+    await clearPendingVerification();
+    return (user: appUser, isNewUser: isNewUser);
   }
 
   /// Saves the FCM device token to the user doc. Skipped on web (needs a
@@ -141,7 +199,10 @@ class AuthService {
     }
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await clearPendingVerification();
+    await _auth.signOut();
+  }
 
   String _friendlyError(FirebaseAuthException e) {
     switch (e.code) {

@@ -9,7 +9,10 @@ import '../../auth/screens/phone_auth_screen.dart';
 import '../../bids/screens/bids_offers_screen.dart';
 import '../../orders/screens/orders_screen.dart';
 import '../../wishlist/screens/wishlist_screen.dart';
+import 'help_screen.dart';
 import 'kyc_screen.dart';
+import 'my_listings_screen.dart';
+import 'settings_screen.dart';
 
 /// Account hub: profile, verification status, listings, orders, settings.
 ///
@@ -154,10 +157,9 @@ class ProfileScreen extends ConsumerWidget {
                           icon: Icons.inventory_2_outlined,
                           title: 'My Listings',
                           subtitle: 'Manage what you’re selling',
-                          onTap: () {
-                            // TODO: seller listings screen
-                            // (Firestore: watchSellerListings).
-                          },
+                          onTap: () => Navigator.of(context)
+                              .pushNamed(
+                                  MyListingsScreen.routeName),
                         ),
                         _MenuTile(
                           icon: Icons.gavel_outlined,
@@ -183,17 +185,15 @@ class ProfileScreen extends ConsumerWidget {
                         _MenuTile(
                           icon: Icons.settings_outlined,
                           title: 'Settings',
-                          onTap: () {
-                            // TODO: settings screen
-                            // (notifications, language).
-                          },
+                          onTap: () => Navigator.of(context)
+                              .pushNamed(
+                                  SettingsScreen.routeName),
                         ),
                         _MenuTile(
                           icon: Icons.help_outline,
                           title: 'Help & Support',
-                          onTap: () {
-                            // TODO: help centre / support tickets.
-                          },
+                          onTap: () => Navigator.of(context)
+                              .pushNamed(HelpScreen.routeName),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(16),

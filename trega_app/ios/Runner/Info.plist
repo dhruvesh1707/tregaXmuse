@@ -66,6 +66,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Trega needs camera access so you can photograph the items you want to sell.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

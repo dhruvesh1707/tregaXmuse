@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/onboarding_screen.dart';
 import 'features/auth/screens/phone_auth_screen.dart';
+import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/bids/screens/bids_offers_screen.dart';
 import 'features/home/screens/home_screen.dart';
@@ -10,8 +11,11 @@ import 'features/listing_detail/screens/listing_detail_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart';
 import 'features/orders/screens/order_tracking_screen.dart';
 import 'features/orders/screens/orders_screen.dart';
+import 'features/profile/screens/help_screen.dart';
 import 'features/profile/screens/kyc_screen.dart';
+import 'features/profile/screens/my_listings_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
+import 'features/profile/screens/settings_screen.dart';
 import 'features/search/screens/category_screen.dart';
 import 'features/search/screens/search_screen.dart';
 import 'features/sell/screens/sell_flow_screen.dart';
@@ -45,6 +49,8 @@ class TregaApp extends StatelessWidget {
         builder = (_) => const OnboardingScreen();
       case PhoneAuthScreen.routeName:
         builder = (_) => const PhoneAuthScreen();
+      case ProfileSetupScreen.routeName:
+        builder = (_) => const ProfileSetupScreen();
       case HomeScreen.routeName:
         builder = (_) => const HomeScreen();
       case SearchScreen.routeName:
@@ -70,6 +76,12 @@ class TregaApp extends StatelessWidget {
         builder = (_) => const NotificationsScreen();
       case ProfileScreen.routeName:
         builder = (_) => const ProfileScreen();
+      case MyListingsScreen.routeName:
+        builder = (_) => const MyListingsScreen();
+      case SettingsScreen.routeName:
+        builder = (_) => const SettingsScreen();
+      case HelpScreen.routeName:
+        builder = (_) => const HelpScreen();
       case KycScreen.routeName:
         builder = (_) => const KycScreen();
       default:

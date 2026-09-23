@@ -143,6 +143,15 @@ ThemeData buildTregaTheme() {
       fillColor: AppColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       hintStyle: const TextStyle(color: AppColors.textSecondary),
+      labelStyle: const TextStyle(color: AppColors.textSecondary),
+      // The floating label sits on the outline border; painting the field
+      // fill colour behind it punches a clean "cutout" so glyphs are never
+      // clipped by the border (seen on the sell-flow Title/Price fields).
+      floatingLabelStyle: const TextStyle(
+        color: AppColors.primary,
+        fontSize: 12,
+        backgroundColor: AppColors.surface,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: AppColors.divider),

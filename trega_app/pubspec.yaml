@@ -33,6 +33,8 @@ dependencies:
   # Utilities
   intl: ^0.19.0
   cupertino_icons: ^1.0.8
+  shared_preferences: ^2.3.2
+  url_launcher: ^6.3.1
 
   # Payments — Cashfree PG drop checkout (Android/iOS).
   # NOTE: the SDK environment below (PRODUCTION) must match the backend

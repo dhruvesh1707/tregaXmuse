@@ -3,17 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/firebase/auth_service.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/screens/home_screen.dart';
+import 'profile_setup_screen.dart';
 
 /// Phone + OTP sign-in backed by Firebase Authentication.
 ///
 /// Firebase sends the SMS; on Android the code may be auto-retrieved
-/// (instant verification). On web, Firebase uses invisible reCAPTCHA — the
-/// site domain must be allow-listed in the Firebase console
-/// (Authentication → Settings → Authorized domains).
+/// (instant verification). On iOS sideloads without push entitlement,
+/// Firebase falls back to a reCAPTCHA check before sending the SMS.
+///
+/// The in-flight OTP attempt (verificationId + phone) is persisted locally:
+/// if the OS kills the app mid-verification (e.g. during the iOS reCAPTCHA
+/// round-trip), the screen restores the OTP-entry state instead of dropping
+/// the user back at the phone-number step.
+///
+/// After sign-in, first-time users (or users without a profile name) go
+/// through [ProfileSetupScreen]; returning users go straight home.
 class PhoneAuthScreen extends ConsumerStatefulWidget {
   static const String routeName = '/auth/phone';
 
@@ -33,10 +42,29 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _restorePendingAttempt();
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
     _otpController.dispose();
     super.dispose();
+  }
+
+  /// Restores an OTP attempt that was interrupted (e.g. the app was killed
+  /// during the iOS reCAPTCHA round-trip) so the user lands on OTP entry,
+  /// not back at the phone-number step.
+  Future<void> _restorePendingAttempt() async {
+    final pending = await AuthService.loadPendingVerification();
+    if (pending == null || !mounted) return;
+    setState(() {
+      _otpSent = true;
+      _verificationId = pending.verificationId;
+      _phoneController.text = pending.phoneNumber;
+    });
   }
 
   Future<void> _sendOtp() async {
@@ -54,6 +82,12 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
     await auth.sendOtp(
       phoneNumber: phone,
       onCodeSent: (verificationId, _) {
+        // Persist before touching UI: the app may be backgrounded/killed
+        // while the user completes the reCAPTCHA challenge.
+        AuthService.savePendingVerification(
+          verificationId: verificationId,
+          phoneNumber: phone,
+        );
         if (!mounted) return;
         setState(() {
           _loading = false;
@@ -84,12 +118,12 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
     });
     try {
       final auth = ref.read(authServiceProvider);
-      await auth.verifyOtp(
+      final result = await auth.verifyOtp(
         verificationId: _verificationId!,
         smsCode: code,
         phoneNumber: _phoneController.text.trim(),
       );
-      _goHome();
+      _routeAfterSignIn(result.user.name, result.isNewUser);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -112,13 +146,25 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
     String phone,
   ) async {
     try {
-      await ref
+      final result = await ref
           .read(authServiceProvider)
           .signInWithAutoCredential(credential, phoneNumber: phone);
-      _goHome();
+      _routeAfterSignIn(result.user.name, result.isNewUser);
     } catch (_) {
       // Auto-verification failed; fall through to manual OTP entry.
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// New users (and returning users who never finished setup) complete
+  /// their profile; everyone else goes straight home.
+  void _routeAfterSignIn(String name, bool isNewUser) {
+    if (!mounted) return;
+    if (isNewUser || name.trim().isEmpty) {
+      Navigator.of(context)
+          .pushReplacementNamed(ProfileSetupScreen.routeName);
+    } else {
+      _goHome();
     }
   }
 
