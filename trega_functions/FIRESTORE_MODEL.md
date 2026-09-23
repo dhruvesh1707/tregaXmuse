@@ -114,9 +114,14 @@ Never store `photo_link` / XML blobs here.
 `listingMedia/{listingId}/{filename}` — listing photos and videos.
 `avatars/{uid}/{filename}` — profile pictures.
 
-## Suggested composite indexes
+## Composite indexes (`firestore.indexes.json`, deployed with `firebase deploy`)
+
 - `listings`: `status` ASC + `createdAt` DESC (feed)
-- `listings`: `categoryId` ASC + `status` ASC + `createdAt` DESC
-- `bids`: `listingId` ASC + `status` ASC
-- `orders`: `buyerId` ASC + `createdAt` DESC
-- `orders`: `sellerId` ASC + `createdAt` DESC
+- `listings`: `status` ASC + `categoryId` ASC + `createdAt` DESC (category feed)
+- `listings`: `sellerId` ASC + `createdAt` DESC (my listings)
+- `bids`: `listingId` ASC + `createdAt` DESC (bids on a listing)
+- `bids`: `buyerId` ASC + `createdAt` DESC (my bids)
+- `bids`: `sellerId` ASC + `createdAt` DESC (offers received)
+- `orders`: `buyerId` ASC + `createdAt` DESC (my purchases)
+- `orders`: `sellerId` ASC + `createdAt` DESC (my sales)
+- `categories`: `active` ASC + `sortOrder` ASC
