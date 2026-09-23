@@ -1,0 +1,62 @@
+# Builds an UNSIGNED release IPA for Trega on a GitHub-hosted Mac runner.
+#
+# Why: Flutter iOS builds require macOS/Xcode, which can't run on a Windows
+# PC. Sideloadly (Windows) only installs IPAs, it can't build them.
+# This workflow produces the IPA; Sideloadly then signs it with a personal
+# Apple ID for sideloading.
+#
+# Prerequisite (one-time, on the dev PC) — the cloud runner needs these
+# generated files in the repo:
+#   git add -f trega_app/ios trega_app/lib/firebase_options.dart
+#   git commit -m "Add iOS project and Firebase options for cloud build"
+#   git push
+#
+# Usage: GitHub repo -> Actions tab -> "iOS unsigned IPA" ->
+# Run workflow -> download the Trega-unsigned artifact when it finishes.
+#
+# Cost note: the repo is private, so macOS minutes bill at 10x against the
+# 2,000 free Actions minutes/month (~200 macOS minutes). First build takes
+# ~20-30 min (Xcode + CocoaPods), later builds ~8-12 min with cache.
+# Set a spending limit in Settings -> Billing to avoid overage surprises.
+name: iOS unsigned IPA
+
+on:
+  workflow_dispatch: # manual trigger only — each run costs macOS minutes
+
+concurrency:
+  group: ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Dart dependencies
+        run: cd trega_app && flutter pub get
+
+      - name: Install CocoaPods dependencies
+        run: cd trega_app/ios && pod install --repo-update
+
+      - name: Build unsigned release IPA
+        run: |
+          cd trega_app
+          flutter build ios --release --no-codesign
+          rm -rf Payload Trega-unsigned.ipa
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -r -y Trega-unsigned.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trega-unsigned
+          path: trega_app/Trega-unsigned.ipa
+          retention-days: 7
