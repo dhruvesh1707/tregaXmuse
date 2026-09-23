@@ -39,6 +39,17 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Drop stale machine-generated iOS files
+        # ios/Flutter/Generated.xcconfig, flutter_export_environment.sh and
+        # ios/Flutter/ephemeral/ are generated per machine and must never be
+        # committed (the ios/.gitignore already excludes them), but they got
+        # force-added once with Windows paths (FLUTTER_ROOT=C:\src\flutter).
+        # Delete them so `flutter pub get` regenerates them for this runner.
+        run: |
+          cd trega_app/ios
+          rm -f Flutter/Generated.xcconfig Flutter/flutter_export_environment.sh
+          rm -rf Flutter/ephemeral
+
       - name: Install Dart dependencies
         run: cd trega_app && flutter pub get
 
