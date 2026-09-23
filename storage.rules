@@ -27,12 +27,12 @@ service firebase.storage {
            ).data.sellerId == request.auth.uid;
     }
 
-    // ── avatars/{uid}.jpg ────────────────────────────────────────
+    // ── avatars/{uid}.jpg ─────────────────────────────────────────
     // Users upload only their own avatar.
-    match /avatars/{uid}.jpg {
+    match /avatars/{fileName} {
       allow read: if true;
       allow write: if signedIn()
-        && request.auth.uid == uid
+        && fileName == request.auth.uid + '.jpg'
         && isImage()
         && under10MB();
     }

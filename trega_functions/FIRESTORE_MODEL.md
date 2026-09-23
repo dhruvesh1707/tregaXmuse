@@ -112,7 +112,7 @@ Never store `photo_link` / XML blobs here.
 
 ## Storage
 `listingMedia/{listingId}/{filename}` — listing photos and videos.
-`avatars/{uid}/{filename}` — profile pictures.
+`avatars/{uid}.jpg` — profile pictures.
 
 ## Composite indexes (`firestore.indexes.json`, deployed with `firebase deploy`)
 
