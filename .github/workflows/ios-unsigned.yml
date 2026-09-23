@@ -29,9 +29,19 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        # The Firebase iOS SDK now uses Swift 6 features (e.g. `sending`);
+        # the runner image's default Xcode can lag behind, so pin the newest
+        # installed Xcode explicitly.
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
