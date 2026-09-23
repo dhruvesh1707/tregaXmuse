@@ -8,10 +8,13 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../bids/screens/bids_offers_screen.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 import '../../notifications/screens/notifications_screen.dart';
+import '../../profile/screens/profile_screen.dart';
 import '../../search/screens/category_screen.dart';
 import '../../search/screens/search_screen.dart';
+import '../../sell/screens/sell_flow_screen.dart';
 import '../providers/listing_providers.dart';
 
 /// Main marketplace feed: search entry, "Explore by Passion" categories,
@@ -103,8 +106,20 @@ class HomeScreen extends ConsumerWidget {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: (i) {
-          // TODO: extract into a shell router; indices map to
-          // Home / Search / Sell / Bids / Profile.
+          // Bottom-nav destinations: Home / Search / Sell / Bids / Profile.
+          switch (i) {
+            case 1:
+              Navigator.of(context).pushNamed(SearchScreen.routeName);
+            case 2:
+              Navigator.of(context).pushNamed(SellFlowScreen.routeName);
+            case 3:
+              Navigator.of(context).pushNamed(BidsOffersScreen.routeName);
+            case 4:
+              Navigator.of(context).pushNamed(ProfileScreen.routeName);
+            case 0:
+            default:
+              break; // Already on Home.
+          }
         },
         items: const [
           BottomNavigationBarItem(
