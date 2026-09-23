@@ -60,15 +60,21 @@ Write-Host "`n== 4. flutterfire CLI ==" -ForegroundColor Cyan
 if (-not (Get-Command flutterfire -ErrorAction SilentlyContinue)) {
   Write-Host "Installing flutterfire_cli..."
   dart pub global activate flutterfire_cli
+  # Re-read PATH from the registry: picks up a just-added entry without
+  # requiring the terminal to be restarted.
+  $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+  $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+  $env:Path = "$machinePath;$userPath"
 }
-$pubBin = Join-Path $env:LOCALAPPDATA "Pub\Cache\bin"
-if ($env:Path -notlike "*$pubBin*") {
-  Write-Host "" 
+if (-not (Get-Command flutterfire -ErrorAction SilentlyContinue)) {
+  $pubBin = Join-Path $env:LOCALAPPDATA "Pub\Cache\bin"
+  Write-Host ""
   Write-Host "flutterfire installed but NOT on PATH." -ForegroundColor Yellow
-  Write-Host "Add this to your PATH, then restart the terminal and re-run this script:" -ForegroundColor Yellow
+  Write-Host "Add this to your user PATH, then re-run this script:" -ForegroundColor Yellow
   Write-Host "  $pubBin" -ForegroundColor Yellow
   exit 1
 }
+Write-Host "found: flutterfire" -ForegroundColor Green
 
 Write-Host "`n== 5. Firebase config (interactive - pick Android, iOS, Web) ==" -ForegroundColor Cyan
 flutterfire configure --project=tregaxmuse
