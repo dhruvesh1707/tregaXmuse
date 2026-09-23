@@ -1,7 +1,8 @@
 # Trega — Windows setup script
 # Run once on your PC to clone (or update) the repo and prepare the Flutter app.
 # From PowerShell:  powershell -ExecutionPolicy Bypass -File scripts\setup-windows.ps1
-# Or after cloning:  .\scripts\setup-windows.ps1   (from the repo root)
+# If your folder isn't at the default location, pass it explicitly:
+#   powershell -ExecutionPolicy Bypass -File <path>\setup-windows.ps1 -TargetDir "<repo root>"
 
 param(
   [string]$TargetDir = "$env:USERPROFILE\Downloads\trega"
@@ -27,6 +28,14 @@ Write-Host "`n== 2. Getting the repo ==" -ForegroundColor Cyan
 if (Test-Path (Join-Path $TargetDir ".git")) {
   Write-Host "Repo already cloned — pulling latest..."
   git -C $TargetDir pull
+} elseif ((Test-Path $TargetDir) -and ((Get-ChildItem $TargetDir -Force | Measure-Object).Count -gt 0)) {
+  # ZIP download from GitHub: link the folder to the repo in place.
+  Write-Host "Folder exists but is not a git repo (ZIP download) — linking it to GitHub..."
+  git -C $TargetDir init -q
+  git -C $TargetDir remote add origin $repoUrl 2>$null
+  git -C $TargetDir fetch origin -q
+  git -C $TargetDir checkout -f -B main origin/main
+  Write-Host "Linked. Future runs will just 'git pull'." -ForegroundColor Green
 } else {
   Write-Host "Cloning into $TargetDir ..."
   git clone $repoUrl $TargetDir
