@@ -1,7 +1,14 @@
-import 'package:flutter_cashfree_pg_sdk/flutter_cashfree_pg_sdk.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
 /// Thin wrapper around the Cashfree PG SDK (drop checkout).
+///
+/// NOTE: `flutter_cashfree_pg_sdk` ships no barrel library — import the
+/// individual API files (session, payment, gateway, enums, exceptions).
 ///
 /// Flow:
 ///  1. Our `createCashfreeOrder` callable creates the order server-side and
@@ -43,7 +50,10 @@ class CashfreeService {
           CFDropCheckoutPaymentBuilder().setSession(session).build();
       CFPaymentGatewayService().setCallback(
         (orderId) => onVerified(orderId),
-        (error, orderId) => onError(error.getMessage(), orderId),
+        // The error callback receives a CFErrorResponse (not CFException);
+        // getMessage() is nullable, so fall back to a readable default.
+        (error, orderId) =>
+            onError(error.getMessage() ?? 'Payment failed. Try again.', orderId),
       );
       CFPaymentGatewayService().doPayment(payment);
     } on CFException catch (e) {
