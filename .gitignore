@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# flutter
+.dart_tool/
+build/
+ios/Pods/
+android/.gradle/
+
+# firebase (generated per machine — run `flutterfire configure`)
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+trega_app/android/app/google-services.json
+trega_app/ios/Runner/GoogleService-Info.plist
+
+# env / secrets
+.env
+*.keystore
+*.jks
+
+# editor
+.idea/
+.vscode/

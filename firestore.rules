@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Set via Cloud Functions / Firebase console custom claims:
+      // admin.auth().setCustomUserClaims(uid, {admin: true})
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    // ── users/{uid} ──────────────────────────────────────────────
+    // Public profiles (seller names on listings). Server-managed fields
+    // (role, verifiedSeller, kycStatus) can never be written by clients.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'buyer'
+        && request.resource.data.kycStatus == 'unverified'
+        && request.resource.data.verifiedSeller == false;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'avatarUrl']);
+    }
+
+    // ── listings/{listingId} ─────────────────────────────────────
+    // Clients create drafts; onListingCreate moves them to pending for
+    // review, and reviewListing (admin callable) flips live/rejected.
+    // Clients never write `status` directly.
+    match /listings/{listingId} {
+      allow read: if true; // live listings are public; queries filter status
+      allow create: if signedIn()
+        && request.resource.data.sellerId == request.auth.uid
+        && request.resource.data.status == 'draft'
+        && request.resource.data.keys().hasAll(
+             ['sellerId', 'title', 'description', 'categoryId',
+              'price', 'condition', 'photos', 'status']);
+      allow update: if signedIn() && (
+        // Owner editing their own non-live listing (status untouched).
+        (resource.data.sellerId == request.auth.uid
+          && request.resource.data.status == resource.data.status)
+        ||
+        // Anyone liking / viewing: only like+view counters may change,
+        // and likedBy may only gain/lose the caller's own uid.
+        (request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['likedBy', 'likesCount', 'viewCount'])
+         && request.resource.data.likedBy.toSet()
+              .difference(resource.data.likedBy.toSet())
+              .hasOnly([request.auth.uid])
+         && resource.data.likedBy.toSet()
+              .difference(request.resource.data.likedBy.toSet())
+              .hasOnly([request.auth.uid]))
+      );
+      allow delete: if signedIn()
+        && resource.data.sellerId == request.auth.uid
+        && resource.data.status == 'draft';
+    }
+
+    // ── bids/{bidId} ─────────────────────────────────────────────
+    // Written ONLY by the placeBid/acceptBid callables (Admin SDK bypasses
+    // rules). Clients read their own bids; admins can read all bids for
+    // the Bids overview page in the admin panel.
+    match /bids/{bidId} {
+      allow read: if signedIn()
+        && (resource.data.buyerId == request.auth.uid
+            || resource.data.sellerId == request.auth.uid
+            || isAdmin());
+      allow write: if false;
+    }
+
+    // ── orders/{orderId} ─────────────────────────────────────────
+    // Created server-side by createCashfreeOrder; paymentStatus updated by
+    // the cashfreeWebhook. Clients read their own orders.
+    match /orders/{orderId} {
+      allow read: if signedIn()
+        && (resource.data.buyerId == request.auth.uid
+            || resource.data.sellerId == request.auth.uid
+            || isAdmin());
+      allow write: if false;
+    }
+
+    // ── categories/{categoryId} ─────────────────────────────────
+    // Managed from the admin panel by admins (custom claim). Public read.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ── kycVerifications/{uid} ───────────────────────────────────
+    // Written ONLY by the KYC callables. Users read their own status.
+    match /kycVerifications/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // ── adminNotifications/{id} ─────────────────────────────────
+    // Admin panel inbox (separate app, signed in with admin custom claim).
+    match /adminNotifications/{notifId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ── reviews/{reviewId} ───────────────────────────────────────
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.reviewerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

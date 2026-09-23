@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  /* Trega brand palette — derived from the Trega logo */
+  --color-trega-50: #faf6f3;
+  --color-trega-100: #f2e7df;
+  --color-trega-200: #e3c9b8;
+  --color-trega-300: #cfa488;
+  --color-trega-400: #b57a55;
+  --color-trega-500: #8b3a1c;
+  --color-trega-600: #753115;
+  --color-trega-700: #5c2611;
+  --color-trega-800: #421b0d;
+  --color-trega-900: #2c1209;
+
+  --color-gold-300: #ffcf4d;
+  --color-gold-400: #f7b600;
+  --color-gold-500: #d99e00;
+  --color-gold-600: #b07f00;
+}
+
+body {
+  @apply bg-stone-100 text-stone-900 antialiased;
+}
+
+/* Slim scrollbars for sidebar / tables */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #d6c9c0;
+  border-radius: 8px;
+}

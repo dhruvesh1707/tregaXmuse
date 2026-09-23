@@ -1,0 +1,40 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function under10MB() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // ── listingMedia/{listingId}/… ───────────────────────────────
+    // Photos are publicly readable (they back live listings). Only the
+    // listing's seller may upload, and only images under 10 MB.
+    match /listingMedia/{listingId}/{fileName} {
+      allow read: if true;
+      allow write: if signedIn()
+        && isImage()
+        && under10MB()
+        && firestore.get(
+             /databases/(default)/documents/listings/$(listingId)
+           ).data.sellerId == request.auth.uid;
+    }
+
+    // ── avatars/{uid}.jpg ────────────────────────────────────────
+    // Users upload only their own avatar.
+    match /avatars/{uid}.jpg {
+      allow read: if true;
+      allow write: if signedIn()
+        && request.auth.uid == uid
+        && isImage()
+        && under10MB();
+    }
+  }
+}
