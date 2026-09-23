@@ -23,7 +23,7 @@ class AppNotification {
   });
 
   static AppNotification fromFirestore(
-      Map<String, dynamic> data, String docId) {
+      Map<String, dynamic> data, String docId,) {
     return AppNotification(
       id: docId,
       title: data['title'] as String? ?? '',

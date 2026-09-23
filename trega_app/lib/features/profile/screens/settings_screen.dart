@@ -12,7 +12,7 @@ class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   Future<void> _editProfile(
-      BuildContext context, WidgetRef ref, String uid) async {
+      BuildContext context, WidgetRef ref, String uid,) async {
     final service = ref.read(firestoreServiceProvider);
     final user = await service.getUser(uid);
     if (!context.mounted) return;
@@ -50,7 +50,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(error!,
                     style: const TextStyle(
-                        color: AppColors.error, fontSize: 13)),
+                        color: AppColors.error, fontSize: 13,),),
               ],
             ],
           ),
@@ -69,14 +69,14 @@ class SettingsScreen extends ConsumerWidget {
                           emailController.text.trim();
                       if (name.length < 2) {
                         setDialogState(() =>
-                            error = 'Enter your name.');
+                            error = 'Enter your name.',);
                         return;
                       }
                       if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
                           .hasMatch(email)) {
                         setDialogState(() =>
                             error =
-                                'Enter a valid email.');
+                                'Enter a valid email.',);
                         return;
                       }
                       setDialogState(() {
@@ -85,14 +85,14 @@ class SettingsScreen extends ConsumerWidget {
                       });
                       try {
                         await service.updateProfile(uid,
-                            name: name, email: email);
+                            name: name, email: email,);
                         if (!ctx.mounted) return;
                         Navigator.of(ctx).pop();
                         ScaffoldMessenger.of(context)
                             .showSnackBar(
                           const SnackBar(
                               content: Text(
-                                  'Profile updated.')),
+                                  'Profile updated.',),),
                         );
                       } catch (_) {
                         setDialogState(() {
@@ -107,7 +107,7 @@ class SettingsScreen extends ConsumerWidget {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2),
+                          strokeWidth: 2,),
                     )
                   : const Text('Save'),
             ),
@@ -133,14 +133,14 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                      horizontal: 16, vertical: 8,),
                   child: Text(
                     'Notifications',
                     style: Theme.of(context)
                         .textTheme
                         .labelSmall
                         ?.copyWith(
-                            color: AppColors.textSecondary),
+                            color: AppColors.textSecondary,),
                   ),
                 ),
                 StreamBuilder<bool>(
@@ -152,7 +152,7 @@ class SettingsScreen extends ConsumerWidget {
                       title:
                           const Text('Push notifications'),
                       subtitle: const Text(
-                          'Bids, offers, orders and listing updates'),
+                          'Bids, offers, orders and listing updates',),
                       value: enabled,
                       activeThumbColor: AppColors.primary,
                       onChanged: (v) => service
@@ -163,56 +163,56 @@ class SettingsScreen extends ConsumerWidget {
                 const Divider(height: 1),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                      horizontal: 16, vertical: 8,),
                   child: Text(
                     'Account',
                     style: Theme.of(context)
                         .textTheme
                         .labelSmall
                         ?.copyWith(
-                            color: AppColors.textSecondary),
+                            color: AppColors.textSecondary,),
                   ),
                 ),
                 ListTile(
                   leading: const Icon(
                       Icons.person_outline,
-                      color: AppColors.primary),
+                      color: AppColors.primary,),
                   title: const Text('Edit profile'),
                   subtitle:
                       const Text('Name and email address'),
                   trailing: const Icon(Icons.chevron_right,
-                      color: AppColors.textSecondary),
+                      color: AppColors.textSecondary,),
                   onTap: () =>
                       _editProfile(context, ref, uid),
                 ),
                 ListTile(
                   leading: const Icon(Icons.help_outline,
-                      color: AppColors.primary),
+                      color: AppColors.primary,),
                   title: const Text('Help & Support'),
                   trailing: const Icon(Icons.chevron_right,
-                      color: AppColors.textSecondary),
+                      color: AppColors.textSecondary,),
                   onTap: () => Navigator.of(context)
                       .pushNamed(HelpScreen.routeName),
                 ),
                 const Divider(height: 1),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                      horizontal: 16, vertical: 8,),
                   child: Text(
                     'About',
                     style: Theme.of(context)
                         .textTheme
                         .labelSmall
                         ?.copyWith(
-                            color: AppColors.textSecondary),
+                            color: AppColors.textSecondary,),
                   ),
                 ),
                 const ListTile(
                   leading: Icon(Icons.info_outline,
-                      color: AppColors.primary),
+                      color: AppColors.primary,),
                   title: Text('Trega'),
                   subtitle: Text(
-                      'Version 1.0.0 • India’s marketplace for pre-owned gear'),
+                      'Version 1.0.0 • India’s marketplace for pre-owned gear',),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(24),

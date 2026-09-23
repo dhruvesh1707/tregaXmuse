@@ -85,7 +85,7 @@ class ProfileScreen extends ConsumerWidget {
                                     backgroundColor: AppColors.primarySoft,
                                     child: Icon(Icons.person,
                                         size: 36,
-                                        color: AppColors.primary),
+                                        color: AppColors.primary,),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
@@ -110,7 +110,7 @@ class ProfileScreen extends ConsumerWidget {
                                               const Icon(Icons.verified,
                                                   size: 20,
                                                   color:
-                                                      AppColors.primary),
+                                                      AppColors.primary,),
                                           ],
                                         ),
                                         Text(
@@ -120,14 +120,14 @@ class ProfileScreen extends ConsumerWidget {
                                               .bodyMedium
                                               ?.copyWith(
                                                   color: AppColors
-                                                      .textSecondary),
+                                                      .textSecondary,),
                                         ),
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
                                             const Icon(Icons.star,
                                                 size: 16,
-                                                color: AppColors.accent),
+                                                color: AppColors.accent,),
                                             Text(
                                               ' ${user?.rating ?? '–'} '
                                               '(${user?.reviewsCount ?? 0} reviews)',
@@ -159,7 +159,7 @@ class ProfileScreen extends ConsumerWidget {
                           subtitle: 'Manage what you’re selling',
                           onTap: () => Navigator.of(context)
                               .pushNamed(
-                                  MyListingsScreen.routeName),
+                                  MyListingsScreen.routeName,),
                         ),
                         _MenuTile(
                           icon: Icons.gavel_outlined,
@@ -187,7 +187,7 @@ class ProfileScreen extends ConsumerWidget {
                           title: 'Settings',
                           onTap: () => Navigator.of(context)
                               .pushNamed(
-                                  SettingsScreen.routeName),
+                                  SettingsScreen.routeName,),
                         ),
                         _MenuTile(
                           icon: Icons.help_outline,
@@ -200,10 +200,10 @@ class ProfileScreen extends ConsumerWidget {
                           child: OutlinedButton.icon(
                             onPressed: () => _logout(context, ref),
                             icon: const Icon(Icons.logout,
-                                color: AppColors.error),
+                                color: AppColors.error,),
                             label: const Text('Log out',
                                 style:
-                                    TextStyle(color: AppColors.error)),
+                                    TextStyle(color: AppColors.error),),
                             style: OutlinedButton.styleFrom(
                               side:
                                   const BorderSide(color: AppColors.error),
@@ -249,7 +249,7 @@ class _MenuTile extends StatelessWidget {
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle!),
       trailing: const Icon(Icons.chevron_right,
-          color: AppColors.textSecondary),
+          color: AppColors.textSecondary,),
       onTap: onTap,
     );
   }

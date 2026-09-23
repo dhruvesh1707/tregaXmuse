@@ -126,7 +126,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         const Icon(Icons.fingerprint,
-            size: 64, color: AppColors.primary),
+            size: 64, color: AppColors.primary,),
         const SizedBox(height: 16),
         Text(
           'Become a verified seller',
@@ -208,10 +208,10 @@ class _VerifiedState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.verified,
-                size: 80, color: AppColors.success),
+                size: 80, color: AppColors.success,),
             const SizedBox(height: 16),
             Text('Identity verified',
-                style: Theme.of(context).textTheme.titleLarge),
+                style: Theme.of(context).textTheme.titleLarge,),
             if (name != null && name!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(name!, style: Theme.of(context).textTheme.bodyLarge),

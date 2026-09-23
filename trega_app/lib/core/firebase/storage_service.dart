@@ -18,12 +18,12 @@ class StorageService {
 
   /// Uploads listing photos and returns their download URLs, in order.
   Future<List<String>> uploadListingImages(
-      String listingId, List<XFile> images) async {
+      String listingId, List<XFile> images,) async {
     final urls = <String>[];
     for (var i = 0; i < images.length; i++) {
       final file = File(images[i].path);
       final ref = _storage.ref().child(
-          'listingMedia/$listingId/${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
+          'listingMedia/$listingId/${DateTime.now().millisecondsSinceEpoch}_$i.jpg',);
       await ref.putFile(file, SettableMetadata(contentType: 'image/jpeg'));
       urls.add(await ref.getDownloadURL());
     }

@@ -54,7 +54,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kPendingPhone, phoneNumber);
     await prefs.setInt(
-        _kPendingTs, DateTime.now().millisecondsSinceEpoch);
+        _kPendingTs, DateTime.now().millisecondsSinceEpoch,);
   }
 
   /// Persists an in-flight OTP attempt. Called when Firebase reports
@@ -68,7 +68,7 @@ class AuthService {
     await prefs.setString(_kPendingVerificationId, verificationId);
     await prefs.setString(_kPendingPhone, phoneNumber);
     await prefs.setInt(
-        _kPendingTs, DateTime.now().millisecondsSinceEpoch);
+        _kPendingTs, DateTime.now().millisecondsSinceEpoch,);
   }
 
   /// Returns the persisted attempt, or `null` when there is none or it is

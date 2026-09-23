@@ -48,7 +48,7 @@ ThemeData buildTregaTheme() {
     onError: Colors.white,
   );
 
-  final textTheme = const TextTheme(
+  const textTheme = TextTheme(
     displaySmall: TextStyle(
       fontSize: 28,
       fontWeight: FontWeight.w700,

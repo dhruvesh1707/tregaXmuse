@@ -146,7 +146,7 @@ class _BidList extends ConsumerWidget {
   }
 
   Future<void> _respond(
-      BuildContext context, WidgetRef ref, Bid bid, String action) async {
+      BuildContext context, WidgetRef ref, Bid bid, String action,) async {
     if (action != 'accept') {
       // v1: only accept is wired; reject/counter follow the same callable.
       return;
@@ -209,7 +209,7 @@ class _BidList extends ConsumerWidget {
                       ),
                       StatusChip(
                         label: bid.status.label,
-                        background: _statusColor(bid.status).withOpacity(0.12),
+                        background: _statusColor(bid.status).withValues(alpha: 0.12),
                         foreground: _statusColor(bid.status),
                       ),
                     ],

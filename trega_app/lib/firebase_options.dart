@@ -63,7 +63,6 @@ class DefaultFirebaseOptions {
     projectId: 'tregaxmuse',
     storageBucket: 'tregaxmuse.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCbO5tGPwRnmWTXXy9tQ-4E5aUOyuLKnOw',
     appId: '1:159020518470:ios:66d83d5c37b454e10fce47',

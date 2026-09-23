@@ -40,7 +40,7 @@ class FunctionsService {
   /// Step 2: verifies the OTP against BulkPe. Returns the verified
   /// demographic fields (name, dob, gender, address) on success.
   Future<Map<String, dynamic>> verifyAadhaarOtp(
-      String refId, String otp) async {
+      String refId, String otp,) async {
     final result = await _functions
         .httpsCallable('verifyAadhaarOtp')
         .call({'refId': refId, 'otp': otp});

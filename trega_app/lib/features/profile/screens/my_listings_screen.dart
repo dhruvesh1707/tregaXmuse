@@ -56,13 +56,13 @@ class MyListingsScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(
-      BuildContext context, WidgetRef ref, Listing listing) async {
+      BuildContext context, WidgetRef ref, Listing listing,) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete listing?'),
         content: Text(
-            '“${listing.product.title}” will be permanently removed. This can’t be undone.'),
+            '“${listing.product.title}” will be permanently removed. This can’t be undone.',),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -71,7 +71,7 @@ class MyListingsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(
-                foregroundColor: AppColors.error),
+                foregroundColor: AppColors.error,),
             child: const Text('Delete'),
           ),
         ],
@@ -96,7 +96,7 @@ class MyListingsScreen extends ConsumerWidget {
   }
 
   void _showPickupAddress(
-      BuildContext context, WidgetRef ref, String listingId) {
+      BuildContext context, WidgetRef ref, String listingId,) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -130,7 +130,7 @@ class MyListingsScreen extends ConsumerWidget {
                   children: [
                     const Icon(Icons.lock_outline,
                         size: 14,
-                        color: AppColors.textSecondary),
+                        color: AppColors.textSecondary,),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -173,7 +173,7 @@ class MyListingsScreen extends ConsumerWidget {
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child: CircularProgressIndicator());
+                      child: CircularProgressIndicator(),);
                 }
                 final listings = snap.data ?? [];
                 if (listings.isEmpty) {
@@ -249,7 +249,7 @@ class MyListingsScreen extends ConsumerWidget {
                                           .titleMedium
                                           ?.copyWith(
                                               color:
-                                                  AppColors.primary),
+                                                  AppColors.primary,),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -272,26 +272,26 @@ class MyListingsScreen extends ConsumerWidget {
                                   ),
                                   PopupMenuButton<String>(
                                     icon: const Icon(Icons
-                                        .more_vert),
+                                        .more_vert,),
                                     onSelected: (value) {
                                       if (value == 'address') {
                                         _showPickupAddress(
                                             context,
                                             ref,
-                                            listing.id);
+                                            listing.id,);
                                       } else if (value ==
                                           'delete') {
                                         _confirmDelete(
                                             context,
                                             ref,
-                                            listing);
+                                            listing,);
                                       }
                                     },
                                     itemBuilder: (_) => [
                                       const PopupMenuItem(
                                         value: 'address',
                                         child: Text(
-                                            'Pickup address'),
+                                            'Pickup address',),
                                       ),
                                       if (listing.status !=
                                           ListingStatus.sold)
@@ -300,7 +300,7 @@ class MyListingsScreen extends ConsumerWidget {
                                           child: Text('Delete',
                                               style: TextStyle(
                                                   color: AppColors
-                                                      .error)),
+                                                      .error,),),
                                         ),
                                     ],
                                   ),

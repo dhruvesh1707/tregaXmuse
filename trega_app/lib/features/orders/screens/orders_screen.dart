@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
-import '../../../core/models/listing.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';

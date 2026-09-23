@@ -279,7 +279,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(product.title,
-                      style: Theme.of(context).textTheme.headlineSmall),
+                      style: Theme.of(context).textTheme.headlineSmall,),
                   const SizedBox(height: 4),
                   Text(
                     formatINR(listing.price),
@@ -300,14 +300,14 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                   _SellerInfo(sellerId: seller.id),
                   const SizedBox(height: 16),
                   Text('About this item',
-                      style: Theme.of(context).textTheme.titleMedium),
+                      style: Theme.of(context).textTheme.titleMedium,),
                   const SizedBox(height: 8),
                   Text(product.description,
-                      style: Theme.of(context).textTheme.bodyMedium),
+                      style: Theme.of(context).textTheme.bodyMedium,),
                   if (product.specs.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text('Specifications',
-                        style: Theme.of(context).textTheme.titleMedium),
+                        style: Theme.of(context).textTheme.titleMedium,),
                     const SizedBox(height: 8),
                     ...product.specs.entries.map(
                       (e) => Padding(
@@ -322,14 +322,14 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                                       .bodyMedium
                                       ?.copyWith(
                                           color:
-                                              AppColors.textSecondary)),
+                                              AppColors.textSecondary,),),
                             ),
                             Text(e.value,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
                                     ?.copyWith(
-                                        fontWeight: FontWeight.w600)),
+                                        fontWeight: FontWeight.w600,),),
                           ],
                         ),
                       ),
@@ -447,11 +447,11 @@ class _SellerInfo extends ConsumerWidget {
                       Row(
                         children: [
                           Text(name,
-                              style: Theme.of(context).textTheme.titleSmall),
+                              style: Theme.of(context).textTheme.titleSmall,),
                           if (verified) ...[
                             const SizedBox(width: 4),
                             const Icon(Icons.verified,
-                                size: 16, color: AppColors.primary),
+                                size: 16, color: AppColors.primary,),
                           ],
                         ],
                       ),
@@ -514,7 +514,7 @@ class _BidSheetState extends State<_BidSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Make an offer',
-                style: Theme.of(context).textTheme.titleLarge),
+                style: Theme.of(context).textTheme.titleLarge,),
             const SizedBox(height: 4),
             Text(
               'Asking price: ${formatINR(widget.price)}. The seller can '

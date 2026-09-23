@@ -94,7 +94,7 @@ class FirestoreService {
   Future<void> updateNotificationSetting(String uid, bool enabled) {
     return _users.doc(uid).set({
       'settings': {'notifications': enabled},
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true),);
   }
 
   Stream<bool> watchNotificationSetting(String uid) {
@@ -121,7 +121,7 @@ class FirestoreService {
     await _users.doc(uid).set({
       'fcmTokens': FieldValue.arrayUnion([token]),
       'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true),);
   }
 
   // ── Notifications (in-app inbox) ───────────────────────────────────────
@@ -135,7 +135,7 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => AppNotification.fromFirestore(d.data(), d.id))
-            .toList());
+            .toList(),);
   }
 
   Future<void> markNotificationRead(String uid, String notificationId) {
@@ -167,8 +167,8 @@ class FirestoreService {
                   d.data(),
                   d.id,
                   currentUid: currentUid,
-                ))
-            .toList());
+                ),)
+            .toList(),);
   }
 
   Stream<Listing?> watchListing(String id, {String? currentUid}) {
@@ -183,7 +183,7 @@ class FirestoreService {
   }
 
   Stream<List<Listing>> watchCategoryListings(String categoryId,
-      {String? currentUid}) {
+      {String? currentUid,}) {
     return _listings
         .where('status', isEqualTo: 'live')
         .where('categoryId', isEqualTo: categoryId)
@@ -195,8 +195,8 @@ class FirestoreService {
                   d.data(),
                   d.id,
                   currentUid: currentUid,
-                ))
-            .toList());
+                ),)
+            .toList(),);
   }
 
   Stream<List<Listing>> watchSellerListings(String sellerId) {
@@ -207,7 +207,7 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => ListingFirestore.fromFirestore(d.data(), d.id))
-            .toList());
+            .toList(),);
   }
 
   /// Step 1 of the sell flow: creates a `draft` listing and returns its ID.
@@ -241,7 +241,7 @@ class FirestoreService {
 
   /// Step 2 of the sell flow: attaches uploaded photo URLs to the draft.
   Future<void> updateListingMedia(
-      String listingId, List<String> photoUrls) async {
+      String listingId, List<String> photoUrls,) async {
     await _listings.doc(listingId).update({'photos': photoUrls});
   }
 
@@ -259,7 +259,7 @@ class FirestoreService {
         .set({
       'pickupAddress': pickupAddress,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    }, SetOptions(merge: true),);
   }
 
   /// Streams the owner-only details for a listing (seller/admin view).
@@ -302,9 +302,9 @@ class FirestoreService {
                   d.data(),
                   d.id,
                   currentUid: uid,
-                ))
+                ),)
             .where((l) => l.status == ListingStatus.live)
-            .toList());
+            .toList(),);
   }
 
   // ── Bids (read-only; writes go through FunctionsService) ───────────────
@@ -317,7 +317,7 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => BidFirestore.fromFirestore(d.data(), d.id))
-            .toList());
+            .toList(),);
   }
 
   Stream<List<Bid>> watchOffersReceived(String uid) {
@@ -328,7 +328,7 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => BidFirestore.fromFirestore(d.data(), d.id))
-            .toList());
+            .toList(),);
   }
 
   Stream<List<Bid>> watchListingBids(String listingId) {
@@ -339,7 +339,7 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => BidFirestore.fromFirestore(d.data(), d.id))
-            .toList());
+            .toList(),);
   }
 
   // ── Orders (read-only; written by createCashfreeOrder) ────────────────
@@ -352,7 +352,7 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => OrderFirestore.fromFirestore(d.data(), d.id))
-            .toList());
+            .toList(),);
   }
 
   Stream<List<Order>> watchSellerOrders(String uid) {
@@ -363,7 +363,7 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => OrderFirestore.fromFirestore(d.data(), d.id))
-            .toList());
+            .toList(),);
   }
 
   Stream<Order?> watchOrder(String orderId) {
@@ -384,32 +384,32 @@ class FirestoreService {
             id: 'gaming',
             name: 'Gaming',
             slug: 'gaming',
-            icon: Category.iconKeyToIconData('gaming')),
+            icon: Category.iconKeyToIconData('gaming'),),
         Category(
             id: 'mobiles',
             name: 'Mobiles',
             slug: 'mobiles',
-            icon: Category.iconKeyToIconData('mobile')),
+            icon: Category.iconKeyToIconData('mobile'),),
         Category(
             id: 'laptops',
             name: 'Laptops',
             slug: 'laptops',
-            icon: Category.iconKeyToIconData('laptop')),
+            icon: Category.iconKeyToIconData('laptop'),),
         Category(
             id: 'cameras',
             name: 'Cameras',
             slug: 'cameras',
-            icon: Category.iconKeyToIconData('camera')),
+            icon: Category.iconKeyToIconData('camera'),),
         Category(
             id: 'music',
             name: 'Music',
             slug: 'music',
-            icon: Category.iconKeyToIconData('music')),
+            icon: Category.iconKeyToIconData('music'),),
         Category(
             id: 'others',
             name: 'Others',
             slug: 'others',
-            icon: Category.iconKeyToIconData('others')),
+            icon: Category.iconKeyToIconData('others'),),
       ];
 
   Stream<List<Category>> watchCategories() {

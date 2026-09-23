@@ -113,7 +113,7 @@ class _TrackingContent extends ConsumerWidget {
                           style: Theme.of(context)
                               .textTheme
                               .titleLarge
-                              ?.copyWith(color: AppColors.primary)),
+                              ?.copyWith(color: AppColors.primary),),
                       StatusChip.order(
                         order.status.label,
                         isTerminal: order.status.isTerminal,
@@ -182,7 +182,7 @@ class _TimelineTile extends StatelessWidget {
               ),
               child: done
                   ? const Icon(Icons.check,
-                      size: 14, color: Colors.white)
+                      size: 14, color: Colors.white,)
                   : null,
             ),
             if (!isLast)

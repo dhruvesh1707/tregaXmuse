@@ -79,7 +79,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     }
     if (address.length < 10) {
       setState(() =>
-          _error = 'Add a pickup address so we can collect the item.');
+          _error = 'Add a pickup address so we can collect the item.',);
       return;
     }
     if (uid == null) {
@@ -123,7 +123,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Listing submitted! Our team will review it before it goes live.'),
+              'Listing submitted! Our team will review it before it goes live.',),
           backgroundColor: AppColors.success,
         ),
       );
@@ -153,18 +153,18 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
             Container(
               margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12),
+                  horizontal: 14, vertical: 12,),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.08),
+                color: AppColors.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: AppColors.error.withOpacity(0.35)),
+                    color: AppColors.error.withValues(alpha: 0.35),),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(Icons.error_outline,
-                      color: AppColors.error, size: 20),
+                      color: AppColors.error, size: 20,),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -256,7 +256,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                                           height: 96,
                                           color: AppColors.primarySoft,
                                           child: const Icon(Icons.image,
-                                              color: AppColors.primary),
+                                              color: AppColors.primary,),
                                         ),
                                       ),
                                     ),
@@ -266,7 +266,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                                       child: GestureDetector(
                                         onTap: () => setState(() =>
                                             _pickedMedia
-                                                .removeAt(e.key)),
+                                                .removeAt(e.key),),
                                         child: Container(
                                           padding:
                                               const EdgeInsets.all(4),
@@ -305,13 +305,13 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                                     MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.add_a_photo_outlined,
-                                      color: AppColors.primary),
+                                      color: AppColors.primary,),
                                   SizedBox(height: 4),
                                   Text('Add',
                                       style: TextStyle(
                                           color: AppColors.primary,
                                           fontWeight:
-                                              FontWeight.w600)),
+                                              FontWeight.w600,),),
                                 ],
                               ),
                             ),
@@ -348,12 +348,12 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                       DropdownButtonFormField<String>(
                         initialValue: _categoryId,
                         decoration: const InputDecoration(
-                            labelText: 'Category'),
+                            labelText: 'Category',),
                         items: categories
                             .map((c) => DropdownMenuItem(
                                   value: c.id,
                                   child: Text(c.name),
-                                ))
+                                ),)
                             .toList(),
                         onChanged: (v) {
                           if (v != null) {
@@ -365,12 +365,12 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                       DropdownButtonFormField<Condition>(
                         initialValue: _condition,
                         decoration: const InputDecoration(
-                            labelText: 'Condition'),
+                            labelText: 'Condition',),
                         items: Condition.values
                             .map((c) => DropdownMenuItem(
                                   value: c,
                                   child: Text(c.label),
-                                ))
+                                ),)
                             .toList(),
                         onChanged: (v) {
                           if (v != null) {
@@ -430,7 +430,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                         children: [
                           const Icon(Icons.lock_outline,
                               size: 14,
-                              color: AppColors.textSecondary),
+                              color: AppColors.textSecondary,),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -445,7 +445,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                       SwitchListTile(
                         title: const Text('Negotiable'),
                         subtitle: const Text(
-                            'Bids & offers are on for this listing — no chats'),
+                            'Bids & offers are on for this listing — no chats',),
                         value: _negotiable,
                         activeThumbColor: AppColors.primary,
                         contentPadding: EdgeInsets.zero,

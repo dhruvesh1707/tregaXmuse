@@ -132,23 +132,23 @@ class HomeScreen extends ConsumerWidget {
           BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
-              label: 'Home'),
+              label: 'Home',),
           BottomNavigationBarItem(
               icon: Icon(Icons.search_outlined),
               activeIcon: Icon(Icons.search),
-              label: 'Search'),
+              label: 'Search',),
           BottomNavigationBarItem(
               icon: Icon(Icons.add_circle_outline),
               activeIcon: Icon(Icons.add_circle),
-              label: 'Sell'),
+              label: 'Sell',),
           BottomNavigationBarItem(
               icon: Icon(Icons.gavel_outlined),
               activeIcon: Icon(Icons.gavel),
-              label: 'Bids'),
+              label: 'Bids',),
           BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
-              label: 'Profile'),
+              label: 'Profile',),
         ],
       ),
     );

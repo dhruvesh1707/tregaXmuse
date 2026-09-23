@@ -24,7 +24,7 @@ class HelpScreen extends StatelessWidget {
       await launchUrl(uri);
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Email us at $_supportEmail')),
+        const SnackBar(content: Text('Email us at $_supportEmail')),
       );
     }
   }
@@ -87,12 +87,12 @@ class HelpScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.mail_outline,
-                    color: AppColors.primary),
+                    color: AppColors.primary,),
               ),
               title: const Text('Still need help?'),
-              subtitle: Text('Email us at $_supportEmail'),
+              subtitle: const Text('Email us at $_supportEmail'),
               trailing: const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary),
+                  color: AppColors.textSecondary,),
               onTap: () => _emailSupport(context),
             ),
           ),

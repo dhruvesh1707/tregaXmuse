@@ -89,7 +89,7 @@ class _NotificationsScreenState
                 if (snap.connectionState ==
                     ConnectionState.waiting) {
                   return const Center(
-                      child: CircularProgressIndicator());
+                      child: CircularProgressIndicator(),);
                 }
                 if (snap.hasError) {
                   return EmptyState(
@@ -127,7 +127,7 @@ class _NotificationsScreenState
                         tileColor: n.read
                             ? null
                             : AppColors.primarySoft
-                                .withOpacity(0.5),
+                                .withValues(alpha: 0.5),
                         leading: Container(
                           width: 44,
                           height: 44,
@@ -138,7 +138,7 @@ class _NotificationsScreenState
                           ),
                           child: Icon(
                               _iconForType(n.type),
-                              color: AppColors.primary),
+                              color: AppColors.primary,),
                         ),
                         title: Text(
                           n.title,
@@ -149,7 +149,7 @@ class _NotificationsScreenState
                           ),
                         ),
                         subtitle: Text(
-                            '${n.body}${time.isEmpty ? '' : '\n$time'}'),
+                            '${n.body}${time.isEmpty ? '' : '\n$time'}',),
                         isThreeLine: true,
                         onTap: n.read
                             ? null
