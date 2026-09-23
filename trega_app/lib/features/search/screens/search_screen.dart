@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
@@ -53,9 +52,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final results = liveAsync.when(
       data: (listings) => _applyFilters(listings),
       loading: () => const <Listing>[],
-      error: (_, __) => _applyFilters(SampleData.listings),
+      error: (_, __) => const <Listing>[],
     );
-    final demo = liveAsync.hasError;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Search')),
@@ -106,16 +104,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           Expanded(
             child: liveAsync.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : results.isEmpty
+                : liveAsync.hasError
                     ? Center(
                         child: Text(
-                          demo
-                              ? 'No results in demo data.'
-                              : 'No matches. Try another search.',
+                          'Couldn\'t load listings. Check your connection.',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       )
-                    : GridView.builder(
+                    : results.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No matches. Try another search.',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          )
+                        : GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate:
                   const SliverGridDelegateWithFixedCrossAxisCount(

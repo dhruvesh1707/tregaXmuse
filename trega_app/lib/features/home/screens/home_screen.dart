@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
@@ -21,10 +20,8 @@ import '../providers/listing_providers.dart';
 /// and the live listing feed.
 ///
 /// Data comes from Firestore (`listings` where `status == live`,
-/// `categories` where `active == true`). If Firestore is unreachable — e.g.
-/// `flutterfire configure` hasn't been run yet — the screen falls back to
-/// [SampleData] with a demo banner. Delete the fallback once the app is
-/// pointed at the real `tregaxmuse` project.
+/// `categories` where `active == true`). Errors surface an inline error
+/// state — no demo data is ever shown.
 class HomeScreen extends ConsumerWidget {
   static const String routeName = '/home';
 
@@ -34,8 +31,6 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final listingsAsync = ref.watch(liveListingsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
-
-    final usingDemoData = listingsAsync.hasError || categoriesAsync.hasError;
 
     return Scaffold(
       body: CustomScrollView(
@@ -59,8 +54,6 @@ class HomeScreen extends ConsumerWidget {
               ),
             ],
           ),
-          if (usingDemoData)
-            const SliverToBoxAdapter(child: _DemoDataBanner()),
           SliverToBoxAdapter(
             child: SectionHeader(
               title: 'Explore by Passion',
@@ -95,9 +88,12 @@ class HomeScreen extends ConsumerWidget {
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
-            error: (_, __) => _ListingGrid(
-              listings: SampleData.listings,
-              demo: true,
+            error: (_, __) => const SliverToBoxAdapter(
+              child: EmptyState(
+                icon: Icons.cloud_off_outlined,
+                title: 'Couldn\'t load listings',
+                subtitle: 'Check your connection and try again.',
+              ),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -148,37 +144,6 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-/// Shown only when Firestore is unreachable and demo data is displayed.
-class _DemoDataBanner extends StatelessWidget {
-  const _DemoDataBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accent),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Demo data — run "flutterfire configure --project=tregaxmuse" '
-              'to connect the live feed.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CategoryRail extends StatelessWidget {
   const _CategoryRail({required this.categoriesAsync});
 
@@ -186,7 +151,7 @@ class _CategoryRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categories = categoriesAsync.valueOrNull ?? SampleData.categories;
+    final categories = categoriesAsync.valueOrNull ?? const <Category>[];
     return SizedBox(
       height: 104,
       child: ListView.separated(
@@ -237,10 +202,9 @@ class _CategoryRail extends StatelessWidget {
 }
 
 class _ListingGrid extends StatelessWidget {
-  const _ListingGrid({required this.listings, this.demo = false});
+  const _ListingGrid({required this.listings});
 
   final List<Listing> listings;
-  final bool demo;
 
   @override
   Widget build(BuildContext context) {

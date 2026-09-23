@@ -2,21 +2,20 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
+import '../../../core/payments/cashfree_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/providers/listing_providers.dart';
+import '../../orders/screens/orders_screen.dart';
 
 /// Full listing page: media gallery (photos + video), condition badge,
 /// verified seller card, specs, and Buy / Make Offer / Place Bid actions.
 ///
-/// Streams the listing document from Firestore; falls back to [SampleData]
-/// with a demo banner when Firestore is unreachable (delete the fallback
-/// once `flutterfire configure --project=tregaxmuse` has been run).
+/// Streams the listing document from Firestore.
 ///
 /// TODO(detail): implement video playback with video_player when
 /// product.videoUrl is present.
@@ -73,12 +72,11 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
   }
 
   /// Starts checkout: creates a Cashfree order server-side, then hands the
-  /// `paymentSessionId` to the Cashfree SDK.
+  /// `paymentSessionId` to the Cashfree SDK drop checkout.
   ///
-  /// TODO(checkout): add the `cashfree_pg` package and call
-  /// `CFPaymentGatewayService().doPayment(CFPaymentSession(...))` with the
-  /// returned paymentSessionId. The `cashfreeWebhook` function flips the
-  /// order's `paymentStatus` on completion.
+  /// The SDK callback only drives UI — payment truth comes from the
+  /// `cashfreeWebhook` function flipping the order's `paymentStatus`, which
+  /// the Orders screen streams.
   Future<void> _buyNow(BuildContext context, Listing listing) async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) {
@@ -95,15 +93,33 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
           );
       if (!context.mounted) return;
       final sessionId = result['paymentSessionId'] as String?;
-      if (sessionId == null) throw StateError('no session');
-      // TODO(checkout): hand `sessionId` to the Cashfree SDK here.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Payment session ready (order ${result['orderId']}). '
-            'Complete checkout in the Cashfree SDK.',
-          ),
-        ),
+      final orderId = result['orderId'] as String?;
+      if (sessionId == null || orderId == null) {
+        throw StateError('no session');
+      }
+      // Merchant order id sent to Cashfree is `trega_<orderId>` (see
+      // trega_functions/src/payments.ts); prefer the backend-echoed value
+      // so the app keeps working if that format ever changes.
+      final cfOrderId =
+          (result['cfOrderRef'] as String?) ?? 'trega_$orderId';
+      CashfreeService().pay(
+        cfOrderId: cfOrderId,
+        paymentSessionId: sessionId,
+        onVerified: (_) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment done! Confirming your order...'),
+            ),
+          );
+          Navigator.of(context).pushReplacementNamed(OrdersScreen.routeName);
+        },
+        onError: (message, _) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Payment failed: $message')),
+          );
+        },
       );
     } catch (e) {
       if (!context.mounted) return;
@@ -125,7 +141,10 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
   Widget build(BuildContext context) {
     final listingId = widget.listingId;
     if (listingId == null) {
-      return _buildContent(context, SampleData.listings.first, demo: true);
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Listing not found.')),
+      );
     }
     final listingAsync = ref.watch(listingDetailProvider(listingId));
     return listingAsync.when(
@@ -139,36 +158,22 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
         appBar: AppBar(),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) =>
-          _buildContent(context, SampleData.listings.first, demo: true),
+      error: (_, __) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(
+          child: Text('Couldn\'t load this listing. Check your connection.'),
+        ),
+      ),
     );
   }
 
-  Widget _buildContent(BuildContext context, Listing listing,
-      {bool demo = false}) {
+  Widget _buildContent(BuildContext context, Listing listing) {
     final product = listing.product;
     final seller = listing.seller;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          if (demo)
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.accent),
-                  ),
-                  child: const Text('Demo data — connect Firestore for live.'),
-                ),
-              ),
-            ),
           SliverAppBar(
             expandedHeight: 320,
             pinned: true,

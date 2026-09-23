@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/user.dart';
@@ -108,7 +111,34 @@ class AuthService {
 
     // Create the users/{uid} doc on first sign-in; never overwrite existing.
     await _firestore.ensureUser(appUser.id, phone: appUser.phone);
+    // Register this device for push notifications (best-effort; never
+    // blocks sign-in). Token refreshes are picked up for the session.
+    unawaited(_registerFcmToken(appUser.id));
     return appUser;
+  }
+
+  /// Saves the FCM device token to the user doc. Skipped on web (needs a
+  /// VAPID key) — push targets Android/iOS in v1.
+  static bool _fcmRefreshHooked = false;
+
+  Future<void> _registerFcmToken(String uid) async {
+    try {
+      if (kIsWeb) return;
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission();
+      final token = await messaging.getToken();
+      if (token != null) {
+        await _firestore.saveFcmToken(uid, token);
+      }
+      if (!_fcmRefreshHooked) {
+        _fcmRefreshHooked = true;
+        messaging.onTokenRefresh.listen((t) {
+          _firestore.saveFcmToken(uid, t).catchError((_) {});
+        });
+      }
+    } catch (e) {
+      debugPrint('FCM token registration skipped: $e');
+    }
   }
 
   Future<void> signOut() => _auth.signOut();

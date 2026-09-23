@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../home/providers/listing_providers.dart';
@@ -68,39 +67,11 @@ class CategoryScreen extends ConsumerWidget {
                     ),
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
-              error: (_, __) {
-                final listings = SampleData.listings
-                    .where((l) => l.product.categoryId == categoryId)
-                    .toList();
-                return listings.isEmpty
-                    ? const EmptyState(
-                        icon: Icons.inventory_2_outlined,
-                        title: 'No listings yet',
-                        subtitle:
-                            'Be the first to list gear in this category.',
-                      )
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.68,
-                        ),
-                        itemCount: listings.length,
-                        itemBuilder: (context, i) {
-                          final listing = listings[i];
-                          return ProductCard(
-                            listing: listing,
-                            onTap: () => Navigator.of(context).pushNamed(
-                              ListingDetailScreen.routeName,
-                              arguments: listing.id,
-                            ),
-                          );
-                        },
-                      );
-              },
+              error: (_, __) => const EmptyState(
+                icon: Icons.cloud_off_outlined,
+                title: 'Couldn\'t load listings',
+                subtitle: 'Check your connection and try again.',
+              ),
             ),
     );
   }

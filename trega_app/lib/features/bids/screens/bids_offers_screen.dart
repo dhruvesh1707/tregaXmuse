@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/theme/app_theme.dart';
@@ -63,8 +62,8 @@ class BidsOffersScreen extends ConsumerWidget {
   }
 }
 
-/// Subscribes to a bid stream; falls back to [SampleData] with a demo flag
-/// when signed out or when Firestore is unreachable.
+/// Subscribes to a bid stream. Signed-out users get a sign-in prompt;
+/// stream errors surface an inline error state — no demo data is shown.
 class _BidListAsync extends ConsumerWidget {
   final Stream<List<Bid>>? stream;
   final String emptyTitle;
@@ -81,12 +80,10 @@ class _BidListAsync extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (stream == null) {
-      return _BidList(
-        bids: showActions ? SampleData.offersReceived : SampleData.myBids,
-        emptyTitle: emptyTitle,
-        emptySubtitle: emptySubtitle,
-        showActions: showActions,
-        demo: true,
+      return const EmptyState(
+        icon: Icons.login_outlined,
+        title: 'Sign in required',
+        subtitle: 'Sign in to see your bids and offers.',
       );
     }
     return StreamBuilder<List<Bid>>(
@@ -96,12 +93,10 @@ class _BidListAsync extends ConsumerWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snap.hasError) {
-          return _BidList(
-            bids: showActions ? SampleData.offersReceived : SampleData.myBids,
-            emptyTitle: emptyTitle,
-            emptySubtitle: emptySubtitle,
-            showActions: showActions,
-            demo: true,
+          return const EmptyState(
+            icon: Icons.cloud_off_outlined,
+            title: 'Couldn\'t load bids',
+            subtitle: 'Check your connection and try again.',
           );
         }
         return _BidList(
@@ -120,14 +115,12 @@ class _BidList extends ConsumerWidget {
   final String emptyTitle;
   final String emptySubtitle;
   final bool showActions;
-  final bool demo;
 
   const _BidList({
     required this.bids,
     required this.emptyTitle,
     required this.emptySubtitle,
     this.showActions = false,
-    this.demo = false,
   });
 
   Color _statusColor(BidStatus status) {
@@ -231,14 +224,7 @@ class _BidList extends ConsumerWidget {
                       .titleLarge
                       ?.copyWith(color: AppColors.primary),
                 ),
-                if (demo) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Demo data',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-                if (showActions && !demo && bid.status == BidStatus.open) ...[
+                if (showActions && bid.status == BidStatus.open) ...[
                   const SizedBox(height: 12),
                   Row(
                     children: [

@@ -6,9 +6,8 @@ import '../../../core/models/listing.dart';
 
 /// Live marketplace feed (listings with `status == live`).
 ///
-/// When Firestore is unreachable (e.g. `firebase_options.dart` not yet
-/// generated), consumers fall back to `SampleData` and show a demo banner —
-/// see [HomeScreen].
+/// Consumers show loading / error states from the [AsyncValue] — see
+/// [HomeScreen]. No demo data is ever shown.
 final liveListingsProvider = StreamProvider<List<Listing>>((ref) {
   final service = ref.watch(firestoreServiceProvider);
   final uid = ref.watch(currentUidProvider);

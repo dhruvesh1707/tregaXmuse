@@ -72,6 +72,16 @@ class FirestoreService {
     });
   }
 
+  /// Stores/refreshes the device's FCM push token on the user doc so
+  /// Cloud Functions can target this device with notifications.
+  /// Tokens are kept in an array — one user can have several devices.
+  Future<void> saveFcmToken(String uid, String token) async {
+    await _users.doc(uid).set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+      'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   // ── Listings ───────────────────────────────────────────────────────────
 
   /// Public feed: only `live` listings, newest first.

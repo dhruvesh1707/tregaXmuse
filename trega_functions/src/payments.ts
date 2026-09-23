@@ -48,7 +48,7 @@ function cashfreeHeaders(): Record<string, string> {
 export async function createCashfreeOrderHandler(
   uid: string,
   input: { listingId?: string; bidId?: string; customerPhone?: string }
-): Promise<{ paymentSessionId: string; orderId: string; cfOrderId: number }> {
+): Promise<{ paymentSessionId: string; orderId: string; cfOrderId: number; cfOrderRef: string }> {
   const db = admin.firestore();
   const { listingId, bidId } = input;
   if ((listingId ? 1 : 0) + (bidId ? 1 : 0) !== 1) {
@@ -152,6 +152,9 @@ export async function createCashfreeOrderHandler(
     paymentSessionId: cf.payment_session_id,
     orderId,
     cfOrderId: cf.cf_order_id,
+    // Merchant order id the SDK needs (echoed so the app never hardcodes
+    // the `trega_` prefix itself).
+    cfOrderRef: cfOrderIdStr,
   };
 }
 

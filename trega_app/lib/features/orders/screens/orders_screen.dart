@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/order.dart';
@@ -27,7 +26,15 @@ class OrdersScreen extends ConsumerWidget {
     final ordersAsync = uid == null ? null : service.watchMyOrders(uid);
 
     if (ordersAsync == null) {
-      return _OrdersList(orders: SampleData.orders, demo: true);
+      return const Scaffold(
+        body: SafeArea(
+          child: EmptyState(
+            icon: Icons.login_outlined,
+            title: 'Sign in required',
+            subtitle: 'Sign in to see your orders.',
+          ),
+        ),
+      );
     }
     return StreamBuilder<List<Order>>(
       stream: ordersAsync,
@@ -39,7 +46,14 @@ class OrdersScreen extends ConsumerWidget {
           );
         }
         if (snap.hasError) {
-          return _OrdersList(orders: SampleData.orders, demo: true);
+          return Scaffold(
+            appBar: AppBar(title: const Text('My Orders')),
+            body: const EmptyState(
+              icon: Icons.cloud_off_outlined,
+              title: 'Couldn\'t load orders',
+              subtitle: 'Check your connection and try again.',
+            ),
+          );
         }
         return _OrdersList(orders: snap.data ?? const []);
       },
@@ -49,9 +63,8 @@ class OrdersScreen extends ConsumerWidget {
 
 class _OrdersList extends StatelessWidget {
   final List<Order> orders;
-  final bool demo;
 
-  const _OrdersList({required this.orders, this.demo = false});
+  const _OrdersList({required this.orders});
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +83,7 @@ class _OrdersList extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final order = orders[i];
-                return _OrderCard(order: order, demo: demo);
+                return _OrderCard(order: order);
               },
             ),
     );
@@ -81,9 +94,8 @@ class _OrdersList extends StatelessWidget {
 /// (canonical order docs carry no listing snapshot).
 class _OrderCard extends ConsumerWidget {
   final Order order;
-  final bool demo;
 
-  const _OrderCard({required this.order, this.demo = false});
+  const _OrderCard({required this.order});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -103,28 +115,22 @@ class _OrderCard extends ConsumerWidget {
               Row(
                 children: [
                   Expanded(
-                    child: demo
-                        ? Text(
-                            order.listing.product.title,
+                    child: ref
+                        .watch(listingDetailProvider(listingId))
+                        .when(
+                          data: (listing) => Text(
+                            listing?.product.title ?? 'Listing $listingId',
                             style: Theme.of(context).textTheme.titleSmall,
-                          )
-                        : ref
-                            .watch(listingDetailProvider(listingId))
-                            .when(
-                              data: (listing) => Text(
-                                listing?.product.title ??
-                                    'Listing $listingId',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              loading: () => Text(
-                                'Listing $listingId',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              error: (_, __) => Text(
-                                'Listing $listingId',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                            ),
+                          ),
+                          loading: () => Text(
+                            'Listing $listingId',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          error: (_, __) => Text(
+                            'Listing $listingId',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
                   ),
                   StatusChip.order(
                     order.status.label,

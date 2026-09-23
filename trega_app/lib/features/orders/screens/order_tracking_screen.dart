@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_theme.dart';
@@ -11,8 +10,7 @@ import '../../home/providers/listing_providers.dart';
 
 /// Doorstep pickup + delivery tracking timeline for a single order.
 ///
-/// Streams `orders/{orderId}` from Firestore; falls back to [SampleData]
-/// when Firestore is unreachable.
+/// Streams `orders/{orderId}` from Firestore.
 class OrderTrackingScreen extends ConsumerWidget {
   static const String routeName = '/orders/tracking';
 
@@ -33,7 +31,10 @@ class OrderTrackingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final id = orderId;
     if (id == null) {
-      return _TrackingContent(order: SampleData.orders.first, demo: true);
+      return Scaffold(
+        appBar: AppBar(title: const Text('Track order')),
+        body: const Center(child: Text('Order not found.')),
+      );
     }
     final orderAsync = ref.watch(firestoreServiceProvider).watchOrder(id);
     return StreamBuilder<Order?>(
@@ -47,7 +48,13 @@ class OrderTrackingScreen extends ConsumerWidget {
         }
         final order = snap.data;
         if (order == null || snap.hasError) {
-          return _TrackingContent(order: SampleData.orders.first, demo: true);
+          return Scaffold(
+            appBar: AppBar(title: const Text('Track order')),
+            body: const Center(
+              child:
+                  Text('Couldn\'t load this order. Check your connection.'),
+            ),
+          );
         }
         return _TrackingContent(order: order);
       },
@@ -57,9 +64,8 @@ class OrderTrackingScreen extends ConsumerWidget {
 
 class _TrackingContent extends ConsumerWidget {
   final Order order;
-  final bool demo;
 
-  const _TrackingContent({required this.order, this.demo = false});
+  const _TrackingContent({required this.order});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,26 +83,23 @@ class _TrackingContent extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  demo
-                      ? Text(order.listing.product.title,
-                          style: Theme.of(context).textTheme.titleMedium)
-                      : ref
-                          .watch(listingDetailProvider(order.listing.id))
-                          .when(
-                            data: (listing) => Text(
-                              listing?.product.title ??
-                                  'Listing ${order.listing.id}',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            loading: () => Text(
+                  ref
+                      .watch(listingDetailProvider(order.listing.id))
+                      .when(
+                        data: (listing) => Text(
+                          listing?.product.title ??
                               'Listing ${order.listing.id}',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            error: (_, __) => Text(
-                              'Listing ${order.listing.id}',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        loading: () => Text(
+                          'Listing ${order.listing.id}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        error: (_, __) => Text(
+                          'Listing ${order.listing.id}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
                   const SizedBox(height: 4),
                   Text(
                     'Order ${order.id.toUpperCase()}${order.trackingId != null ? ' · ${order.trackingId}' : ''}',

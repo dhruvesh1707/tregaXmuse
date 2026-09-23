@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/data/sample_data.dart';
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -117,9 +117,9 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Firestore categories with a demo fallback; default the selection once.
+    // Firestore categories; default the selection once they load.
     final categories =
-        ref.watch(categoriesProvider).valueOrNull ?? SampleData.categories;
+        ref.watch(categoriesProvider).valueOrNull ?? const <Category>[];
     _categoryId ??= categories.isNotEmpty ? categories.first.id : null;
 
     return Scaffold(
