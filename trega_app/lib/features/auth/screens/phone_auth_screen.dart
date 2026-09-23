@@ -16,10 +16,13 @@ import 'profile_setup_screen.dart';
 /// (instant verification). On iOS sideloads without push entitlement,
 /// Firebase falls back to a reCAPTCHA check before sending the SMS.
 ///
-/// The in-flight OTP attempt (verificationId + phone) is persisted locally:
-/// if the OS kills the app mid-verification (e.g. during the iOS reCAPTCHA
-/// round-trip), the screen restores the OTP-entry state instead of dropping
-/// the user back at the phone-number step.
+/// The in-flight OTP attempt is persisted locally in two stages:
+/// the phone number is saved the moment "Send OTP" is tapped (before any
+/// reCAPTCHA can appear), and the verificationId is added when Firebase
+/// reports `codeSent`. If the OS kills the app mid-verification (e.g. during
+/// the iOS reCAPTCHA round-trip), the screen restores OTP entry when a
+/// verificationId exists, or offers a one-tap retry with the number
+/// prefilled when the kill happened before `codeSent`.
 ///
 /// After sign-in, first-time users (or users without a profile name) go
 /// through [ProfileSetupScreen]; returning users go straight home.
@@ -38,6 +41,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
 
   bool _otpSent = false;
   bool _loading = false;
+  bool _interrupted = false;
   String? _verificationId;
   String? _error;
 
@@ -55,15 +59,20 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   }
 
   /// Restores an OTP attempt that was interrupted (e.g. the app was killed
-  /// during the iOS reCAPTCHA round-trip) so the user lands on OTP entry,
-  /// not back at the phone-number step.
+  /// during the iOS reCAPTCHA round-trip). With a verificationId the user
+  /// lands on OTP entry; without one (kill happened before `codeSent`) the
+  /// phone number is prefilled and a retry banner is shown.
   Future<void> _restorePendingAttempt() async {
     final pending = await AuthService.loadPendingVerification();
     if (pending == null || !mounted) return;
     setState(() {
-      _otpSent = true;
-      _verificationId = pending.verificationId;
       _phoneController.text = pending.phoneNumber;
+      if (pending.verificationId != null) {
+        _otpSent = true;
+        _verificationId = pending.verificationId;
+      } else {
+        _interrupted = true;
+      }
     });
   }
 
@@ -76,7 +85,13 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _interrupted = false;
     });
+
+    // Remember the attempt BEFORE Firebase runs: on iOS the reCAPTCHA can
+    // appear immediately, and if the OS kills the app while it is up there
+    // is no verificationId yet to resume with.
+    await AuthService.savePendingAttempt(phoneNumber: phone);
 
     final auth = ref.read(authServiceProvider);
     await auth.sendOtp(
@@ -97,6 +112,9 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
       },
       onAutoVerified: (credential) => _signInWithCredential(credential, phone),
       onError: (message) {
+        // The attempt is dead (Firebase rejected it) — don't offer a retry
+        // banner for it on next launch.
+        AuthService.clearPendingVerification();
         if (!mounted) return;
         setState(() {
           _loading = false;
@@ -227,6 +245,20 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                     hintText: '6-digit code',
                   ),
                 ),
+              if (_interrupted && !_otpSent) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Your last verification was interrupted. Tap Send OTP to try again.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(

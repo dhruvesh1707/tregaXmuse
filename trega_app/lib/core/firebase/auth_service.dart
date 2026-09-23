@@ -44,8 +44,22 @@ class AuthService {
   /// live ~2 minutes; we allow a generous window for slow round-trips).
   static const _pendingTtl = Duration(minutes: 10);
 
+  /// Persists the phone number the moment the user taps "Send OTP" —
+  /// *before* Firebase runs. On iOS the reCAPTCHA can appear immediately,
+  /// and if the OS kills the app while it is up there is no verificationId
+  /// yet; the persisted phone still lets the UI offer a one-tap retry.
+  static Future<void> savePendingAttempt({
+    required String phoneNumber,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kPendingPhone, phoneNumber);
+    await prefs.setInt(
+        _kPendingTs, DateTime.now().millisecondsSinceEpoch);
+  }
+
   /// Persists an in-flight OTP attempt. Called when Firebase reports
-  /// `codeSent`.
+  /// `codeSent` (adds the verificationId to the attempt saved by
+  /// [savePendingAttempt]).
   static Future<void> savePendingVerification({
     required String verificationId,
     required String phoneNumber,
@@ -58,14 +72,17 @@ class AuthService {
   }
 
   /// Returns the persisted attempt, or `null` when there is none or it is
-  /// older than [_pendingTtl].
-  static Future<({String verificationId, String phoneNumber})?>
+  /// older than [_pendingTtl]. [verificationId] is null when the app was
+  /// killed before Firebase reported `codeSent` (e.g. during the iOS
+  /// reCAPTCHA); the phone number is still available so the UI can offer a
+  /// one-tap retry instead of a blank phone field.
+  static Future<({String? verificationId, String phoneNumber})?>
       loadPendingVerification() async {
     final prefs = await SharedPreferences.getInstance();
     final verificationId = prefs.getString(_kPendingVerificationId);
     final phone = prefs.getString(_kPendingPhone);
     final ts = prefs.getInt(_kPendingTs);
-    if (verificationId == null || phone == null || ts == null) return null;
+    if (phone == null || ts == null) return null;
     final age =
         DateTime.now().millisecondsSinceEpoch - ts;
     if (age > _pendingTtl.inMilliseconds) {
