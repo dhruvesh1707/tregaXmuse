@@ -26,6 +26,7 @@ import {
 } from "./payments";
 import {
   acceptBidHandler,
+  onBidCreateHandler,
   onListingCreateHandler,
   placeBidHandler,
   reviewListingHandler,
@@ -121,6 +122,17 @@ export const placeBid = onCall(async (request) => {
     amount: request.data?.amount,
   });
 });
+
+/**
+ * New bid → notifies the seller ("new bid") and the previous highest
+ * bidder if outbid. Single-field query inside; no composite index needed.
+ */
+export const onBidCreate = onDocumentCreated(
+  "bids/{bidId}",
+  async (event) => {
+    await onBidCreateHandler(event.params.bidId, event.data?.data());
+  }
+);
 
 export const acceptBid = onCall(async (request) => {
   const uid = requireAuthUid(request);

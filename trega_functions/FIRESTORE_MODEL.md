@@ -113,6 +113,22 @@ Never store `photo_link` / XML blobs here.
 | read | boolean | |
 | createdAt | timestamp | |
 
+### `users/{uid}/notifications/{id}` (server-written inbox)
+
+| Field | Type | Notes |
+|---|---|---|
+| title / body | string | |
+| type | string | `bid_received` \| `outbid` \| `bid_accepted` \| `bid_rejected` \| `listing_flagged` \| `order_update` \| legacy `bid`/`order`/`listing` |
+| read | boolean | clients may only flip this (see `firestore.rules`) |
+| createdAt | timestamp | |
+
+Writers (all in `trega_functions/src/marketplace.ts`):
+- `onBidCreate` trigger → `bid_received` to the seller; `outbid` to the
+  previous highest bidder when beaten.
+- `acceptBid` callable → `bid_accepted` to the winner ("pay within 24h");
+  `bid_rejected` to the auto-rejected losers.
+- `reviewListing` callable → `listing_flagged` to the seller on takedown.
+
 ### `reports/{listingId}_{reporterId}` (user-submitted, reactive moderation)
 
 | Field | Type | Notes |

@@ -32,6 +32,16 @@ class _NotificationsScreenState
 
   IconData _iconForType(String type) {
     switch (type) {
+      case 'bid_received':
+        return Icons.gavel;
+      case 'outbid':
+        return Icons.trending_up;
+      case 'bid_accepted':
+        return Icons.check_circle_outline;
+      case 'bid_rejected':
+        return Icons.cancel_outlined;
+      case 'listing_flagged':
+        return Icons.flag_outlined;
       case 'bid':
         return Icons.gavel;
       case 'order':

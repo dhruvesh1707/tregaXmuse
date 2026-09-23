@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -8,12 +9,14 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/providers/listing_providers.dart';
 
-/// Multi-step "Sell in 30 seconds" flow.
+/// Multi-step "Sell in 30 seconds" flow (OLX-style, category-first).
 ///
-/// Steps: 1) Photos & video  2) Details  3) Price & publish.
+/// Steps: 1) Category  2) Photos & video  3) Details  4) Price
+/// 5) Pickup address  6) Review & publish.
 ///
 /// Media is captured with the camera only — gallery uploads are disabled by
 /// policy (trust & safety). Media uploads to Firebase Storage
@@ -34,7 +37,39 @@ class SellFlowScreen extends ConsumerStatefulWidget {
   ConsumerState<SellFlowScreen> createState() => _SellFlowScreenState();
 }
 
+/// Formats a price field with Indian digit grouping (1,38,000) as you type.
+class _IndianGroupingFormatter extends TextInputFormatter {
+  static String group(String digits) {
+    if (digits.length <= 3) return digits;
+    final tail = digits.substring(digits.length - 3);
+    var head = digits.substring(0, digits.length - 3);
+    final parts = <String>[];
+    while (head.length > 2) {
+      parts.insert(0, head.substring(head.length - 2));
+      head = head.substring(0, head.length - 2);
+    }
+    if (head.isNotEmpty) parts.insert(0, head);
+    return '${parts.join(',')},$tail';
+  }
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return newValue.copyWith(text: '');
+    final formatted = group(digits);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
+  static const _lastStep = 5;
+
   int _step = 0;
 
   final _titleController = TextEditingController();
@@ -79,9 +114,86 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     setState(() => _pickedMedia.add(file));
   }
 
+  double? get _parsedPrice {
+    final digits = _priceController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return null;
+    return double.tryParse(digits);
+  }
+
+  Category? _selectedCategory(List<Category> categories) {
+    for (final c in categories) {
+      if (c.id == _categoryId) return c;
+    }
+    return null;
+  }
+
+  /// Median asking price of live listings in the chosen category, when
+  /// there are enough to be meaningful.
+  String? _similarPriceHint(List<Category> categories) {
+    if (_categoryId == null) return null;
+    final feed = ref.watch(liveListingsProvider).valueOrNull;
+    if (feed == null) return null;
+    final prices = feed
+        .where((l) => l.categoryId == _categoryId)
+        .map((l) => l.price)
+        .toList()
+      ..sort();
+    if (prices.length < 3) return null;
+    final median = prices[prices.length ~/ 2];
+    final name = _selectedCategory(categories)?.name ?? 'this category';
+    return 'Similar $name items are listed around ${formatINR(median)}';
+  }
+
+  /// Per-step validation when tapping Continue.
+  bool _validateStep(int step) {
+    switch (step) {
+      case 0:
+        if (_categoryId == null) {
+          setState(() => _error = 'Pick a category to continue.');
+          return false;
+        }
+        return true;
+      case 2:
+        if (_titleController.text.trim().isEmpty) {
+          setState(() => _error = 'Give your item a title.');
+          return false;
+        }
+        return true;
+      case 3:
+        final price = _parsedPrice;
+        if (price == null || price <= 0) {
+          setState(() => _error = 'Enter a valid price to continue.');
+          return false;
+        }
+        return true;
+      case 4:
+        if (_addrLine1Controller.text.trim().length < 6) {
+          setState(() => _error =
+              'Add your house/flat and street so we can pick up the item.',);
+          return false;
+        }
+        if (_addrCityController.text.trim().isEmpty) {
+          setState(() => _error = 'Add your city.');
+          return false;
+        }
+        if (!RegExp(r'^[1-9][0-9]{5}$')
+            .hasMatch(_addrPinController.text.trim())) {
+          setState(() => _error = 'Enter a valid 6-digit PIN code.');
+          return false;
+        }
+        if (_addrStateController.text.trim().isEmpty) {
+          setState(() => _error = 'Add your state.');
+          return false;
+        }
+        return true;
+      default:
+        return true; // photos (1) are optional; review (5) publishes.
+    }
+  }
+
   Future<void> _publish() async {
     final title = _titleController.text.trim();
-    final price = double.tryParse(_priceController.text.trim());
+    final price = _parsedPrice;
     final line1 = _addrLine1Controller.text.trim();
     final line2 = _addrLine2Controller.text.trim();
     final city = _addrCityController.text.trim();
@@ -178,11 +290,12 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Firestore categories; default the selection once they load.
-    // (Falls back to bundled defaults when the collection is empty.)
+    // Firestore categories; falls back to bundled defaults when the
+    // collection is empty.
     final categories =
         ref.watch(categoriesProvider).valueOrNull ?? const <Category>[];
-    _categoryId ??= categories.isNotEmpty ? categories.first.id : null;
+    final selectedCategory = _selectedCategory(categories);
+    final priceHint = _similarPriceHint(categories);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Sell an item')),
@@ -222,19 +335,31 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
               currentStep: _step,
               onStepTapped: (i) {
                 if (_publishing) return;
-                setState(() => _step = i);
+                setState(() {
+                  _step = i;
+                  _error = null;
+                });
               },
               onStepContinue: () {
                 if (_publishing) return;
-                if (_step < 2) {
-                  setState(() => _step += 1);
+                if (_step < _lastStep) {
+                  if (!_validateStep(_step)) return;
+                  setState(() {
+                    _step += 1;
+                    _error = null;
+                  });
                 } else {
                   _publish();
                 }
               },
               onStepCancel: () {
                 if (_publishing) return;
-                if (_step > 0) setState(() => _step -= 1);
+                if (_step > 0) {
+                  setState(() {
+                    _step -= 1;
+                    _error = null;
+                  });
+                }
               },
               controlsBuilder: (context, details) {
                 return Padding(
@@ -245,7 +370,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                         child: TregaButton(
                           label: _publishing
                               ? 'Publishing…'
-                              : (_step == 2
+                              : (_step == _lastStep
                                   ? 'Publish listing'
                                   : 'Continue'),
                           onPressed:
@@ -265,11 +390,36 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
               },
               steps: [
                 Step(
-                  title: const Text('Photos & video'),
-                  subtitle: const Text('Show the real product working'),
+                  title: const Text('Category'),
+                  subtitle: const Text('What are you selling?'),
                   isActive: _step >= 0,
                   state:
                       _step > 0 ? StepState.complete : StepState.indexed,
+                  content: Column(
+                    children: [
+                      for (final c in categories)
+                        _CategoryTile(
+                          name: c.name,
+                          selected: c.id == _categoryId,
+                          onTap: () => setState(() {
+                            _categoryId = c.id;
+                            _error = null;
+                          }),
+                        ),
+                      if (categories.isEmpty)
+                        Text(
+                          'Loading categories…',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                    ],
+                  ),
+                ),
+                Step(
+                  title: const Text('Photos & video'),
+                  subtitle: const Text('Show the real product working'),
+                  isActive: _step >= 1,
+                  state:
+                      _step > 1 ? StepState.complete : StepState.indexed,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -368,10 +518,10 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                 ),
                 Step(
                   title: const Text('Details'),
-                  subtitle: const Text('What are you selling?'),
-                  isActive: _step >= 1,
+                  subtitle: const Text('Describe your item'),
+                  isActive: _step >= 2,
                   state:
-                      _step > 1 ? StepState.complete : StepState.indexed,
+                      _step > 2 ? StepState.complete : StepState.indexed,
                   content: Column(
                     children: [
                       // Headroom so the floating labels are never clipped
@@ -385,23 +535,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                           labelText: 'Title',
                           hintText: 'e.g. Sony PS5 Disc Edition',
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _categoryId,
-                        decoration: const InputDecoration(
-                            labelText: 'Category',),
-                        items: categories
-                            .map((c) => DropdownMenuItem(
-                                  value: c.id,
-                                  child: Text(c.name),
-                                ),)
-                            .toList(),
-                        onChanged: (v) {
-                          if (v != null) {
-                            setState(() => _categoryId = v);
-                          }
-                        },
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<Condition>(
@@ -437,9 +570,11 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                   ),
                 ),
                 Step(
-                  title: const Text('Price & publish'),
-                  subtitle: const Text('Set your price'),
-                  isActive: _step >= 2,
+                  title: const Text('Price'),
+                  subtitle: const Text('Set your asking price'),
+                  isActive: _step >= 3,
+                  state:
+                      _step > 3 ? StepState.complete : StepState.indexed,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -447,18 +582,56 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                       TextField(
                         controller: _priceController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [_IndianGroupingFormatter()],
                         decoration: const InputDecoration(
                           labelText: 'Price',
                           prefixText: '₹ ',
-                          hintText: '35000',
+                          hintText: '35,000',
                         ),
+                        onChanged: (_) => setState(() {}),
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Pickup address',
-                        style: Theme.of(context).textTheme.titleSmall,
+                      if (priceHint != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.insights_outlined,
+                                size: 16,
+                                color: AppColors.textSecondary,),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                priceHint,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      SwitchListTile(
+                        title: const Text('Negotiable'),
+                        subtitle: const Text(
+                            'Let buyers send you offers on this price',),
+                        value: _negotiable,
+                        activeThumbColor: AppColors.primary,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (v) =>
+                            setState(() => _negotiable = v),
                       ),
-                      const SizedBox(height: 4),
+                    ],
+                  ),
+                ),
+                Step(
+                  title: const Text('Pickup address'),
+                  subtitle: const Text('Where do we collect it?'),
+                  isActive: _step >= 4,
+                  state:
+                      _step > 4 ? StepState.complete : StepState.indexed,
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
                       Text(
                         'Where should we collect the item once it sells?',
                         style: Theme.of(context).textTheme.bodySmall,
@@ -542,23 +715,26 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                           ),
                         ],
                       ),
-                      SwitchListTile(
-                        title: const Text('Negotiable'),
-                        subtitle: const Text(
-                            'Bids & offers are on for this listing — no chats',),
-                        value: _negotiable,
-                        activeThumbColor: AppColors.primary,
-                        contentPadding: EdgeInsets.zero,
-                        onChanged: (v) =>
-                            setState(() => _negotiable = v),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Your listing goes live the moment you publish. Our team monitors new listings and removes anything suspicious.',
-                        style:
-                            Theme.of(context).textTheme.bodySmall,
-                      ),
                     ],
+                  ),
+                ),
+                Step(
+                  title: const Text('Review'),
+                  subtitle: const Text('Check before you publish'),
+                  isActive: _step >= 5,
+                  state: StepState.indexed,
+                  content: _ReviewSummary(
+                    title: _titleController.text.trim(),
+                    categoryName:
+                        selectedCategory?.name ?? 'Not selected',
+                    conditionLabel: _condition.label,
+                    price: _parsedPrice,
+                    negotiable: _negotiable,
+                    description: _descriptionController.text.trim(),
+                    photoCount: _pickedMedia.length,
+                    addressLine:
+                        '${_addrLine1Controller.text.trim()}, ${_addrCityController.text.trim()} ${_addrPinController.text.trim()}'
+                            .trim(),
                   ),
                 ),
               ],
@@ -566,6 +742,165 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Single selectable row in the category-first step.
+class _CategoryTile extends StatelessWidget {
+  final String name;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryTile({
+    required this.name,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primarySoft : AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: selected ? AppColors.primary : AppColors.divider,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+      child: ListTile(
+        title: Text(
+          name,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight:
+                    selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+        ),
+        trailing: selected
+            ? const Icon(Icons.check_circle, color: AppColors.primary)
+            : const Icon(Icons.chevron_right,
+                color: AppColors.textSecondary,),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+/// Read-only summary shown on the final step before publishing.
+class _ReviewSummary extends StatelessWidget {
+  final String title;
+  final String categoryName;
+  final String conditionLabel;
+  final double? price;
+  final bool negotiable;
+  final String description;
+  final int photoCount;
+  final String addressLine;
+
+  const _ReviewSummary({
+    required this.title,
+    required this.categoryName,
+    required this.conditionLabel,
+    required this.price,
+    required this.negotiable,
+    required this.description,
+    required this.photoCount,
+    required this.addressLine,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    Widget row(String label, String value, {bool highlight = false}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 96,
+              child: Text(
+                label,
+                style: textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value.isEmpty ? '—' : value,
+                style: (highlight
+                        ? textTheme.titleMedium
+                        : textTheme.bodyLarge)
+                    ?.copyWith(
+                  fontWeight:
+                      highlight ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Column(
+            children: [
+              row('Photos', '$photoCount captured'),
+              const Divider(height: 1),
+              row('Title', title),
+              const Divider(height: 1),
+              row('Category', categoryName),
+              const Divider(height: 1),
+              row('Condition', conditionLabel),
+              const Divider(height: 1),
+              row(
+                'Price',
+                price == null
+                    ? ''
+                    : '${formatINR(price!)}${negotiable ? ' · Negotiable' : ''}',
+                highlight: true,
+              ),
+              if (description.isNotEmpty) ...[
+                const Divider(height: 1),
+                row(
+                  'Description',
+                  description.length > 120
+                      ? '${description.substring(0, 120)}…'
+                      : description,
+                ),
+              ],
+              const Divider(height: 1),
+              row('Pickup', addressLine),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.bolt_outlined,
+                size: 16, color: AppColors.primary,),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Your listing goes live the moment you publish. Our team reviews new listings after they go live and will notify you if anything needs attention.',
+                style: textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

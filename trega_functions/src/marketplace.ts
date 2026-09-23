@@ -4,6 +4,40 @@ import { HttpsError } from "firebase-functions/v2/https";
 export type ListingStatus = "draft" | "pending" | "live" | "sold" | "rejected";
 export type BidStatus = "open" | "accepted" | "rejected" | "expired" | "countered";
 
+/** Notification kinds written to `users/{uid}/notifications`. */
+export const NotificationType = {
+  bidReceived: "bid_received",
+  outbid: "outbid",
+  bidAccepted: "bid_accepted",
+  bidRejected: "bid_rejected",
+  listingFlagged: "listing_flagged",
+} as const;
+
+/** Queues one inbox notification on a write batch. */
+function queueNotification(
+  batch: admin.firestore.WriteBatch,
+  uid: string,
+  n: { type: string; title: string; body: string }
+): void {
+  batch.set(
+    admin
+      .firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("notifications")
+      .doc(),
+    {
+      ...n,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }
+  );
+}
+
+function formatINR(amount: number): string {
+  return `₹${Math.round(amount).toLocaleString("en-IN")}`;
+}
+
 /** Runs on every new listing: flips it live immediately (reactive
  * moderation — the team reviews new listings and flags suspicious ones
  * after the fact) and notifies the admin inbox. */
@@ -66,13 +100,85 @@ export async function reviewListingHandler(
   }
 
   const status: ListingStatus = decision === "approve" ? "live" : "rejected";
-  await ref.update({
+  const batch = db.batch();
+  batch.update(ref, {
     status,
     ...(decision === "approve"
       ? { liveAt: admin.firestore.FieldValue.serverTimestamp() }
       : { rejectionReason: reason!.trim() }),
   });
+  if (decision === "reject") {
+    const sellerId = snap.data()?.sellerId as string | undefined;
+    if (sellerId) {
+      queueNotification(batch, sellerId, {
+        type: NotificationType.listingFlagged,
+        title: "Your listing was flagged",
+        body: `“${snap.data()?.title ?? "Your listing"}” was taken down${
+          reason?.trim() ? `: ${reason!.trim()}` : "."
+        } Fix the issue and publish it again.`,
+      });
+    }
+  }
+  await batch.commit();
   return { status };
+}
+
+/**
+ * Runs on every new bid: notifies the seller, and notifies the previous
+ * highest bidder if they have just been outbid.
+ */
+export async function onBidCreateHandler(
+  bidId: string,
+  data: admin.firestore.DocumentData | undefined
+): Promise<void> {
+  if (!data) return;
+  const { listingId, buyerId, sellerId, amount } = data as {
+    listingId?: string;
+    buyerId?: string;
+    sellerId?: string;
+    amount?: number;
+  };
+  if (!listingId || !buyerId || typeof amount !== "number") return;
+
+  const db = admin.firestore();
+  const listingSnap = await db.collection("listings").doc(listingId).get();
+  const listingTitle =
+    (listingSnap.data()?.title as string | undefined) ?? "your listing";
+  const ownerId = (listingSnap.data()?.sellerId as string | undefined) ?? sellerId;
+
+  // Previous open bids on this listing (single-field query — no composite
+  // index needed; bid counts per listing are small).
+  const othersSnap = await db
+    .collection("bids")
+    .where("listingId", "==", listingId)
+    .get();
+  let prevHighest: { buyerId: string; amount: number } | null = null;
+  for (const doc of othersSnap.docs) {
+    if (doc.id === bidId) continue;
+    const b = doc.data();
+    if (b.status !== "open" || b.buyerId === buyerId) continue;
+    const amt = b.amount as number;
+    if (!prevHighest || amt > prevHighest.amount) {
+      prevHighest = { buyerId: b.buyerId as string, amount: amt };
+    }
+  }
+
+  const batch = db.batch();
+  if (ownerId && ownerId !== buyerId) {
+    queueNotification(batch, ownerId, {
+      type: NotificationType.bidReceived,
+      title: "New bid on your listing",
+      body: `${formatINR(amount)} offered on “${listingTitle}” — review it in Bids & offers.`,
+    });
+  }
+  if (prevHighest && amount > prevHighest.amount) {
+    queueNotification(batch, prevHighest.buyerId, {
+      type: NotificationType.outbid,
+      title: "You've been outbid",
+      body: `Someone bid ${formatINR(amount)} on “${listingTitle}” — place a higher bid to stay in the race.`,
+    });
+  }
+  await batch.commit();
 }
 
 /** Buyer places a structured offer/bid on a live listing. No chat involved. */
@@ -123,6 +229,12 @@ export async function acceptBidHandler(
   if (!bidId) throw new HttpsError("invalid-argument", "bidId is required.");
 
   const db = admin.firestore();
+  // Collected inside the transaction, written after it commits.
+  let winnerId = "";
+  let winnerAmount = 0;
+  let listingTitle = "the item";
+  const losers: Array<{ buyerId: string; amount: number }> = [];
+
   await db.runTransaction(async (tx) => {
     const bidRef = db.collection("bids").doc(bidId);
     const bidSnap = await tx.get(bidRef);
@@ -158,8 +270,33 @@ export async function acceptBidHandler(
         .where("status", "==", "open")
     );
     for (const doc of others.docs) {
-      if (doc.id !== bidId) tx.update(doc.ref, { status: "rejected" satisfies BidStatus });
+      if (doc.id !== bidId) {
+        tx.update(doc.ref, { status: "rejected" satisfies BidStatus });
+        losers.push({
+          buyerId: doc.data().buyerId as string,
+          amount: doc.data().amount as number,
+        });
+      }
     }
+
+    winnerId = bid.buyerId as string;
+    winnerAmount = bid.amount as number;
+    listingTitle = (listing.title as string | undefined) ?? listingTitle;
   });
+
+  const batch = db.batch();
+  queueNotification(batch, winnerId, {
+    type: NotificationType.bidAccepted,
+    title: "Your bid was accepted!",
+    body: `The seller accepted your ${formatINR(winnerAmount)} bid on “${listingTitle}” — complete the payment within 24 hours.`,
+  });
+  for (const loser of losers) {
+    queueNotification(batch, loser.buyerId, {
+      type: NotificationType.bidRejected,
+      title: "Bid not accepted",
+      body: `Your ${formatINR(loser.amount)} bid on “${listingTitle}” wasn't accepted — the item went to someone else.`,
+    });
+  }
+  await batch.commit();
   return { accepted: true as const };
 }
