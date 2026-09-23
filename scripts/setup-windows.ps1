@@ -1,4 +1,4 @@
-# Trega — Windows setup script
+# Trega - Windows setup script
 # Run once on your PC to clone (or update) the repo and prepare the Flutter app.
 # From PowerShell:  powershell -ExecutionPolicy Bypass -File scripts\setup-windows.ps1
 # If your folder isn't at the default location, pass it explicitly:
@@ -22,15 +22,15 @@ function Need($cmd, $hint) {
 Write-Host "== 1. Checking tools ==" -ForegroundColor Cyan
 Need flutter "Install Flutter: https://docs.flutter.dev/get-started/install/windows"
 Need git     "Install Git: https://git-scm.com/download/win"
-Need dart    "dart ships with Flutter — make sure Flutter's bin is on PATH"
+Need dart    "dart ships with Flutter - make sure Flutter's bin is on PATH"
 
 Write-Host "`n== 2. Getting the repo ==" -ForegroundColor Cyan
 if (Test-Path (Join-Path $TargetDir ".git")) {
-  Write-Host "Repo already cloned — pulling latest..."
+  Write-Host "Repo already cloned - pulling latest..."
   git -C $TargetDir pull
 } elseif ((Test-Path $TargetDir) -and ((Get-ChildItem $TargetDir -Force | Measure-Object).Count -gt 0)) {
   # ZIP download from GitHub: link the folder to the repo in place.
-  Write-Host "Folder exists but is not a git repo (ZIP download) — linking it to GitHub..."
+  Write-Host "Folder exists but is not a git repo (ZIP download) - linking it to GitHub..."
   git -C $TargetDir init -q
   git -C $TargetDir remote add origin $repoUrl 2>$null
   git -C $TargetDir fetch origin -q
@@ -53,7 +53,7 @@ if (-not (Test-Path (Join-Path $app "android"))) {
   Write-Host "Generating platform folders (project name 'trega' -> com.trega.trega)..."
   flutter create --org com.trega --project-name trega .
 } else {
-  Write-Host "android/ already exists — skipping flutter create"
+  Write-Host "android/ already exists - skipping flutter create"
 }
 
 Write-Host "`n== 4. flutterfire CLI ==" -ForegroundColor Cyan
@@ -70,7 +70,7 @@ if ($env:Path -notlike "*$pubBin*") {
   exit 1
 }
 
-Write-Host "`n== 5. Firebase config (interactive — pick Android, iOS, Web) ==" -ForegroundColor Cyan
+Write-Host "`n== 5. Firebase config (interactive - pick Android, iOS, Web) ==" -ForegroundColor Cyan
 flutterfire configure --project=tregaxmuse
 
 Write-Host "`n== 6. Packages + analyze ==" -ForegroundColor Cyan
