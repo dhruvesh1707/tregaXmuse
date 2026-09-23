@@ -1,0 +1,45 @@
+# Codemagic cloud-Mac build for Trega iOS.
+#
+# Why this exists: Flutter iOS builds require macOS/Xcode, so they can't be
+# produced on a Windows PC. This workflow builds an UNSIGNED release IPA on
+# a cloud Mac; the IPA is then sideloaded onto an iPhone with Sideloadly
+# (Windows), which signs it with a personal Apple ID.
+#
+# Prerequisites (one-time, on the dev PC):
+#   git add -f trega_app/ios trega_app/lib/firebase_options.dart
+#   git commit -m "Add iOS project and Firebase options for cloud build"
+#   git push
+# (-f is needed because the repo .gitignore keeps those generated files
+#  local-only; Codemagic needs them in the repo to build.)
+#
+# Then: codemagic.io -> Add application -> select tregaXmuse ->
+# Start new build -> workflow "ios-unsigned" -> download Trega-unsigned.ipa
+# from build artifacts.
+workflows:
+  ios-unsigned:
+    name: iOS unsigned IPA (for Sideloadly)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Flutter packages
+        script: |
+          cd trega_app
+          flutter pub get
+      - name: CocoaPods install
+        script: |
+          cd trega_app/ios
+          pod install --repo-update
+      - name: Build unsigned release IPA
+        script: |
+          cd trega_app
+          flutter build ios --release --no-codesign
+          rm -rf Payload Trega-unsigned.ipa
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -r -y Trega-unsigned.ipa Payload
+    artifacts:
+      - trega_app/Trega-unsigned.ipa
