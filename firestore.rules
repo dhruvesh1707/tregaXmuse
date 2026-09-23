@@ -42,9 +42,9 @@ service cloud.firestore {
     }
 
     // ── listings/{listingId} ─────────────────────────────────────
-    // Clients create drafts; onListingCreate moves them to pending for
-    // review, and reviewListing (admin callable) flips live/rejected.
-    // Clients never write `status` directly.
+    // Clients create drafts; onListingCreate flips them to live
+    // immediately (reactive moderation — the team flags suspicious
+    // listings after the fact). Clients never write `status` directly.
     match /listings/{listingId} {
       allow read: if true; // live listings are public; queries filter status
       allow create: if signedIn()
@@ -123,6 +123,19 @@ service cloud.firestore {
     match /kycVerifications/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
+    }
+
+    // ── reports/{reportId} ─────────────────────────────────────────
+    // User-submitted listing reports (reactive moderation). Doc ID is
+    // `{listingId}_{reporterId}` so each user reports a listing at most
+    // once. Clients create only; the team reads via the admin panel.
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.keys()
+            .hasAll(['listingId', 'reporterId', 'reason']);
+      allow update, delete: if false;
     }
 
     // ── adminNotifications/{id} ─────────────────────────────────

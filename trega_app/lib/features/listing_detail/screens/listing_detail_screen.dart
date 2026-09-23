@@ -20,12 +20,28 @@ import '../../orders/screens/orders_screen.dart';
 ///
 /// TODO(detail): implement video playback with video_player when
 /// product.videoUrl is present.
+/// Route arguments for [ListingDetailScreen].
+///
+/// Screens that already hold the full [Listing] (feed, search, wishlist)
+/// pass it as [initial] so the page paints on the first frame with zero
+/// loading state; the live stream then refreshes it in the background.
+class ListingDetailArgs {
+  final String listingId;
+  final Listing? initial;
+
+  const ListingDetailArgs({required this.listingId, this.initial});
+}
+
 class ListingDetailScreen extends ConsumerStatefulWidget {
   static const String routeName = '/listing';
 
   final String? listingId;
 
-  const ListingDetailScreen({super.key, this.listingId});
+  /// The listing object the caller already had, if any — used to paint the
+  /// first frame instantly while the live document streams in.
+  final Listing? initialListing;
+
+  const ListingDetailScreen({super.key, this.listingId, this.initialListing});
 
   @override
   ConsumerState<ListingDetailScreen> createState() =>
@@ -68,6 +84,54 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not place the bid. Try again.')),
+      );
+    }
+  }
+
+  /// Reports the listing to the Trega team (reactive moderation).
+  ///
+  /// Fixed reasons, one report per user per listing (enforced by the
+  /// `{listingId}_{uid}` doc ID in `reportListing`).
+  Future<void> _reportListing(BuildContext context, Listing listing) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to report a listing.')),
+      );
+      return;
+    }
+    if (listing.seller.id == uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("You can't report your own listing."),),
+      );
+      return;
+    }
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const _ReportSheet(),
+    );
+    if (reason == null || !mounted) return;
+    try {
+      await ref.read(firestoreServiceProvider).reportListing(
+            listingId: listing.id,
+            reporterId: uid,
+            reason: reason,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thanks — our team will review this listing.'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Couldn't submit the report. Try again."),),
       );
     }
   }
@@ -148,23 +212,32 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       );
     }
     final listingAsync = ref.watch(listingDetailProvider(listingId));
+    final initial = widget.initialListing;
     return listingAsync.when(
       data: (listing) => listing == null
-          ? Scaffold(
-              appBar: AppBar(),
-              body: const Center(child: Text('Listing not found.')),
-            )
+          ? (initial == null
+              ? Scaffold(
+                  appBar: AppBar(),
+                  body: const Center(child: Text('Listing not found.')),
+                )
+              : _buildContent(context, initial))
           : _buildContent(context, listing),
-      loading: () => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (_, __) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(
-          child: Text('Couldn\'t load this listing. Check your connection.'),
-        ),
-      ),
+      // Paint the known listing instantly; the stream fills in behind it.
+      loading: () => initial != null
+          ? _buildContent(context, initial)
+          : Scaffold(
+              appBar: AppBar(),
+              body: const Center(child: CircularProgressIndicator()),
+            ),
+      error: (_, __) => initial != null
+          ? _buildContent(context, initial)
+          : Scaffold(
+              appBar: AppBar(),
+              body: const Center(
+                child:
+                    Text('Couldn\'t load this listing. Check your connection.'),
+              ),
+            ),
     );
   }
 
@@ -255,6 +328,11 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                 onPressed: () {
                   // TODO: share trega://listing/<id> deep link.
                 },
+              ),
+              IconButton(
+                icon: const Icon(Icons.flag_outlined),
+                tooltip: 'Report listing',
+                onPressed: () => _reportListing(context, listing),
               ),
             ],
           ),
@@ -546,6 +624,59 @@ class _BidSheetState extends State<_BidSheet> {
                 Navigator.of(context).pop(amount);
               },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet for reporting a listing: fixed reasons, no free text.
+class _ReportSheet extends StatelessWidget {
+  const _ReportSheet();
+
+  static const _reasons = [
+    ('Spam or misleading', Icons.report_outlined),
+    ('Fraud or scam', Icons.warning_amber_outlined),
+    ('Inappropriate content', Icons.block_outlined),
+    ('Wrong category', Icons.category_outlined),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Report listing', style: textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              "What's wrong with this listing? Our team will review it.",
+              style: textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            for (final (label, icon) in _reasons)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(icon, color: AppColors.textSecondary),
+                title: Text(label, style: textTheme.bodyLarge),
+                onTap: () => Navigator.of(context).pop(label),
+              ),
           ],
         ),
       ),

@@ -31,24 +31,62 @@ class HelpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Help & Support')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          const _FaqTile(
-            question: 'How do bids & offers work?',
-            answer:
-                'Every listing has bidding switched on — there are no chats on Trega. '
-                'Tap “Place bid” on a listing, enter your offer, and the seller can accept or decline. '
-                'If your bid is accepted, you’ll be guided to payment within 24 hours.',
+          // ── Header ──────────────────────────────────────────────
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.support_agent_outlined,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'How can we help?',
+                        style: textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Answers to the most common questions about buying and selling on Trega.',
+                        style: textTheme.bodySmall?.copyWith(height: 1.45),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const _SectionLabel('Selling'),
           const _FaqTile(
             question: 'How does selling work?',
             answer:
-                'Tap Sell, capture your item with the camera, add details and a price, and publish. '
-                'Our team reviews every listing for accuracy before it goes live — usually within a few hours. '
-                'Once it sells, we collect the item from the pickup address you provided.',
+                'Tap Sell, capture your item with the camera, add details and a price, and publish — '
+                'your listing goes live immediately. Once it sells, we collect the item from the '
+                'pickup address you provided.',
           ),
           const _FaqTile(
             question: 'Is my address visible to buyers?',
@@ -62,12 +100,20 @@ class HelpScreen extends StatelessWidget {
                 'After we pick up your item and verify it matches the listing, the payout is released '
                 'to your registered bank account / UPI. You’ll get a notification at every step.',
           ),
+          const _SectionLabel('Bids & offers'),
           const _FaqTile(
-            question: 'Why was my listing rejected?',
+            question: 'How do bids & offers work?',
             answer:
-                'Listings are reviewed for accuracy and safety. Common reasons: blurry or misleading photos, '
-                'a price far from market value, a prohibited item, or missing details. '
-                'Fix the issue and publish again — or write to us below.',
+                'Every listing has bidding switched on — there are no chats on Trega. '
+                'Tap “Place bid” on a listing, enter your offer, and the seller can accept or decline. '
+                'If your bid is accepted, you’ll be guided to payment within 24 hours.',
+          ),
+          const _SectionLabel('Trust & safety'),
+          const _FaqTile(
+            question: 'Why was my listing flagged or removed?',
+            answer:
+                'Listings get flagged for misleading or blurry photos, prohibited items, a price far from '
+                'market value, or missing details. Fix the issue and publish again — or write to us below.',
           ),
           const _FaqTile(
             question: 'Is my Aadhaar data safe?',
@@ -77,27 +123,77 @@ class HelpScreen extends StatelessWidget {
                 'your Aadhaar number.',
           ),
           const SizedBox(height: 8),
-          Card(
+          // ── Contact card ────────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.divider),
+            ),
             child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: Container(
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.mail_outline,
-                    color: AppColors.primary,),
+                    color: Colors.white, size: 24,),
               ),
-              title: const Text('Still need help?'),
-              subtitle: const Text('Email us at $_supportEmail'),
-              trailing: const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary,),
+              title: Text(
+                'Still need help?',
+                style: textTheme.titleSmall,
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Write to us — we reply within a day.',
+                  style: textTheme.bodySmall,
+                ),
+              ),
+              trailing: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Email us',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.primaryDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
               onTap: () => _emailSupport(context),
             ),
           ),
-          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionLabel(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+      child: Text(
+        label.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
       ),
     );
   }
@@ -111,25 +207,36 @@ class _FaqTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ExpansionTile(
-        title: Text(
-          question,
-          style: Theme.of(context).textTheme.titleSmall,
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      // ExpansionTile draws hairline dividers above/below its children —
+      // hide them so they don't double up with the container border.
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding:
+              const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          iconColor: AppColors.primary,
+          collapsedIconColor: AppColors.textSecondary,
+          title: Text(question, style: textTheme.titleSmall),
+          children: [
+            Text(
+              answer,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.55,
+              ),
+            ),
+          ],
         ),
-        iconColor: AppColors.primary,
-        childrenPadding:
-            const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        children: [
-          Text(
-            answer,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
       ),
     );
   }

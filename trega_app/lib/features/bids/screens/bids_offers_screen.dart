@@ -199,7 +199,9 @@ class _BidList extends ConsumerWidget {
                         child: InkWell(
                           onTap: () => Navigator.of(context).pushNamed(
                             ListingDetailScreen.routeName,
-                            arguments: bid.listingId,
+                            arguments: ListingDetailArgs(
+                              listingId: bid.listingId,
+                            ),
                           ),
                           child: Text(
                             bid.listingTitle ?? 'Listing ${bid.listingId}',

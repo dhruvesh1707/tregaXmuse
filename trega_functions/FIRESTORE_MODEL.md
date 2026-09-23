@@ -42,16 +42,28 @@ Seed: Gaming, Mobile, Laptops, Cameras, Music, Others.
 | condition | string | `brand_new` \| `like_new` \| `good` \| `fair` |
 | photos | string[] | Storage URLs |
 | videoUrl | string? | Storage URL (video-verified listing) |
-| status | string | `draft` → `pending` → `live` → `sold`, or `rejected` |
-| rejectionReason | string? | set when rejected |
+| status | string | `draft` → `live` → `sold`, or `rejected` (`pending` kept for legacy docs) |
+| rejectionReason | string? | set when flagged/rejected |
 | acceptedBidId | string? | bids/{id} once seller accepts an offer |
 | viewCount | number | |
-| submittedAt / liveAt / soldAt | timestamp? | lifecycle markers |
+| liveAt / soldAt | timestamp? | lifecycle markers |
 | createdAt | timestamp | |
 
 Write rule of thumb: clients create with `status: "draft"`; the
-`onListingCreate` trigger moves it to `pending` and notifies admins.
-Only `reviewListing` (admin claim) may set `live`/`rejected`.
+`onListingCreate` trigger flips it to `live` immediately and notifies
+admins (reactive moderation — the team reviews new listings and flags
+suspicious ones after the fact). `reviewListing` (admin claim) may set
+`live`/`rejected` from `live` or legacy `pending`.
+
+### `listings/{id}/private/details` (owner-only)
+
+Never on the public listing doc. Readable only by the seller and admins
+(see `firestore.rules`).
+
+| Field | Type | Notes |
+|---|---|---|
+| pickupAddress | map | `line1`, `line2` (optional landmark), `city`, `state`, `pincode` |
+| updatedAt | timestamp | |
 
 ### `bids/{id}`
 | Field | Type | Notes |
@@ -100,6 +112,18 @@ Never store `photo_link` / XML blobs here.
 | title / message | string | |
 | read | boolean | |
 | createdAt | timestamp | |
+
+### `reports/{listingId}_{reporterId}` (user-submitted, reactive moderation)
+
+| Field | Type | Notes |
+|---|---|---|
+| listingId | string | |
+| reporterId | string | users/{uid} — must equal the writer's uid |
+| reason | string | fixed set: Spam or misleading / Fraud or scam / Inappropriate content / Wrong category |
+| createdAt | timestamp | |
+
+Doc ID guarantees one report per user per listing. Clients may only
+create; reads are admin-only (`firestore.rules`).
 
 ### `reviews/{id}`
 | Field | Type | Notes |

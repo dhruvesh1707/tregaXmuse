@@ -32,6 +32,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final listingsAsync = ref.watch(liveListingsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
+    final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
 
     return Scaffold(
       body: CustomScrollView(
@@ -46,10 +47,12 @@ class HomeScreen extends ConsumerWidget {
                     Navigator.of(context).pushNamed(SearchScreen.routeName),
               ),
               IconButton(
-                icon: const Badge(
-                  label: Text('3'),
-                  child: Icon(Icons.notifications_outlined),
-                ),
+                icon: unread > 0
+                    ? Badge(
+                        label: Text(unread > 99 ? '99+' : '$unread'),
+                        child: const Icon(Icons.notifications_outlined),
+                      )
+                    : const Icon(Icons.notifications_outlined),
                 onPressed: () => Navigator.of(context)
                     .pushNamed(NotificationsScreen.routeName),
               ),
@@ -242,7 +245,10 @@ class _ListingGrid extends StatelessWidget {
                 listing: listing,
                 onTap: () => Navigator.of(context).pushNamed(
                   ListingDetailScreen.routeName,
-                  arguments: listing.id,
+                  arguments: ListingDetailArgs(
+                    listingId: listing.id,
+                    initial: listing,
+                  ),
                 ),
               ),
             );

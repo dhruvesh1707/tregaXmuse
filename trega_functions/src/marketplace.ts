@@ -4,7 +4,9 @@ import { HttpsError } from "firebase-functions/v2/https";
 export type ListingStatus = "draft" | "pending" | "live" | "sold" | "rejected";
 export type BidStatus = "open" | "accepted" | "rejected" | "expired" | "countered";
 
-/** Runs on every new listing: moves it into the admin review queue. */
+/** Runs on every new listing: flips it live immediately (reactive
+ * moderation — the team reviews new listings and flags suspicious ones
+ * after the fact) and notifies the admin inbox. */
 export async function onListingCreateHandler(
   listingId: string,
   data: admin.firestore.DocumentData | undefined
@@ -16,22 +18,27 @@ export async function onListingCreateHandler(
   const listingRef = db.collection("listings").doc(listingId);
   if ((data.status as ListingStatus | undefined) === "draft") {
     batch.update(listingRef, {
-      status: "pending" satisfies ListingStatus,
-      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: "live" satisfies ListingStatus,
+      liveAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
   batch.set(db.collection("adminNotifications").doc(), {
     type: "listing_review",
     listingId,
     title: data.title ?? "New listing",
-    message: `New listing "${data.title ?? listingId}" needs review.`,
+    message: `New listing "${data.title ?? listingId}" is live — review and flag if suspicious.`,
     read: false,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   await batch.commit();
 }
 
-/** Admin-only: approve (go live) or reject (with reason) a listing. */
+/**
+ * Admin-only: flag/takedown flow for the reactive moderation model.
+ * Listings go live on publish; this callable lets the team pull a
+ * suspicious live listing (`reject`) — `approve` is a no-op on listings
+ * that are already live.
+ */
 export async function reviewListingHandler(
   isAdmin: boolean,
   input: { listingId?: string; decision?: string; reason?: string }
@@ -52,8 +59,10 @@ export async function reviewListingHandler(
   const ref = db.collection("listings").doc(listingId);
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "Listing not found.");
-  if (snap.data()?.status !== "pending") {
-    throw new HttpsError("failed-precondition", "Listing is not awaiting review.");
+  const current = snap.data()?.status as ListingStatus | undefined;
+  // `pending` is kept for legacy docs; live listings are flagged from `live`.
+  if (current !== "pending" && current !== "live") {
+    throw new HttpsError("failed-precondition", "Listing is not reviewable.");
   }
 
   const status: ListingStatus = decision === "approve" ? "live" : "rejected";

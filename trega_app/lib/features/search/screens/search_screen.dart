@@ -148,7 +148,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   listing: listing,
                   onTap: () => Navigator.of(context).pushNamed(
                     ListingDetailScreen.routeName,
-                    arguments: listing.id,
+                    arguments: ListingDetailArgs(
+                      listingId: listing.id,
+                      initial: listing,
+                    ),
                   ),
                 );
               },

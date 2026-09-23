@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,7 +12,7 @@ import '../../listing_detail/screens/listing_detail_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 
 /// "My Listings" — everything the signed-in user is selling, across all
-/// statuses (draft → in review → live → sold / rejected).
+/// statuses (live → sold, plus draft/flagged edge cases).
 ///
 /// Also the only place the seller can see their private pickup address
 /// (stored under `listings/{id}/private/details`, never public).
@@ -112,16 +113,13 @@ class MyListingsScreen extends ConsumerWidget {
                 child: Center(child: CircularProgressIndicator()),
               );
             }
-            final address =
-                snap.data?['pickupAddress'] as String?;
+            final raw = snap.data?['pickupAddress'];
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (address != null && address.isNotEmpty)
-                      ? address
-                      : 'No pickup address saved for this listing.',
+                  _formatPickupAddress(raw),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 12),
@@ -204,7 +202,10 @@ class MyListingsScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(16),
                         onTap: () => Navigator.of(context).pushNamed(
                           ListingDetailScreen.routeName,
-                          arguments: listing.id,
+                          arguments: ListingDetailArgs(
+                            listingId: listing.id,
+                            initial: listing,
+                          ),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -216,12 +217,12 @@ class MyListingsScreen extends ConsumerWidget {
                                 borderRadius:
                                     BorderRadius.circular(10),
                                 child: photo != null
-                                    ? Image.network(
-                                        photo,
+                                    ? CachedNetworkImage(
+                                        imageUrl: photo,
                                         width: 72,
                                         height: 72,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
+                                        errorWidget: (_, __, ___) =>
                                             _thumbFallback(),
                                       )
                                     : _thumbFallback(),
@@ -326,5 +327,31 @@ class MyListingsScreen extends ConsumerWidget {
       child:
           const Icon(Icons.image, color: AppColors.primary),
     );
+  }
+
+  /// Formats the stored pickup address. New listings store a structured
+  /// map (`line1`, `line2`, `city`, `state`, `pincode`); older ones may
+  /// still hold a plain string.
+  String _formatPickupAddress(Object? raw) {
+    if (raw is Map) {
+      final line1 = (raw['line1'] ?? '').toString().trim();
+      final line2 = (raw['line2'] ?? '').toString().trim();
+      final city = (raw['city'] ?? '').toString().trim();
+      final state = (raw['state'] ?? '').toString().trim();
+      final pin = (raw['pincode'] ?? '').toString().trim();
+      final lines = <String>[
+        if (line1.isNotEmpty) line1,
+        if (line2.isNotEmpty) line2,
+        [
+          if (city.isNotEmpty) city,
+          if (state.isNotEmpty) state,
+        ].join(', ') +
+            (pin.isNotEmpty ? ' — $pin' : ''),
+      ].where((l) => l.trim().isNotEmpty && l.trim() != '—').toList();
+      if (lines.isNotEmpty) return lines.join('\n');
+    } else if (raw is String && raw.trim().isNotEmpty) {
+      return raw.trim();
+    }
+    return 'No pickup address saved for this listing.';
   }
 }

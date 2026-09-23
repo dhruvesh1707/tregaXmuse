@@ -17,9 +17,9 @@ import '../models/user.dart';
 ///
 /// Write rules of thumb (enforced by `firestore.rules`):
 /// - Listings are created as `draft` via [createListingDraft]; the
-///   `onListingCreate` trigger moves them to `pending` for team review, and
-///   `reviewListing` (admin) flips them to `live`/`rejected`. Clients never
-///   write `status` directly.
+///   `onListingCreate` trigger flips them to `live` immediately — listings
+///   go public on publish, and the team flags suspicious ones after the
+///   fact (reactive moderation). Clients never write `status` directly.
 /// - Bids and orders are written ONLY by Cloud Functions callables
 ///   ([FunctionsService]) — never `set()`/`add()` from the client.
 /// - User docs are created once on sign-in; `role`/`verifiedSeller`/`kycStatus`
@@ -211,7 +211,7 @@ class FirestoreService {
   }
 
   /// Step 1 of the sell flow: creates a `draft` listing and returns its ID.
-  /// The `onListingCreate` trigger then moves it to `pending` for review.
+  /// The `onListingCreate` trigger flips it to `live` immediately.
   Future<String> createListingDraft({
     required String sellerId,
     required String title,
@@ -248,9 +248,12 @@ class FirestoreService {
   /// Owner-only listing data (pickup address). Stored under
   /// `listings/{id}/private/details` — readable only by the seller and
   /// admins (see `firestore.rules`), never by the public.
+  ///
+  /// The address is a structured map: `line1`, `line2` (optional landmark),
+  /// `city`, `state`, `pincode`.
   Future<void> saveListingPrivateDetails(
     String listingId, {
-    required String pickupAddress,
+    required Map<String, String> pickupAddress,
   }) {
     return _listings
         .doc(listingId)
@@ -442,6 +445,26 @@ class FirestoreService {
         return KycVerification(uid: uid);
       }
       return KycVerification.fromFirestore(doc.data()!, uid);
+    });
+  }
+
+  // ── Reports (reactive moderation) ──────────────────────────────────────
+
+  /// Reports a listing for team review.
+  ///
+  /// The doc ID `{listingId}_{reporterId}` guarantees one report per user
+  /// per listing without needing a query. Clients can only create; reads
+  /// are admin-only (see firestore.rules).
+  Future<void> reportListing({
+    required String listingId,
+    required String reporterId,
+    required String reason,
+  }) {
+    return _db.collection('reports').doc('${listingId}_$reporterId').set({
+      'listingId': listingId,
+      'reporterId': reporterId,
+      'reason': reason,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 }

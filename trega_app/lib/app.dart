@@ -59,8 +59,17 @@ class TregaApp extends StatelessWidget {
         final args = settings.arguments as CategoryArgs?;
         builder = (_) => CategoryScreen(args: args);
       case ListingDetailScreen.routeName:
-        final listingId = settings.arguments as String?;
-        builder = (_) => ListingDetailScreen(listingId: listingId);
+        final args = settings.arguments;
+        if (args is ListingDetailArgs) {
+          builder = (_) => ListingDetailScreen(
+                listingId: args.listingId,
+                initialListing: args.initial,
+              );
+        } else {
+          // Back-compat: older callers pass a raw listing id string.
+          builder =
+              (_) => ListingDetailScreen(listingId: args as String?);
+        }
       case SellFlowScreen.routeName:
         builder = (_) => const SellFlowScreen();
       case BidsOffersScreen.routeName:

@@ -17,10 +17,14 @@ import '../../home/providers/listing_providers.dart';
 ///
 /// Media is captured with the camera only — gallery uploads are disabled by
 /// policy (trust & safety). Media uploads to Firebase Storage
-/// (`listingMedia/{listingId}/…`), then the URLs are attached to a `draft`
-/// listing document in Firestore — it goes live only after the admin panel
-/// approves it. The pickup address is stored under
-/// `listings/{id}/private/details` (seller + admin eyes only, never public).
+/// (`listingMedia/{listingId}/…`), then the URLs are attached to the
+/// listing document in Firestore, which the `onListingCreate` trigger flips
+/// to `live` immediately — no pre-review gate. The team monitors new
+/// listings and flags/removes suspicious ones after the fact.
+///
+/// The pickup address is captured as structured fields (street, landmark,
+/// city, state, PIN) and stored under `listings/{id}/private/details`
+/// (seller + admin eyes only, never public).
 class SellFlowScreen extends ConsumerStatefulWidget {
   static const String routeName = '/sell';
 
@@ -36,7 +40,14 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  final _addressController = TextEditingController();
+  // Structured pickup address (India): house/street, landmark, city,
+  // state, PIN — separate fields like other marketplace apps, so the
+  // team can actually route a pickup from it.
+  final _addrLine1Controller = TextEditingController();
+  final _addrLine2Controller = TextEditingController();
+  final _addrCityController = TextEditingController();
+  final _addrStateController = TextEditingController();
+  final _addrPinController = TextEditingController();
 
   String? _categoryId;
   Condition _condition = Condition.likeNew;
@@ -51,7 +62,11 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
-    _addressController.dispose();
+    _addrLine1Controller.dispose();
+    _addrLine2Controller.dispose();
+    _addrCityController.dispose();
+    _addrStateController.dispose();
+    _addrPinController.dispose();
     super.dispose();
   }
 
@@ -67,7 +82,11 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   Future<void> _publish() async {
     final title = _titleController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
-    final address = _addressController.text.trim();
+    final line1 = _addrLine1Controller.text.trim();
+    final line2 = _addrLine2Controller.text.trim();
+    final city = _addrCityController.text.trim();
+    final state = _addrStateController.text.trim();
+    final pin = _addrPinController.text.trim();
     final uid = ref.read(currentUidProvider);
     if (title.isEmpty || price == null || price <= 0) {
       setState(() => _error = 'Add a title and a valid price to continue.');
@@ -77,9 +96,22 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       setState(() => _error = 'Pick a category for your listing.');
       return;
     }
-    if (address.length < 10) {
-      setState(() =>
-          _error = 'Add a pickup address so we can collect the item.',);
+    if (line1.length < 6) {
+      setState(() => _error =
+          'Add your house/flat and street so we can pick up the item.',);
+      return;
+    }
+    if (city.isEmpty) {
+      setState(() => _error = 'Add your city.');
+      return;
+    }
+    if (state.isEmpty) {
+      setState(() => _error = 'Add your state.');
+      return;
+    }
+    if (!RegExp(r'^[1-9][0-9]{5}$').hasMatch(pin)) {
+      setState(
+          () => _error = 'Enter a valid 6-digit PIN code.',);
       return;
     }
     if (uid == null) {
@@ -94,8 +126,10 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       final firestore = ref.read(firestoreServiceProvider);
       final storage = ref.read(storageServiceProvider);
 
-      // 1) Create a draft listing doc (status = draft). The
-      //    `onListingCreate` trigger moves it to `pending` for team review.
+      // 1) Create the listing doc (status = draft). The
+      //    `onListingCreate` trigger flips it to `live` immediately —
+      //    listings go public on publish; the team flags suspicious ones
+      //    after the fact.
       final listingId = await firestore.createListingDraft(
         sellerId: uid,
         title: title,
@@ -106,7 +140,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
         negotiable: _negotiable,
       );
 
-      // 2) Upload media to Storage, then attach URLs to the draft.
+      // 2) Upload media to Storage, then attach URLs to the listing.
       if (_pickedMedia.isNotEmpty) {
         final imageUrls =
             await storage.uploadListingImages(listingId, _pickedMedia);
@@ -116,14 +150,19 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       // 3) Owner-only pickup address — never on the public listing doc.
       await firestore.saveListingPrivateDetails(
         listingId,
-        pickupAddress: address,
+        pickupAddress: {
+          'line1': line1,
+          'line2': line2,
+          'city': city,
+          'state': state,
+          'pincode': pin,
+        },
       );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Listing submitted! Our team will review it before it goes live.',),
+          content: Text('Your listing is now live!'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -335,6 +374,9 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                       _step > 1 ? StepState.complete : StepState.indexed,
                   content: Column(
                     children: [
+                      // Headroom so the floating labels are never clipped
+                      // against the step header.
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _titleController,
                         textCapitalization:
@@ -401,6 +443,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _priceController,
                         keyboardType: TextInputType.number,
@@ -410,17 +453,74 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                           hintText: '35000',
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Pickup address',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Where should we collect the item once it sells?',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                       const SizedBox(height: 12),
                       TextField(
-                        controller: _addressController,
-                        maxLines: 3,
+                        controller: _addrLine1Controller,
                         textCapitalization:
                             TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                          labelText: 'Pickup address',
-                          hintText:
-                              'Flat, street, area, city, PIN',
-                          alignLabelWithHint: true,
+                          labelText: 'House / Flat, Street',
+                          hintText: 'B-402, Green Acres, MG Road',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _addrLine2Controller,
+                        textCapitalization:
+                            TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Landmark (optional)',
+                          hintText: 'Near City Mall',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: _addrCityController,
+                              textCapitalization:
+                                  TextCapitalization.words,
+                              decoration: const InputDecoration(
+                                labelText: 'City',
+                                hintText: 'Pune',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: TextField(
+                              controller: _addrPinController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'PIN code',
+                                hintText: '411001',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _addrStateController,
+                        textCapitalization:
+                            TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'State',
+                          hintText: 'Maharashtra',
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -454,7 +554,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Every new listing is reviewed by our team before it goes live, so listings stay accurate.',
+                        'Your listing goes live the moment you publish. Our team monitors new listings and removes anything suspicious.',
                         style:
                             Theme.of(context).textTheme.bodySmall,
                       ),

@@ -104,7 +104,10 @@ class _WishlistGrid extends StatelessWidget {
                     listing: listing,
                     onTap: () => Navigator.of(context).pushNamed(
                       ListingDetailScreen.routeName,
-                      arguments: listing.id,
+                      arguments: ListingDetailArgs(
+                        listingId: listing.id,
+                        initial: listing,
+                      ),
                     ),
                   ),
                 );

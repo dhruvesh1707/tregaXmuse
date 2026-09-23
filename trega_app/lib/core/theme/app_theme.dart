@@ -141,16 +141,21 @@ ThemeData buildTregaTheme() {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      // Extra headroom above the field: the floating label sits ~8px above
+      // the border, and tight parents (Stepper content, dense columns)
+      // otherwise clip its top edge.
+      contentPadding:
+          const EdgeInsets.fromLTRB(16, 20, 16, 16),
       hintStyle: const TextStyle(color: AppColors.textSecondary),
       labelStyle: const TextStyle(color: AppColors.textSecondary),
-      // The floating label sits on the outline border; painting the field
-      // fill colour behind it punches a clean "cutout" so glyphs are never
-      // clipped by the border (seen on the sell-flow Title/Price fields).
+      // NOTE: no backgroundColor on the floating label. Material 3's
+      // InputDecorator already cuts a clean gap in the outline behind the
+      // label; painting a background box on top of that is what made the
+      // sell-flow Title/Price labels look sliced.
       floatingLabelStyle: const TextStyle(
         color: AppColors.primary,
         fontSize: 12,
-        backgroundColor: AppColors.surface,
+        fontWeight: FontWeight.w600,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),

@@ -4,9 +4,11 @@ import 'user.dart';
 
 /// Lifecycle of a listing, matching the Cloud Functions data model.
 ///
-/// Clients create listings as [draft]; the `onListingCreate` trigger moves
-/// them to [pending] for team review, and `reviewListing` (admin) flips them
-/// to [live] or [rejected]. Clients never write status directly.
+/// Clients create listings as [draft]; the `onListingCreate` trigger flips
+/// them to [live] immediately (reactive moderation — the team flags
+/// suspicious listings after the fact). [pending] is kept only for legacy
+/// docs; [rejected] is now the flag/takedown state. Clients never write
+/// status directly.
 enum ListingStatus {
   draft,
   pending,
@@ -125,7 +127,8 @@ class Listing {
 /// (`~/workspace/trega/trega_functions/FIRESTORE_MODEL.md`):
 /// `sellerId`, `title`, `description`, `categoryId`, `price`,
 /// `condition` (`brand_new`…), `photos[]`, `videoUrl?`, `status`
-/// (`draft`→`pending`→`live`→`sold`/`rejected`), `viewCount`, `createdAt`.
+/// (`draft`→`live` immediately on publish; `pending` legacy;
+/// `sold`/`rejected`), `viewCount`, `createdAt`.
 ///
 /// Additive (client-managed) fields not in the canonical doc:
 /// `likedBy[]` / `likesCount` (wishlist). `negotiable`/`biddingEnabled` are
