@@ -318,8 +318,10 @@ static bool _isValidUpi(String upi) =>
     final me = await ref.read(firestoreServiceProvider).getUser(uid);
     if (me == null || !me.isKycVerified) {
       if (!mounted) return;
-      setState(() => _error =
-          'Verify your Aadhaar to sell on Trega. It takes a minute.');
+      setState(
+        () => _error =
+            'Verify your Aadhaar to sell on Trega. It takes a minute.',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Aadhaar verification is required to sell.'),

@@ -84,7 +84,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     if (uid != null) {
       final me = await ref.read(firestoreServiceProvider).getUser(uid);
       if (me == null || !me.isKycVerified) {
-        if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Verify your Aadhaar to make an offer.'),
@@ -95,6 +95,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       }
     }
 
+    if (!context.mounted) return;
     final amount = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
@@ -106,12 +107,12 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
             listingId: listing.id,
             amount: amount,
           );
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Your offer was sent to the seller.')),
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(functionsErrorMessage(e,
@@ -154,14 +155,14 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
             reporterId: uid,
             reason: reason,
           );
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Thanks — our team will review this listing.'),
         ),
       );
     } catch (_) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text("Couldn't submit the report. Try again."),),
