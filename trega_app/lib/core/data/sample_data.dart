@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 
 import '../models/bid.dart';
