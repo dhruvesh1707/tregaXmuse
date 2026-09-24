@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
@@ -46,8 +46,11 @@ class CashfreeService {
           .setOrderId(cfOrderId)
           .setPaymentSessionId(paymentSessionId)
           .build();
-      final payment =
-          CFWebCheckoutPaymentBuilder().setSession(session).build();
+      // Native drop-checkout UI is required for Trega (not the web
+      // checkout the SDK now prefers). The builder is deprecated but still
+      // functional in 2.4.0+52, so the deprecation is ignored intentionally.
+      // ignore: deprecated_member_use
+      final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
       CFPaymentGatewayService().setCallback(
         (orderId) => onVerified(orderId),
         // The error callback receives a CFErrorResponse (not CFException);
