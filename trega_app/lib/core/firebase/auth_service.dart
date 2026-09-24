@@ -229,6 +229,11 @@ class AuthService {
         return 'Too many attempts. Please wait a few minutes and try again.';
       case 'quota-exceeded':
         return 'SMS quota exceeded. Please try again later.';
+      case 'operation-not-allowed':
+        // Thrown when the Firebase console's SMS region policy blocks the
+        // destination region (Authentication → Settings → SMS region
+        // policy). Nothing the app can do — the region must be allowlisted.
+        return 'SMS sign-in is blocked for this region in the Firebase console. Please contact support.';
       default:
         return 'Could not send OTP (${e.code}). Please try again.';
     }

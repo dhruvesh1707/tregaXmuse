@@ -349,20 +349,40 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
   @override
   Widget build(BuildContext context) {
     final hasAvatar = widget.avatarUrl?.isNotEmpty ?? false;
+    const fallbackIcon = Icon(
+      PhosphorIconsRegular.user,
+      size: 36,
+      color: AppColors.primary,
+    );
+    // A dead avatar URL (deleted object, revoked token, blocked read)
+    // must fall back to the default icon — CircleAvatar's backgroundImage
+    // has no error slot and renders a broken tile instead.
     return Stack(
       children: [
-        CircleAvatar(
-          radius: 32,
-          backgroundColor: AppColors.primarySoft,
-          backgroundImage:
-              hasAvatar ? CachedNetworkImageProvider(widget.avatarUrl!) : null,
-          child: hasAvatar
-              ? null
-              : const Icon(
-                  PhosphorIconsRegular.user,
-                  size: 36,
-                  color: AppColors.primary,
-                ),
+        SizedBox(
+          width: 64,
+          height: 64,
+          child: ClipOval(
+            child: hasAvatar
+                ? CachedNetworkImage(
+                    imageUrl: widget.avatarUrl!,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      color: AppColors.primarySoft,
+                      child: fallbackIcon,
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      color: AppColors.primarySoft,
+                      child: fallbackIcon,
+                    ),
+                  )
+                : Container(
+                    color: AppColors.primarySoft,
+                    child: fallbackIcon,
+                  ),
+          ),
         ),
         if (_uploading)
           const Positioned.fill(

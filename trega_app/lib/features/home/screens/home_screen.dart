@@ -63,10 +63,7 @@ class HomeScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: SectionHeader(
               title: 'Explore by Passion',
-              onSeeAll: () => _showAllCategories(
-                context,
-                categoriesAsync.valueOrNull ?? const <Category>[],
-              ),
+              onSeeAll: () => _showAllCategories(context),
             ),
           ),
           SliverToBoxAdapter(
@@ -163,7 +160,12 @@ class HomeScreen extends ConsumerWidget {
 
 /// "See all" for Explore by Passion: a bottom sheet with every category.
 /// Tapping a category opens its listings on the CategoryScreen.
-void _showAllCategories(BuildContext context, List<Category> categories) {
+///
+/// The sheet watches [categoriesProvider] itself instead of taking a
+/// snapshot of the list at tap time: on a cold start (or slow network)
+/// the categories may still be loading when the user taps "See all", and
+/// a snapshot would render a permanently empty sheet.
+void _showAllCategories(BuildContext context) {
   showCupertinoModalBottomSheet<void>(
     context: context,
     builder: (sheetContext) => SafeArea(
@@ -180,28 +182,47 @@ void _showAllCategories(BuildContext context, List<Category> categories) {
             ),
           ),
           Flexible(
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: categories.length,
-              itemBuilder: (context, i) {
-                final category = categories[i];
-                return ListTile(
-                  leading: Icon(
-                    category.icon,
-                    color: AppColors.primary,
+            child: Consumer(
+              builder: (context, ref, _) {
+                final categoriesAsync = ref.watch(categoriesProvider);
+                return categoriesAsync.when(
+                  data: (categories) => ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: categories.length,
+                    itemBuilder: (context, i) {
+                      final category = categories[i];
+                      return ListTile(
+                        leading: Icon(
+                          category.icon,
+                          color: AppColors.primary,
+                        ),
+                        title: Text(category.name),
+                        trailing:
+                            const Icon(PhosphorIconsRegular.caretRight),
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          Navigator.of(context).pushNamed(
+                            CategoryScreen.routeName,
+                            arguments: CategoryArgs(
+                              categoryId: category.id,
+                              categoryName: category.name,
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
-                  title: Text(category.name),
-                  trailing: const Icon(PhosphorIconsRegular.caretRight),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    Navigator.of(context).pushNamed(
-                      CategoryScreen.routeName,
-                      arguments: CategoryArgs(
-                        categoryId: category.id,
-                        categoryName: category.name,
-                      ),
-                    );
-                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (_, __) => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      "Couldn't load categories. Please try again.",
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 );
               },
             ),
