@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -255,10 +256,11 @@ class _MenuTile extends StatelessWidget {
 }
 
 
-/// Profile photo editor: tap the camera badge to capture a new photo
-/// (camera only, per Trega policy — no gallery uploads), upload it to
-/// Firebase Storage, and save the URL on the user doc. Cloud-stored, so
-/// the photo survives reinstalls.
+/// Profile photo editor: tap the camera badge to take a photo or choose
+/// one from the gallery (the ONLY place gallery upload is allowed — the
+/// sell flow stays camera-only), crop it square, upload to Firebase
+/// Storage, and save the URL on the user doc. Cloud-stored, so the photo
+/// survives reinstalls.
 class _AvatarEditor extends ConsumerStatefulWidget {
   final String uid;
   final String? avatarUrl;
@@ -273,17 +275,57 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
   bool _uploading = false;
 
   Future<void> _changeAvatar() async {
+    // Profile picture is the one place gallery upload is allowed.
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
     final image = await ImagePicker().pickImage(
-      source: ImageSource.camera,
+      source: source,
       maxWidth: 1024,
       imageQuality: 85,
     );
     if (image == null || !mounted) return;
+    // Square crop so the round avatar never shows a stretched photo.
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: image.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop profile photo',
+          toolbarColor: AppColors.primary,
+          toolbarWidgetColor: Colors.white,
+          lockAspectRatio: true,
+        ),
+        IOSUiSettings(
+          title: 'Crop profile photo',
+          aspectRatioLockEnabled: true,
+        ),
+      ],
+    );
+    if (cropped == null || !mounted) return;
     setState(() => _uploading = true);
     try {
       final url = await ref
           .read(storageServiceProvider)
-          .uploadAvatar(widget.uid, image);
+          .uploadAvatar(widget.uid, XFile(cropped.path));
       await ref
           .read(firestoreServiceProvider)
           .updateProfile(widget.uid, avatarUrl: url);

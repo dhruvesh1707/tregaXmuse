@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Gallery access for the profile photo picker (photo picker needs no
+         permission on Android 13+; this covers older versions). -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <application
         android:label="trega"
         android:name="${applicationName}"

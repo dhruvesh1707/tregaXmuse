@@ -61,9 +61,10 @@ class HomeScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: SectionHeader(
               title: 'Explore by Passion',
-              onSeeAll: () {
-                // TODO: open full category list (bottom sheet or screen).
-              },
+              onSeeAll: () => _showAllCategories(
+                context,
+                categoriesAsync.valueOrNull ?? const <Category>[],
+              ),
             ),
           ),
           SliverToBoxAdapter(
@@ -156,6 +157,57 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "See all" for Explore by Passion: a bottom sheet with every category.
+/// Tapping a category opens its listings on the CategoryScreen.
+void _showAllCategories(BuildContext context, List<Category> categories) {
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text(
+              'All categories',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: categories.length,
+              itemBuilder: (context, i) {
+                final category = categories[i];
+                return ListTile(
+                  leading: Icon(
+                    category.icon,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(category.name),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    Navigator.of(context).pushNamed(
+                      CategoryScreen.routeName,
+                      arguments: CategoryArgs(
+                        categoryId: category.id,
+                        categoryName: category.name,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _CategoryRail extends StatelessWidget {

@@ -27,6 +27,7 @@ dependencies:
 
   # Media
   image_picker: ^1.1.2
+  image_cropper: ^12.2.1 # profile photo crop only — gallery stays out of the sell flow
   video_player: ^2.9.2
   cached_network_image: ^3.4.1
 

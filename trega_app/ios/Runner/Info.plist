@@ -68,6 +68,8 @@
 		</array>
 		<key>NSCameraUsageDescription</key>
 		<string>Trega needs camera access so you can photograph the items you want to sell.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Trega needs photo library access so you can choose a profile photo from your gallery.</string>
 		<key>CFBundleURLTypes</key>
 		<array>
 			<dict>
