@@ -576,7 +576,7 @@ class _SellerInfo extends ConsumerWidget {
                         ],
                       ),
                       Text(
-                        '★ ${seller?.rating.toStringAsFixed(1) ?? '–'} '
+                        "★ ${seller?.rating.toStringAsFixed(1) ?? '–'} "
                         '· ${seller?.reviewsCount ?? 0} reviews',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),

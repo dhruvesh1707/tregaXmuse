@@ -354,14 +354,14 @@ class _ListingOffersGroup extends ConsumerWidget {
 
   Future<void> _accept(
       BuildContext context, WidgetRef ref, Bid bid,) async {
+    final buyerLabel = bid.buyerName ?? 'the buyer';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Accept this offer?'),
         content: Text(
-          'Accept ${bid.buyerName ?? 'the buyer'}'s offer of '
-          '${formatINR(bid.amount)}? Other open offers on this listing '
-          'will be rejected automatically.',
+          "Accept $buyerLabel's offer of ${formatINR(bid.amount)}? "
+          'Other open offers on this listing will be rejected automatically.',
         ),
         actions: [
           TextButton(
@@ -535,7 +535,7 @@ class _ListingOffersGroup extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             'Accepted: ${formatINR(bid.amount)} from '
-                            '${bid.buyerName ?? 'buyer'}',
+                            "${bid.buyerName ?? 'buyer'}",
                             style: textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -601,7 +601,7 @@ class _ListingOffersGroup extends ConsumerWidget {
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                         title: Text(
-                          '${bid.buyerName ?? 'Buyer'} · '
+                          "${bid.buyerName ?? 'Buyer'} · "
                           '${formatINR(bid.amount)}',
                         ),
                         subtitle: Text(timeAgo(bid.createdAt)),
@@ -645,7 +645,7 @@ class _OfferRow extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '${bid.buyerName ?? 'Buyer'} · ${timeAgo(bid.createdAt)}',
+                  "${bid.buyerName ?? 'Buyer'} · ${timeAgo(bid.createdAt)}",
                   style: textTheme.bodyMedium,
                 ),
               ),
