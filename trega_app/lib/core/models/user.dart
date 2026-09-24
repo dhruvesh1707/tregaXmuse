@@ -10,6 +10,9 @@ class AppUser {
   final String? email;
   final String? avatarUrl;
   final bool isVerifiedSeller;
+  /// Aadhaar KYC state: `unverified` | `pending` | `verified` | `rejected`.
+  /// Offers and selling require `verified`.
+  final String kycStatus;
   final double rating;
   final int reviewsCount;
   final DateTime? joinedAt;
@@ -21,6 +24,7 @@ class AppUser {
     this.email,
     this.avatarUrl,
     this.isVerifiedSeller = false,
+    this.kycStatus = 'unverified',
     this.rating = 0,
     this.reviewsCount = 0,
     this.joinedAt,
@@ -41,6 +45,9 @@ class AppUser {
           : DateTime.tryParse(json['joined_at'] as String),
     );
   }
+
+  /// True once the user completed Aadhaar OTP verification.
+  bool get isKycVerified => kycStatus == 'verified';
 
   Map<String, dynamic> toJson() {
     return {
@@ -76,6 +83,7 @@ extension AppUserFirestore on AppUser {
       email: data['email'] as String?,
       avatarUrl: data['avatarUrl'] as String?,
       isVerifiedSeller: data['verifiedSeller'] as bool? ?? false,
+      kycStatus: data['kycStatus'] as String? ?? 'unverified',
       joinedAt: data['createdAt'] == null
           ? null
           : firestoreDate(data['createdAt']),

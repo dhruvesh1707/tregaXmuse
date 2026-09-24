@@ -53,6 +53,9 @@ class Listing {
   final bool negotiable;
   final bool biddingEnabled;
   final ListingStatus status;
+  /// Set when the seller accepts a buyer's offer — the listing is reserved
+  /// for that buyer until they pay (then it flips to `sold`).
+  final String? acceptedBidId;
   final DateTime createdAt;
   final int viewsCount;
   final int likesCount;
@@ -66,6 +69,7 @@ class Listing {
     this.negotiable = true,
     this.biddingEnabled = false,
     this.status = ListingStatus.live,
+    this.acceptedBidId,
     required this.createdAt,
     this.viewsCount = 0,
     this.likesCount = 0,
@@ -104,7 +108,11 @@ class Listing {
     };
   }
 
-  Listing copyWith({bool? isLiked, int? likesCount, ListingStatus? status}) {
+  Listing copyWith(
+      {bool? isLiked,
+      int? likesCount,
+      ListingStatus? status,
+      String? acceptedBidId,}) {
     return Listing(
       id: id,
       product: product,
@@ -113,6 +121,7 @@ class Listing {
       negotiable: negotiable,
       biddingEnabled: biddingEnabled,
       status: status ?? this.status,
+      acceptedBidId: acceptedBidId ?? this.acceptedBidId,
       createdAt: createdAt,
       viewsCount: viewsCount,
       likesCount: likesCount ?? this.likesCount,
@@ -164,6 +173,7 @@ extension ListingFirestore on Listing {
       negotiable: true,
       biddingEnabled: true,
       status: ListingStatusLabel.fromWire(data['status'] as String? ?? ''),
+      acceptedBidId: data['acceptedBidId'] as String?,
       createdAt: firestoreDate(data['createdAt']),
       viewsCount: data['viewCount'] as int? ?? 0,
       likesCount: data['likesCount'] as int? ?? 0,

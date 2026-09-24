@@ -72,7 +72,7 @@ Never on the public listing doc. Readable only by the seller and admins
 | buyerId | string | |
 | sellerId | string | |
 | amount | number | INR |
-| status | string | `open` \| `accepted` \| `rejected` \| `expired` \| `countered` |
+| status | string | `open` \| `accepted` \| `rejected` \| `expired` \| `countered` — a `rejected` buyer may send a new offer (only one `open` offer per buyer+listing) |
 | counterAmount | number? | seller counter-offer |
 | createdAt / acceptedAt | timestamp? | |
 
@@ -89,6 +89,7 @@ Never on the public listing doc. Readable only by the seller and admins
 | cfOrderId | number? | Cashfree order id |
 | cfOrderRef | string? | our `trega_<orderId>` reference |
 | paymentSessionId | string? | for the Cashfree SDK |
+| deliveryAddress | map? | buyer delivery address from checkout: `name`, `phone`, `line1`, `line2?`, `city`, `state`, `pincode` (required when the order came from an accepted bid) |
 | trackingNote | string? | latest fulfillment note |
 | paidAt | timestamp? | |
 | createdAt | timestamp | |
@@ -150,6 +151,35 @@ create; reads are admin-only (`firestore.rules`).
 | comment | string? | |
 | createdAt | timestamp | |
 
+## Cloud Functions callables (region `asia-south1`)
+
+Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
+
+- `placeBid({listingId, amount})` — guards: listing must be `live`; buyer
+  must be Aadhaar-verified (`users/{uid}.kycStatus == "verified"`); buyer must
+  not be the seller; at most **one open offer per buyer per listing** (a
+  rejected buyer may offer again). Writes the bid (`status: open`) and bumps
+  `highestBid`/`bidCount` when appropriate.
+- `acceptBid({bidId})` — seller only; the listing must be `live` and have no
+  `acceptedBidId` yet (accepting is exclusive). Marks the bid `accepted`,
+  sets `listings/{id}.acceptedBidId` (reserves the listing for the winner
+  until they pay), rejects the other open bids. The winner's listing page
+  then shows the single "Buy Now at ₹X" button → checkout.
+- `rejectBid({bidId})` — seller only; bid must be `open`. Marks it
+  `rejected`; the buyer is notified and may send a new offer.
+- `cancelAcceptance({bidId})` — seller only; bid must be `accepted` and the
+  listing still `live`. Marks the bid `rejected`, clears
+  `listings/{id}.acceptedBidId`, notifies the buyer; the listing is open for
+  offers again (used when the winner never pays).
+- `createCashfreeOrder({listingId?, bidId?, customerPhone, deliveryAddress?})`
+  — `deliveryAddress` is required when `bidId` is set (accepted-offer
+  checkout), validated server-side and stored on the order; the `bidId` path
+  charges exactly the accepted bid amount.
+
+KYC (`kyc.ts`): `requestAadhaarOtp` / `verifyAadhaarOtp` — provider errors
+are surfaced with their real message (invalid Aadhaar, throttled, provider
+outage) instead of a generic failure.
+
 ## Storage
 `listingMedia/{listingId}/{filename}` — listing photos and videos.
 `avatars/{uid}.jpg` — profile pictures.
@@ -161,6 +191,7 @@ create; reads are admin-only (`firestore.rules`).
 - `listings`: `sellerId` ASC + `createdAt` DESC (my listings)
 - `bids`: `listingId` ASC + `createdAt` DESC (bids on a listing)
 - `bids`: `buyerId` ASC + `createdAt` DESC (my bids)
+- `bids`: `buyerId` ASC + `listingId` ASC (my offers on one listing — the listing detail action bar)
 - `bids`: `sellerId` ASC + `createdAt` DESC (offers received)
 - `orders`: `buyerId` ASC + `createdAt` DESC (my purchases)
 - `orders`: `sellerId` ASC + `createdAt` DESC (my sales)

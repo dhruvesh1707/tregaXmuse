@@ -26,9 +26,11 @@ import {
 } from "./payments";
 import {
   acceptBidHandler,
+  cancelAcceptanceHandler,
   onBidCreateHandler,
   onListingCreateHandler,
   placeBidHandler,
+  rejectBidHandler,
   reviewListingHandler,
 } from "./marketplace";
 import {
@@ -66,6 +68,7 @@ export const createCashfreeOrder = onCall({ secrets }, async (request) => {
     listingId: request.data?.listingId,
     bidId: request.data?.bidId,
     customerPhone: request.data?.customerPhone,
+    deliveryAddress: request.data?.deliveryAddress,
   });
 });
 
@@ -137,6 +140,16 @@ export const onBidCreate = onDocumentCreated(
 export const acceptBid = onCall(async (request) => {
   const uid = requireAuthUid(request);
   return acceptBidHandler(uid, { bidId: request.data?.bidId });
+});
+
+export const rejectBid = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  return rejectBidHandler(uid, { bidId: request.data?.bidId });
+});
+
+export const cancelAcceptance = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  return cancelAcceptanceHandler(uid, { bidId: request.data?.bidId });
 });
 
 // ------------------------------------------------------------- Admin ------

@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
 import { BULKPE_API_TOKEN, BULKPE_BASE } from "./config";
 
 export type KycStatus = "unverified" | "pending" | "verified" | "rejected";
@@ -40,10 +41,24 @@ async function bulkpePost(
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new HttpsError(
-      "unavailable",
-      `KYC provider error (HTTP ${res.status}). Please try again.`
-    );
+    // BulkPe usually returns a JSON {message} even on errors — surface it
+    // instead of a generic failure so the app can tell the user what
+    // actually happened (bad number, provider outage, bad token, ...).
+    let detail = "";
+    try {
+      detail = (await res.text()).slice(0, 300);
+    } catch {
+      /* ignore */
+    }
+    logger.warn("BulkPe KYC provider error", { path, status: res.status, detail });
+    let message = `KYC provider error (HTTP ${res.status}). Please try again.`;
+    try {
+      const parsed = JSON.parse(detail) as { message?: string };
+      if (parsed?.message) message = parsed.message;
+    } catch {
+      /* keep default */
+    }
+    throw new HttpsError("unavailable", message);
   }
   return (await res.json()) as BulkPeResponse;
 }

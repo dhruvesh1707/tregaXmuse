@@ -45,11 +45,14 @@ service cloud.firestore {
     // Clients create drafts; onListingCreate flips them to live
     // immediately (reactive moderation — the team flags suspicious
     // listings after the fact). Clients never write `status` directly.
+    // Only Aadhaar-verified users may sell (verified via BulkPe KYC).
     match /listings/{listingId} {
       allow read: if true; // live listings are public; queries filter status
       allow create: if signedIn()
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.status == 'draft'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.kycStatus == 'verified'
         && request.resource.data.keys().hasAll(
              ['sellerId', 'title', 'description', 'categoryId',
               'price', 'condition', 'photos', 'status']);

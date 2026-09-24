@@ -12,6 +12,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/providers/listing_providers.dart';
+import '../../profile/screens/kyc_screen.dart';
 
 /// Multi-step "Sell in 30 seconds" flow (OLX-style, category-first).
 ///
@@ -228,6 +229,22 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     }
     if (uid == null) {
       setState(() => _error = 'You need to be signed in to sell.');
+      return;
+    }
+    // Aadhaar gate: only verified users may sell. The server enforces this
+    // too (firestore.rules blocks unverified listing creates), this is the
+    // friendly early prompt.
+    final me = await ref.read(firestoreServiceProvider).getUser(uid);
+    if (me == null || !me.isKycVerified) {
+      if (!mounted) return;
+      setState(() => _error =
+          'Verify your Aadhaar to sell on Trega. It takes a minute.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aadhaar verification is required to sell.'),
+        ),
+      );
+      Navigator.of(context).pushNamed(KycScreen.routeName);
       return;
     }
     setState(() {

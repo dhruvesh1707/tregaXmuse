@@ -3,18 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/firebase/functions_service.dart';
+import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
-import '../../../core/payments/cashfree_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
+import '../../bids/screens/bids_offers_screen.dart';
+import '../../checkout/screens/checkout_screen.dart';
 import '../../home/providers/listing_providers.dart';
-import '../../orders/screens/orders_screen.dart';
+import '../../profile/screens/kyc_screen.dart';
 
 /// Full listing page: media gallery (photos + video), condition badge,
-/// verified seller card, specs, and Buy / Make Offer / Place Bid actions.
+/// verified seller card, specs, and the single state-driven offer action.
+///
+/// The bottom bar shows exactly one action, driven by state:
+/// - buyer, no offer yet -> "Make an Offer" (Aadhaar-verified only)
+/// - buyer, offer open -> "Offer sent — awaiting the seller" (disabled)
+/// - buyer, offer rejected -> "Offer again"
+/// - buyer, offer accepted -> "Buy Now at ₹X" -> checkout with address
+/// - seller -> "Manage Offers"
 ///
 /// Streams the listing document from Firestore.
 ///
@@ -63,12 +73,30 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     }
   }
 
-  /// Places a bid/offer via the server-side `placeBid` callable.
-  Future<void> _placeBid(BuildContext context, Listing listing) async {
+  /// Opens the offer sheet, then places the offer server-side.
+  ///
+  /// Only Aadhaar-verified buyers can make offers — unverified users get a
+  /// prompt and are routed to the KYC screen.
+  Future<void> _makeOffer(BuildContext context, Listing listing) async {
+    final uid = ref.read(currentUidProvider);
+    if (uid != null) {
+      final me = await ref.read(firestoreServiceProvider).getUser(uid);
+      if (me == null || !me.isKycVerified) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Verify your Aadhaar to make an offer.'),
+          ),
+        );
+        Navigator.of(context).pushNamed(KycScreen.routeName);
+        return;
+      }
+    }
+
     final amount = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _BidSheet(price: listing.price),
+      builder: (_) => _OfferSheet(price: listing.price),
     );
     if (amount == null || amount <= 0) return;
     try {
@@ -83,7 +111,10 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not place the bid. Try again.')),
+        SnackBar(
+          content: Text(functionsErrorMessage(e,
+              fallback: 'Could not send the offer. Try again.',),),
+        ),
       );
     }
   }
@@ -132,64 +163,6 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text("Couldn't submit the report. Try again."),),
-      );
-    }
-  }
-
-  /// Starts checkout: creates a Cashfree order server-side, then hands the
-  /// `paymentSessionId` to the Cashfree SDK drop checkout.
-  ///
-  /// The SDK callback only drives UI — payment truth comes from the
-  /// `cashfreeWebhook` function flipping the order's `paymentStatus`, which
-  /// the Orders screen streams.
-  Future<void> _buyNow(BuildContext context, Listing listing) async {
-    final uid = ref.read(currentUidProvider);
-    if (uid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to buy.')),
-      );
-      return;
-    }
-    try {
-      final user = await ref.read(firestoreServiceProvider).getUser(uid);
-      final result = await ref.read(functionsServiceProvider).createCashfreeOrder(
-            listingId: listing.id,
-            customerPhone: user?.phone ?? '',
-          );
-      if (!context.mounted) return;
-      final sessionId = result['paymentSessionId'] as String?;
-      final orderId = result['orderId'] as String?;
-      if (sessionId == null || orderId == null) {
-        throw StateError('no session');
-      }
-      // Merchant order id sent to Cashfree is `trega_<orderId>` (see
-      // trega_functions/src/payments.ts); prefer the backend-echoed value
-      // so the app keeps working if that format ever changes.
-      final cfOrderId =
-          (result['cfOrderRef'] as String?) ?? 'trega_$orderId';
-      CashfreeService().pay(
-        cfOrderId: cfOrderId,
-        paymentSessionId: sessionId,
-        onVerified: (_) {
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment done! Confirming your order...'),
-            ),
-          );
-          Navigator.of(context).pushReplacementNamed(OrdersScreen.routeName);
-        },
-        onError: (message, _) {
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Payment failed: $message')),
-          );
-        },
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not start checkout. Try again.')),
       );
     }
   }
@@ -420,42 +393,111 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
           ),
         ],
       ),
-      bottomSheet: Container(
+      bottomSheet: _buildBottomBar(context, listing),
+    );
+  }
+
+  /// Single state-driven action bar for the offer flow.
+  ///
+  /// One button, one meaning — the state comes from the caller's own offers
+  /// on this listing plus the listing's reservation flag.
+  Widget _buildBottomBar(BuildContext context, Listing listing) {
+    final uid = ref.watch(currentUidProvider);
+    final isSeller = uid != null && uid == listing.seller.id;
+
+    Widget bar(Widget child) {
+      return Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         decoration: const BoxDecoration(
           color: AppColors.surface,
           border: Border(top: BorderSide(color: AppColors.divider)),
         ),
-        child: SafeArea(
-          top: false,
-          child: Row(
-            children: [
-              Expanded(
-                child: TregaButton(
-                  label: 'Place Bid',
-                  secondary: true,
-                  onPressed: () => _placeBid(context, listing),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TregaButton(
-                  label: 'Make Offer',
-                  secondary: true,
-                  onPressed: () => _placeBid(context, listing),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TregaButton(
-                  label: 'Buy Now',
-                  onPressed: () => _buyNow(context, listing),
-                ),
-              ),
-            ],
+        child: SafeArea(top: false, child: child),
+      );
+    }
+
+    // Sold listings: nothing to do.
+    if (listing.status != ListingStatus.live) {
+      return bar(
+        const TregaButton(label: 'This item is sold', onPressed: null),
+      );
+    }
+
+    // Seller: jump to the offers received on this listing.
+    if (isSeller) {
+      return bar(
+        TregaButton(
+          label: 'Manage Offers',
+          onPressed: () => Navigator.of(context).pushNamed(
+            BidsOffersScreen.routeName,
+            arguments: const BidsOffersArgs(initialTab: 1),
           ),
         ),
-      ),
+      );
+    }
+
+    // Buyer: react to their own offer state on this listing.
+    return StreamBuilder<List<Bid>>(
+      stream: uid == null
+          ? null
+          : ref
+              .read(firestoreServiceProvider)
+              .watchMyBidsForListing(uid, listing.id),
+      builder: (context, snap) {
+        final bids = snap.data ?? [];
+        Bid? open;
+        Bid? accepted;
+        for (final b in bids) {
+          if (b.status == BidStatus.accepted) accepted ??= b;
+          if (b.status == BidStatus.open) open ??= b;
+        }
+
+        // Winner: the only buyer who gets a Buy Now button, at the
+        // accepted price — goes to checkout to enter the delivery address.
+        if (accepted != null) {
+          final amount = accepted.amount;
+          return bar(
+            TregaButton(
+              label: 'Buy Now at ${formatINR(amount)}',
+              onPressed: () => Navigator.of(context).pushNamed(
+                CheckoutScreen.routeName,
+                arguments: CheckoutArgs(bidId: accepted!.id),
+              ),
+            ),
+          );
+        }
+
+        // Someone else's offer was accepted: sale in progress.
+        if (listing.acceptedBidId != null) {
+          return bar(
+            const TregaButton(
+              label: 'Offer accepted — sale in progress',
+              onPressed: null,
+            ),
+          );
+        }
+
+        // Own offer still open: wait for the seller.
+        if (open != null) {
+          return bar(
+            TregaButton(
+              label: 'Offer of ${formatINR(open.amount)} sent — '
+                  'awaiting the seller',
+              secondary: true,
+              onPressed: null,
+            ),
+          );
+        }
+
+        // No offer (or last one was rejected): the single buyer action.
+        final rejected = bids.any((b) => b.status == BidStatus.rejected);
+        return bar(
+          TregaButton(
+            label: rejected ? 'Offer again' : 'Make an Offer',
+            onPressed: () => _makeOffer(context, listing),
+          ),
+        );
+      },
     );
   }
 }
@@ -558,16 +600,16 @@ class _SellerInfo extends ConsumerWidget {
 }
 
 /// Amount-entry bottom sheet for bids/offers. Returns the entered amount.
-class _BidSheet extends StatefulWidget {
+class _OfferSheet extends StatefulWidget {
   final double price;
 
-  const _BidSheet({required this.price});
+  const _OfferSheet({required this.price});
 
   @override
-  State<_BidSheet> createState() => _BidSheetState();
+  State<_OfferSheet> createState() => _OfferSheetState();
 }
 
-class _BidSheetState extends State<_BidSheet> {
+class _OfferSheetState extends State<_OfferSheet> {
   final _amountController = TextEditingController();
   String? _error;
 
@@ -596,7 +638,7 @@ class _BidSheetState extends State<_BidSheet> {
             const SizedBox(height: 4),
             Text(
               'Asking price: ${formatINR(widget.price)}. The seller can '
-              'accept, reject or counter — no chat needed.',
+              'accept or reject — no chat needed.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),

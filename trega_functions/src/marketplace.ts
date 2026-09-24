@@ -205,6 +205,30 @@ export async function placeBidHandler(
     throw new HttpsError("failed-precondition", "You cannot bid on your own listing.");
   }
 
+  // Aadhaar gate: only verified users may make offers.
+  const userSnap = await db.collection("users").doc(uid).get();
+  if (userSnap.data()?.kycStatus !== "verified") {
+    throw new HttpsError(
+      "failed-precondition",
+      "Verify your Aadhaar to make an offer."
+    );
+  }
+
+  // One open offer per buyer per listing. A rejected buyer may offer again,
+  // but an open offer must be accepted/rejected first.
+  // (buyerId + listingId composite index; no status filter needed.)
+  const mineSnap = await db
+    .collection("bids")
+    .where("buyerId", "==", uid)
+    .where("listingId", "==", listingId)
+    .get();
+  if (mineSnap.docs.some((d) => d.data().status === "open")) {
+    throw new HttpsError(
+      "failed-precondition",
+      "You already have an open offer on this listing."
+    );
+  }
+
   const bidRef = db.collection("bids").doc();
   await bidRef.set({
     listingId,
@@ -287,8 +311,8 @@ export async function acceptBidHandler(
   const batch = db.batch();
   queueNotification(batch, winnerId, {
     type: NotificationType.bidAccepted,
-    title: "Your bid was accepted!",
-    body: `The seller accepted your ${formatINR(winnerAmount)} bid on “${listingTitle}” — complete the payment within 24 hours.`,
+    title: "Your offer was accepted!",
+    body: `The seller accepted your ${formatINR(winnerAmount)} offer on “${listingTitle}” — open the listing to pay ${formatINR(winnerAmount)} and complete your purchase.`,
   });
   for (const loser of losers) {
     queueNotification(batch, loser.buyerId, {
@@ -299,4 +323,110 @@ export async function acceptBidHandler(
   }
   await batch.commit();
   return { accepted: true as const };
+}
+
+/**
+ * Seller rejects one open offer. The buyer is notified and may send a new
+ * offer afterwards (the listing stays live).
+ */
+export async function rejectBidHandler(
+  uid: string,
+  input: { bidId?: string }
+): Promise<{ rejected: true }> {
+  const { bidId } = input;
+  if (!bidId) throw new HttpsError("invalid-argument", "bidId is required.");
+
+  const db = admin.firestore();
+  const bidRef = db.collection("bids").doc(bidId);
+  const bidSnap = await bidRef.get();
+  const bid = bidSnap.data();
+  if (!bidSnap.exists || !bid) {
+    throw new HttpsError("not-found", "Offer not found.");
+  }
+  if (bid.status !== "open") {
+    throw new HttpsError("failed-precondition", "Offer is no longer open.");
+  }
+
+  const listingSnap = await db
+    .collection("listings")
+    .doc(bid.listingId as string)
+    .get();
+  const listing = listingSnap.data();
+  if (!listingSnap.exists || !listing) {
+    throw new HttpsError("not-found", "Listing not found.");
+  }
+  if (listing.sellerId !== uid) {
+    throw new HttpsError("permission-denied", "Only the seller can reject offers.");
+  }
+
+  await bidRef.update({ status: "rejected" satisfies BidStatus });
+  const listingTitle = (listing.title as string | undefined) ?? "the item";
+
+  const batch = db.batch();
+  queueNotification(batch, bid.buyerId as string, {
+    type: NotificationType.bidRejected,
+    title: "Offer not accepted",
+    body: `Your ${formatINR(bid.amount as number)} offer on “${listingTitle}” wasn't accepted — you can send a new offer.`,
+  });
+  await batch.commit();
+  return { rejected: true as const };
+}
+
+/**
+ * Seller cancels an accepted offer (e.g. the buyer never paid). The offer
+ * goes back to `rejected` so the buyer may offer again, the listing's
+ * `acceptedBidId` reservation is cleared, and the buyer is notified.
+ */
+export async function cancelAcceptanceHandler(
+  uid: string,
+  input: { bidId?: string }
+): Promise<{ cancelled: true }> {
+  const { bidId } = input;
+  if (!bidId) throw new HttpsError("invalid-argument", "bidId is required.");
+
+  const db = admin.firestore();
+  let buyerId = "";
+  let listingTitle = "the item";
+
+  await db.runTransaction(async (tx) => {
+    const bidRef = db.collection("bids").doc(bidId);
+    const bidSnap = await tx.get(bidRef);
+    const bid = bidSnap.data();
+    if (!bidSnap.exists || !bid) {
+      throw new HttpsError("not-found", "Offer not found.");
+    }
+    if (bid.status !== "accepted") {
+      throw new HttpsError("failed-precondition", "Offer is not accepted.");
+    }
+
+    const listingRef = db.collection("listings").doc(bid.listingId as string);
+    const listingSnap = await tx.get(listingRef);
+    const listing = listingSnap.data();
+    if (!listingSnap.exists || !listing) {
+      throw new HttpsError("not-found", "Listing not found.");
+    }
+    if (listing.sellerId !== uid) {
+      throw new HttpsError("permission-denied", "Only the seller can do this.");
+    }
+    if (listing.status !== "live") {
+      throw new HttpsError("failed-precondition", "Listing is not available.");
+    }
+
+    tx.update(bidRef, { status: "rejected" satisfies BidStatus });
+    tx.update(listingRef, {
+      acceptedBidId: admin.firestore.FieldValue.delete(),
+    });
+
+    buyerId = bid.buyerId as string;
+    listingTitle = (listing.title as string | undefined) ?? listingTitle;
+  });
+
+  const batch = db.batch();
+  queueNotification(batch, buyerId, {
+    type: NotificationType.bidRejected,
+    title: "Accepted offer cancelled",
+    body: `The seller cancelled your accepted offer on “${listingTitle}” — the listing is open for offers again.`,
+  });
+  await batch.commit();
+  return { cancelled: true as const };
 }

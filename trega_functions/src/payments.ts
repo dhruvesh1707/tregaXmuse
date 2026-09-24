@@ -45,9 +45,36 @@ function cashfreeHeaders(): Record<string, string> {
  * The amount is ALWAYS read from Firestore — the client-supplied value,
  * if any, is ignored.
  */
+/** Delivery address collected at checkout (buyer-side). */
+export type DeliveryAddress = Record<string, string>;
+
+function assertValidDeliveryAddress(addr: unknown): asserts addr is DeliveryAddress {
+  const a = (addr ?? {}) as Record<string, unknown>;
+  const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  if (s(a.name).length < 2) {
+    throw new HttpsError("invalid-argument", "Enter the receiver's name.");
+  }
+  if (!/^[6-9]\d{9}$/.test(s(a.phone))) {
+    throw new HttpsError("invalid-argument", "Enter a valid 10-digit mobile number.");
+  }
+  if (s(a.line1).length < 6) {
+    throw new HttpsError("invalid-argument", "Enter your house/flat and street.");
+  }
+  if (!s(a.city)) throw new HttpsError("invalid-argument", "Enter your city.");
+  if (!s(a.state)) throw new HttpsError("invalid-argument", "Enter your state.");
+  if (!/^[1-9][0-9]{5}$/.test(s(a.pincode))) {
+    throw new HttpsError("invalid-argument", "Enter a valid 6-digit PIN code.");
+  }
+}
+
 export async function createCashfreeOrderHandler(
   uid: string,
-  input: { listingId?: string; bidId?: string; customerPhone?: string }
+  input: {
+    listingId?: string;
+    bidId?: string;
+    customerPhone?: string;
+    deliveryAddress?: Record<string, string>;
+  }
 ): Promise<{ paymentSessionId: string; orderId: string; cfOrderId: number; cfOrderRef: string }> {
   const db = admin.firestore();
   const { listingId, bidId } = input;
@@ -96,6 +123,12 @@ export async function createCashfreeOrderHandler(
     throw new HttpsError("failed-precondition", "Invalid order amount.");
   }
 
+  // Delivery address is required for accepted-offer checkout (the buyer
+  // pays the accepted price and the item ships to this address).
+  if (bidId) {
+    assertValidDeliveryAddress(input.deliveryAddress);
+  }
+
   // 1. Create the order doc first (payment PENDING).
   const orderRef = db.collection("orders").doc();
   const orderId = orderRef.id;
@@ -103,6 +136,7 @@ export async function createCashfreeOrderHandler(
   await orderRef.set({
     listingId: listingRef.id,
     ...(bidId ? { bidId } : {}),
+    ...(input.deliveryAddress ? { deliveryAddress: input.deliveryAddress } : {}),
     buyerId: uid,
     sellerId,
     amount,

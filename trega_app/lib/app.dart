@@ -6,6 +6,7 @@ import 'features/auth/screens/phone_auth_screen.dart';
 import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/bids/screens/bids_offers_screen.dart';
+import 'features/checkout/screens/checkout_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/listing_detail/screens/listing_detail_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart';
@@ -73,7 +74,13 @@ class TregaApp extends StatelessWidget {
       case SellFlowScreen.routeName:
         builder = (_) => const SellFlowScreen();
       case BidsOffersScreen.routeName:
-        builder = (_) => const BidsOffersScreen();
+        final bidsArgs = settings.arguments as BidsOffersArgs?;
+        builder = (_) => BidsOffersScreen(
+              initialTab: bidsArgs?.initialTab ?? 0,
+            );
+      case CheckoutScreen.routeName:
+        final checkoutArgs = settings.arguments as CheckoutArgs?;
+        builder = (_) => CheckoutScreen(bidId: checkoutArgs?.bidId ?? '');
       case OrdersScreen.routeName:
         builder = (_) => const OrdersScreen();
       case OrderTrackingScreen.routeName:

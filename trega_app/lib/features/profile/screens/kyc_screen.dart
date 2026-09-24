@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -66,7 +67,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Could not send the OTP. Please try again.';
+        // Surface the server's real message (invalid number, throttled,
+        // provider outage, ...) instead of a generic failure.
+        _error = functionsErrorMessage(e,
+            fallback: 'Could not send the OTP. Please try again.',);
       });
     }
   }
@@ -93,7 +97,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'OTP verification failed. Please try again.';
+        _error = functionsErrorMessage(e,
+            fallback: 'OTP verification failed. Please try again.',);
       });
     }
   }
@@ -129,14 +134,15 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             size: 64, color: AppColors.primary,),
         const SizedBox(height: 16),
         Text(
-          'Become a verified seller',
+          'Verify your identity',
           style: Theme.of(context).textTheme.titleLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
-          'Verify your Aadhaar with an OTP. Verified sellers get a badge '
-          'and buyers trust them more. Your Aadhaar number is never stored.',
+          'Verify your Aadhaar with an OTP. Verification is required to '
+          'sell items and to make offers, and verified sellers get a badge '
+          'buyers trust. Your Aadhaar number is never stored.',
           style: Theme.of(context).textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),

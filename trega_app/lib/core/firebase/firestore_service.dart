@@ -345,6 +345,36 @@ class FirestoreService {
             .toList(),);
   }
 
+  /// The caller's own offers on one listing (any status, newest first).
+  ///
+  /// Composite index: bids (buyerId ASC, listingId ASC). Used by the
+  /// listing detail screen to decide between "Make an Offer",
+  /// "Offer sent — awaiting seller" and the winner's "Buy Now".
+  Stream<List<Bid>> watchMyBidsForListing(String uid, String listingId) {
+    return _bids
+        .where('buyerId', isEqualTo: uid)
+        .where('listingId', isEqualTo: listingId)
+        .limit(20)
+        .snapshots()
+        .map((snap) {
+          final bids = snap.docs
+              .map((d) => BidFirestore.fromFirestore(d.data(), d.id))
+              .toList();
+          bids.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return bids;
+        });
+  }
+
+  /// Single offer stream (checkout screen, offer management).
+  /// Readable by the buyer, the seller and admins (see firestore.rules).
+  Stream<Bid?> watchBid(String bidId) {
+    return _bids.doc(bidId).snapshots().map(
+          (d) => d.data() == null
+              ? null
+              : BidFirestore.fromFirestore(d.data()!, d.id),
+        );
+  }
+
   // ── Orders (read-only; written by createCashfreeOrder) ────────────────
 
   Stream<List<Order>> watchMyOrders(String uid) {

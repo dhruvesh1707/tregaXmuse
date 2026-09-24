@@ -1,5 +1,18 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
+/// Extracts a human-readable message from a callable failure.
+///
+/// Firebase wraps server `HttpsError`s in [FirebaseFunctionsException]
+/// carrying the exact message the function threw — surface that instead of
+/// a generic "try again" so the user knows what actually went wrong.
+String functionsErrorMessage(Object e, {String fallback = 'Something went wrong. Please try again.'}) {
+  if (e is FirebaseFunctionsException) {
+    final msg = e.message;
+    if (msg != null && msg.isNotEmpty) return msg;
+  }
+  return fallback;
+}
+
 /// Secure bridge to server-side integrations.
 ///
 /// The app NEVER talks to BulkPe or Cashfree directly — API tokens/secrets
@@ -11,10 +24,12 @@ import 'package:cloud_functions/cloud_functions.dart';
 /// Callable names (exact, must match `trega_functions/src/index.ts`):
 /// - `requestAadhaarOtp` ({aadhaarNumber}) -> {success, refId, message}
 /// - `verifyAadhaarOtp`  ({refId, otp}) -> {success, verified, name?, dob?, ...}
-/// - `createCashfreeOrder` ({listingId, bidId?, customerPhone})
+/// - `createCashfreeOrder` ({listingId?, bidId?, customerPhone, deliveryAddress?})
 ///   -> {success, paymentSessionId, cfOrderId, orderId}
 /// - `placeBid` ({listingId, amount}) -> {success, bidId}
-/// - `acceptBid` ({bidId}) -> {success, orderId?}
+/// - `acceptBid` ({bidId}) -> {success}
+/// - `rejectBid` ({bidId}) -> {success}
+/// - `cancelAcceptance` ({bidId}) -> {success}
 /// - `reviewListing` ({listingId, approve, reason?}) -> {success, status}
 ///   (admin custom claim only)
 class FunctionsService {
@@ -54,15 +69,17 @@ class FunctionsService {
   /// and creates the `orders/{orderId}` doc with `paymentStatus: 'PENDING'`.
   /// Returns `paymentSessionId` for the Cashfree SDK + the new `orderId`.
   Future<Map<String, dynamic>> createCashfreeOrder({
-    required String listingId,
+    String? listingId,
     String? bidId,
     required String customerPhone,
+    Map<String, String>? deliveryAddress,
   }) async {
     final result =
         await _functions.httpsCallable('createCashfreeOrder').call({
-      'listingId': listingId,
+      if (listingId != null) 'listingId': listingId,
       if (bidId != null) 'bidId': bidId,
       'customerPhone': customerPhone,
+      if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
     });
     return Map<String, dynamic>.from(result.data as Map);
   }
@@ -82,9 +99,22 @@ class FunctionsService {
     return data['bidId'] as String;
   }
 
-  /// Accepts a bid (seller only). Server marks the bid accepted, rejects the
-  /// others, and moves the listing to `sold`.
+  /// Accepts an offer (seller only). Server marks the offer accepted,
+  /// rejects the other open offers and reserves the listing for the winner
+  /// (`listings/{id}.acceptedBidId`) until they pay.
   Future<void> acceptBid({required String bidId}) async {
     await _functions.httpsCallable('acceptBid').call({'bidId': bidId});
+  }
+
+  /// Rejects one open offer (seller only). The buyer is notified and may
+  /// send a new offer afterwards.
+  Future<void> rejectBid({required String bidId}) async {
+    await _functions.httpsCallable('rejectBid').call({'bidId': bidId});
+  }
+
+  /// Cancels an accepted offer (seller only, e.g. the buyer never paid).
+  /// The listing opens up for offers again.
+  Future<void> cancelAcceptance({required String bidId}) async {
+    await _functions.httpsCallable('cancelAcceptance').call({'bidId': bidId});
   }
 }
