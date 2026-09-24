@@ -6,6 +6,7 @@ import '../models/category.dart';
 import '../models/kyc_verification.dart';
 import '../models/listing.dart';
 import '../models/order.dart';
+import '../models/saved_address.dart';
 import '../models/user.dart';
 
 /// Typed Firestore access for Trega.

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/kyc_verification.dart';
@@ -80,12 +82,9 @@ class ProfileScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(16),
                               child: Row(
                                 children: [
-                                  const CircleAvatar(
-                                    radius: 32,
-                                    backgroundColor: AppColors.primarySoft,
-                                    child: Icon(Icons.person,
-                                        size: 36,
-                                        color: AppColors.primary,),
+                                  _AvatarEditor(
+                                    uid: uid,
+                                    avatarUrl: user?.avatarUrl,
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
@@ -254,3 +253,106 @@ class _MenuTile extends StatelessWidget {
     );
   }
 }
+
+
+/// Profile photo editor: tap the camera badge to capture a new photo
+/// (camera only, per Trega policy — no gallery uploads), upload it to
+/// Firebase Storage, and save the URL on the user doc. Cloud-stored, so
+/// the photo survives reinstalls.
+class _AvatarEditor extends ConsumerStatefulWidget {
+  final String uid;
+  final String? avatarUrl;
+
+  const _AvatarEditor({required this.uid, this.avatarUrl});
+
+  @override
+  ConsumerState<_AvatarEditor> createState() => _AvatarEditorState();
+}
+
+class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
+  bool _uploading = false;
+
+  Future<void> _changeAvatar() async {
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 85,
+    );
+    if (image == null || !mounted) return;
+    setState(() => _uploading = true);
+    try {
+      final url = await ref
+          .read(storageServiceProvider)
+          .uploadAvatar(widget.uid, image);
+      await ref
+          .read(firestoreServiceProvider)
+          .updateProfile(widget.uid, avatarUrl: url);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile photo updated.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Could not update photo. Please try again.'),),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAvatar = widget.avatarUrl?.isNotEmpty ?? false;
+    return Stack(
+      children: [
+        CircleAvatar(
+          radius: 32,
+          backgroundColor: AppColors.primarySoft,
+          backgroundImage:
+              hasAvatar ? CachedNetworkImageProvider(widget.avatarUrl!) : null,
+          child: hasAvatar
+              ? null
+              : const Icon(
+                  Icons.person,
+                  size: 36,
+                  color: AppColors.primary,
+                ),
+        ),
+        if (_uploading)
+          const Positioned.fill(
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+        else
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: _changeAvatar,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  size: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+

@@ -16,6 +16,7 @@ import 'features/profile/screens/help_screen.dart';
 import 'features/profile/screens/kyc_screen.dart';
 import 'features/profile/screens/my_listings_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
+import 'features/profile/screens/saved_addresses_screen.dart';
 import 'features/profile/screens/settings_screen.dart';
 import 'features/search/screens/category_screen.dart';
 import 'features/search/screens/search_screen.dart';
@@ -100,6 +101,8 @@ class TregaApp extends StatelessWidget {
         builder = (_) => const HelpScreen();
       case KycScreen.routeName:
         builder = (_) => const KycScreen();
+      case SavedAddressesScreen.routeName:
+        builder = (_) => const SavedAddressesScreen();
       default:
         builder = (_) => const SplashScreen();
     }

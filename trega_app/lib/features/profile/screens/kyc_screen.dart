@@ -95,13 +95,29 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       _error = null;
     });
     try {
-      await ref
+      final result = await ref
           .read(functionsServiceProvider)
           .verifyAadhaarOtp(_refId!, otp);
       if (!mounted) return;
       setState(() => _busy = false);
       // The kycVerifications/{uid} doc flips to `verified`; the stream
       // below picks it up and shows the success state.
+      // Adopt the Aadhaar name as the display name (the user can change
+      // it later in Settings → Edit profile).
+      final aadhaarName = result['name'];
+      final uid = ref.read(currentUidProvider);
+      if (aadhaarName is String &&
+          aadhaarName.trim().isNotEmpty &&
+          uid != null) {
+        try {
+          await ref
+              .read(firestoreServiceProvider)
+              .updateProfile(uid, name: aadhaarName.trim());
+        } catch (_) {
+          // Non-blocking: verification already succeeded; the name can
+          // be set manually in Settings.
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {

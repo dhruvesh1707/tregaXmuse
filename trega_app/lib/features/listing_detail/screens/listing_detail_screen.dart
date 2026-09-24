@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
@@ -298,9 +299,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.share_outlined),
-                onPressed: () {
-                  // TODO: share trega://listing/<id> deep link.
-                },
+                onPressed: () => _shareListing(listing),
               ),
               IconButton(
                 icon: const Icon(Icons.flag_outlined),
@@ -500,6 +499,15 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       },
     );
   }
+
+  /// Shares the listing as text (title, price, condition). Deep links
+  /// come later; text share works everywhere today.
+  Future<void> _shareListing(Listing listing) async {
+    final text =
+        '${listing.product.title} — ${formatINR(listing.price)} on Trega '
+        '(${listing.product.condition.label})';
+    await Share.share(text, subject: listing.product.title);
+  }
 }
 
 class _VerifiedPill extends StatelessWidget {
@@ -584,12 +592,7 @@ class _SellerInfo extends ConsumerWidget {
                   ),
                 ),
                 // NOTE: no chat affordance — negotiation happens via bids/offers.
-                TextButton(
-                  onPressed: () {
-                    // TODO: open seller's other listings.
-                  },
-                  child: const Text('View shop'),
-                ),
+
               ],
             ),
           ),

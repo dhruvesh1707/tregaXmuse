@@ -20,6 +20,24 @@ by design — negotiation happens through structured bids/offers.
 | kycDob | string? | from Aadhaar (on verified) |
 | createdAt | timestamp | |
 
+### `users/{uid}/private/{docId}` — owner-only private data
+
+| Field | Type | Notes |
+|---|---|---|
+| (payout doc) upiId | string | seller's payout UPI ID (`docId: 'payout'`) |
+| (address doc) kind | string | always `'address'` (`docId: 'address_<pushId>'`) |
+| (address doc) label | string | optional label, e.g. "Home" |
+| (address doc) line1/line2/city/state/pincode | string | structured pickup address |
+| (address doc) createdAt | string | ISO-8601 |
+
+Rules: only the owning user (and admins) may read; only the owner may
+write. Buyers never see this — pickup addresses are copied per-listing into
+`listings/{id}/private/details` (which also snapshots the `payoutUpi` used
+at publish time, so payouts stay correct even if the seller changes it
+later). The sell flow auto-saves new pickup addresses here (deduped) and
+prefills the payout UPI field from the saved value; Profile → Settings
+manages both.
+
 ### `categories/{id}`
 | Field | Type | Notes |
 |---|---|---|

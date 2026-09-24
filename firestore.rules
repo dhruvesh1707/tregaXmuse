@@ -28,6 +28,18 @@ service cloud.firestore {
              .hasOnly(['name', 'avatarUrl', 'email', 'settings',
                        'fcmTokens', 'fcmTokenUpdatedAt']);
 
+      // ── users/{uid}/private/{docId} ────────────────────────────
+      // Owner-only private data: saved pickup addresses
+      // (`address_<id>` docs with `kind: 'address'`) and the payout UPI ID
+      // (`payout` doc). Never readable by other users — only the owner
+      // (and admins, for payout release / support).
+      match /private/{docId} {
+        allow read: if signedIn()
+          && (request.auth.uid == uid || isAdmin());
+        allow create, update, delete: if signedIn()
+          && request.auth.uid == uid;
+      }
+
       // ── users/{uid}/notifications/{notifId} ────────────────────
       // In-app inbox, written server-side by Cloud Functions (bid / order /
       // listing events). Clients may only flip `read`.

@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
+import '../../../core/models/saved_address.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -84,6 +85,10 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   final _addrCityController = TextEditingController();
   final _addrStateController = TextEditingController();
   final _addrPinController = TextEditingController();
+  // Payout UPI ID — prefilled from the seller's saved value, saved back
+  // on publish. Owner-only, like the pickup address.
+  final _upiController = TextEditingController();
+  String? _selectedSavedAddressId;
 
   String? _categoryId;
   Condition _condition = Condition.likeNew;
@@ -103,6 +108,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     _addrCityController.dispose();
     _addrStateController.dispose();
     _addrPinController.dispose();
+    _upiController.dispose();
     super.dispose();
   }
 
@@ -192,6 +198,75 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _prefillSavedPayout();
+  }
+
+  /// Prefills the payout UPI field from the seller's saved value, if any.
+  Future<void> _prefillSavedPayout() async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    try {
+      final upi =
+          await ref.read(firestoreServiceProvider).getPayoutUpi(uid);
+      if (!mounted || upi == null || upi.isEmpty) return;
+      _upiController.text = upi;
+    } catch (_) {
+      // Best-effort prefill; the seller can type it manually.
+    }
+  }
+
+    /// One-tap picker for a previously saved pickup address.
+  Widget _buildSavedAddressPicker() {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return const SizedBox.shrink();
+    return StreamBuilder<List<SavedAddress>>(
+      stream:
+          ref.watch(firestoreServiceProvider).watchSavedAddresses(uid),
+      builder: (context, snap) {
+        final addresses = snap.data ?? const <SavedAddress>[];
+        if (addresses.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: DropdownButtonFormField<String>(
+            value: _selectedSavedAddressId,
+            decoration: const InputDecoration(
+              labelText: 'Use a saved address',
+            ),
+            items: addresses
+                .map(
+                  (a) => DropdownMenuItem(
+                    value: a.id,
+                    child: Text(
+                      a.displayLabel,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (id) {
+              if (id == null) return;
+              final a = addresses.firstWhere((x) => x.id == id);
+              setState(() {
+                _selectedSavedAddressId = id;
+                _addrLine1Controller.text = a.line1;
+                _addrLine2Controller.text = a.line2;
+                _addrCityController.text = a.city;
+                _addrStateController.text = a.state;
+                _addrPinController.text = a.pincode;
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
+static bool _isValidUpi(String upi) =>
+      RegExp(r'^[\w.\-]{2,64}@[a-zA-Z]{2,64}$').hasMatch(upi);
+
   Future<void> _publish() async {
     final title = _titleController.text.trim();
     final price = _parsedPrice;
@@ -225,6 +300,12 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     if (!RegExp(r'^[1-9][0-9]{5}$').hasMatch(pin)) {
       setState(
           () => _error = 'Enter a valid 6-digit PIN code.',);
+      return;
+    }
+    final upi = _upiController.text.trim();
+    if (!_isValidUpi(upi)) {
+      setState(() => _error =
+          'Enter a valid UPI ID for your payout (e.g. name@okhdfcbank).',);
       return;
     }
     if (uid == null) {
@@ -277,6 +358,8 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       }
 
       // 3) Owner-only pickup address — never on the public listing doc.
+      // The payout UPI rides along so the team can release this sale's
+      // payout even if the seller changes it later.
       await firestore.saveListingPrivateDetails(
         listingId,
         pickupAddress: {
@@ -285,8 +368,25 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
           'city': city,
           'state': state,
           'pincode': pin,
+          'payoutUpi': upi,
         },
       );
+
+      // 4) Remember the address + UPI for next time (dedupe addresses).
+      final address = SavedAddress(
+        id: '',
+        line1: line1,
+        line2: line2,
+        city: city,
+        state: state,
+        pincode: pin,
+        createdAt: DateTime.now(),
+      );
+      final existing = await firestore.getSavedAddresses(uid);
+      if (!existing.any((a) => a.sameAs(address))) {
+        await firestore.saveAddress(uid, address);
+      }
+      await firestore.savePayoutUpi(uid, upi);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -654,6 +754,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 12),
+                      _buildSavedAddressPicker(),
                       TextField(
                         controller: _addrLine1Controller,
                         textCapitalization:
@@ -713,6 +814,20 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                           hintText: 'Maharashtra',
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Payout UPI ID',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _upiController,
+                        autocorrect: false,
+                        decoration: const InputDecoration(
+                          labelText: 'UPI ID',
+                          hintText: 'yourname@okhdfcbank',
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         crossAxisAlignment:
@@ -725,6 +840,25 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
                           Expanded(
                             child: Text(
                               'Only you and the Trega team can see this — buyers never see your address.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.lock_outline,
+                              size: 14,
+                              color: AppColors.textSecondary,),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Your sale payout is sent to this UPI ID after a successful transaction.',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall,

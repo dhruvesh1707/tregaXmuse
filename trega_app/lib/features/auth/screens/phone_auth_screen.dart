@@ -285,6 +285,24 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                     child: const Text('Resend OTP'),
                   ),
                 ),
+                Center(
+                  child: TextButton(
+                    // Wrong number typed? Go back and edit it — the
+                    // pending attempt is discarded.
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            AuthService.clearPendingVerification();
+                            setState(() {
+                              _otpSent = false;
+                              _verificationId = null;
+                              _otpController.clear();
+                              _error = null;
+                            });
+                          },
+                    child: const Text('Change mobile number'),
+                  ),
+                ),
               ],
               const Spacer(),
               Text(

@@ -65,13 +65,28 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           .updateProfile(uid, name: name, email: email);
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Could not save your profile. Please try again.';
+        _error = _friendlySaveError(e);
       });
     }
+  }
+
+  /// Surfaces the real failure reason instead of a generic message, so a
+  /// blocked save (e.g. stale Firestore rules on the backend) is
+  /// diagnosable instead of mysterious.
+  String _friendlySaveError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('permission-denied')) {
+      return 'Save was blocked by the server (permission-denied). '
+          'Please pull the latest app update and try again.';
+    }
+    if (msg.contains('unavailable') || msg.contains('network')) {
+      return 'No connection. Check your internet and try again.';
+    }
+    return 'Could not save your profile. Please try again. ($msg)';
   }
 
   @override
