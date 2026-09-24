@@ -102,6 +102,7 @@ Never on the public listing doc. Readable only by the seller and admins
 | name / dob / gender / careOf | string? | from Aadhaar on VALID |
 | address / yearOfBirth | string? | from Aadhaar on VALID |
 | requestedAt / verifiedAt / failedAt | timestamp? | |
+| consentAt | timestamp? | set on OTP request — the app gates the Aadhaar field behind an explicit consent checkbox, so requesting the OTP means consent was given |
 
 Never store `photo_link` / XML blobs here.
 
