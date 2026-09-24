@@ -44,8 +44,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
   Future<void> _requestOtp() async {
     if (!_consented) {
-      setState(() =>
-          _error = 'Please tick the consent checkbox to continue.');
+      setState(() {
+        _error = 'Please tick the consent checkbox to continue.';
+      });
       return;
     }
     final aadhaar = _aadhaarController.text.replaceAll(RegExp(r'\D'), '');
@@ -252,16 +253,16 @@ class _ConsentCard extends StatelessWidget {
               const Icon(Icons.privacy_tip_outlined, size: 20),
               const SizedBox(width: 8),
               Text('Your consent',
-                  style: theme.textTheme.titleMedium),
+                  style: theme.textTheme.titleMedium,),
             ],
           ),
           const SizedBox(height: 12),
           _bullet(theme,
-              'Trega will use your Aadhaar number only to verify your identity, by sending an OTP to your Aadhaar-linked mobile number.'),
+              'Trega will use your Aadhaar number only to verify your identity, by sending an OTP to your Aadhaar-linked mobile number.',),
           _bullet(theme,
-              'Your Aadhaar number is never stored — it is used once for this verification and discarded.'),
+              'Your Aadhaar number is never stored — it is used once for this verification and discarded.',),
           _bullet(theme,
-              'Verification is required to sell items and to make offers on Trega, and verified sellers get a trust badge.'),
+              'Verification is required to sell items and to make offers on Trega, and verified sellers get a trust badge.',),
           const SizedBox(height: 8),
           InkWell(
             onTap: () => onChanged(!consented),
