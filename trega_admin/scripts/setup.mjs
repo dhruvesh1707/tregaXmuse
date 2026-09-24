@@ -19,8 +19,17 @@ const ENV_PATH = join(ROOT, ".env");
 function fb(args) {
   // On Windows the CLI is firebase.cmd — it only resolves through a shell.
   // If firebase isn't on PATH at all, fall back to npx (one-time download).
+  // NOTE: stdin must NOT be "ignore" — on Windows that makes Node-based
+  // CLIs (firebase-tools) abort on exit with
+  // "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)".
+  // A piped stdin that is immediately EOF'd is safe instead.
   const shell = process.platform === "win32";
-  const opts = { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell };
+  const opts = {
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+    input: "",
+    shell,
+  };
   try {
     return execFileSync("firebase", [...args, "--project", PROJECT], opts);
   } catch (e) {
