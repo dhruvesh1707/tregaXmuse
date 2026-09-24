@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import Layout from './components/Layout';
@@ -12,7 +13,8 @@ import Bids from './pages/Bids';
 import Categories from './pages/Categories';
 
 function ProtectedRoute() {
-  const { user, denied, loading } = useAuth();
+  const { user, denied, loading, claimAdmin, claimError, logout } = useAuth();
+  const [claiming, setClaiming] = useState(false);
   if (loading) {
     return <p className="py-20 text-center text-stone-500">Loading…</p>;
   }
@@ -23,12 +25,32 @@ function ProtectedRoute() {
           <h1 className="text-lg font-bold text-stone-900">Access denied</h1>
           <p className="mt-2 text-sm text-stone-500">
             This phone number is signed in but doesn't have the{' '}
-            <span className="font-semibold">admin</span> custom claim. Ask the
-            marketplace owner to grant it, then try again.
+            <span className="font-semibold">admin</span> custom claim.
           </p>
-          <a href="/login" className="mt-4 inline-block text-sm font-medium text-trega-600 hover:underline">
-            ← Back to sign in
-          </a>
+          {claimError && (
+            <div className="mt-3 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
+              {claimError}
+            </div>
+          )}
+          <button
+            onClick={() => {
+              setClaiming(true);
+              void claimAdmin().finally(() => setClaiming(false));
+            }}
+            disabled={claiming}
+            className="mt-4 w-full rounded-lg bg-trega-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-trega-700 disabled:opacity-60"
+          >
+            {claiming ? 'Claiming…' : 'Claim admin access'}
+          </button>
+          <p className="mt-2 text-xs text-stone-400">
+            Works only for the founder number configured on the backend.
+          </p>
+          <button
+            onClick={() => void logout()}
+            className="mt-3 text-sm font-medium text-trega-600 hover:underline"
+          >
+            ← Sign out
+          </button>
         </div>
       </div>
     );

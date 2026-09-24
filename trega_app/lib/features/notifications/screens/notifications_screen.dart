@@ -43,6 +43,10 @@ class _NotificationsScreenState
         return PhosphorIconsRegular.xCircle;
       case 'listing_flagged':
         return PhosphorIconsRegular.flag;
+      case 'kyc_verified':
+        return PhosphorIconsRegular.sealCheck;
+      case 'kyc_rejected':
+        return PhosphorIconsRegular.xCircle;
       case 'bid':
         return PhosphorIconsRegular.gavel;
       case 'order':

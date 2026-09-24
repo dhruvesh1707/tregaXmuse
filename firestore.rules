@@ -134,9 +134,11 @@ service cloud.firestore {
     }
 
     // ── kycVerifications/{uid} ───────────────────────────────────
-    // Written ONLY by the KYC callables. Users read their own status.
+    // Written ONLY by the KYC callables (and the admin manual-verify
+    // callable). Users read their own status; admins read all (the admin
+    // panel shows how each user was verified: Aadhaar vs manual).
     match /kycVerifications/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if false;
     }
 

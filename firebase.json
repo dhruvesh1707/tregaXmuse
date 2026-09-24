@@ -19,5 +19,22 @@
   ],
   "storage": {
     "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "trega_admin/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "predeploy": [
+      "npm --prefix trega_admin run build"
+    ]
   }
 }

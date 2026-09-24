@@ -12,7 +12,8 @@ type Step = 'phone' | 'otp';
  *  Only phone numbers whose Firebase user carries the `admin` custom claim
  *  can proceed — everyone else sees an access-denied message. */
 export default function Login() {
-  const { user, denied, loading } = useAuth();
+  const { user, denied, loading, claimAdmin, claimError } = useAuth();
+  const [claiming, setClaiming] = useState(false);
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
@@ -81,8 +82,22 @@ export default function Login() {
 
         {denied && (
           <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
-            This number is signed in but doesn't have admin access. Contact the
-            marketplace owner to grant the <span className="font-semibold">admin</span> claim.
+            This number is signed in but doesn't have admin access.
+            {claimError ? (
+              <div className="mt-1">{claimError}</div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setClaiming(true);
+                  void claimAdmin().finally(() => setClaiming(false));
+                }}
+                disabled={claiming}
+                className="mt-2 w-full rounded-lg bg-trega-600 px-3 py-2 text-xs font-semibold text-white hover:bg-trega-700 disabled:opacity-60"
+              >
+                {claiming ? 'Claiming…' : 'Claim admin access'}
+              </button>
+            )}
           </div>
         )}
 

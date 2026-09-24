@@ -15,7 +15,7 @@ by design — negotiation happens through structured bids/offers.
 | role | string | `buyer` \| `seller` \| `admin` |
 | verifiedSeller | boolean | admin-verified seller badge (set by `setUserKycStatus`) |
 | kycStatus | string | `unverified` \| `pending` \| `verified` \| `rejected` (server/admin-managed) |
-| kycNote | string? | admin note set when KYC is rejected via `setUserKycStatus` |
+| kycNote | string? | admin note set on manual verify/reject via `setUserKycStatus` (shown in the admin panel) |
 | kycName | string? | from Aadhaar (on verified) |
 | kycDob | string? | from Aadhaar (on verified) |
 | createdAt | timestamp | |
@@ -122,6 +122,13 @@ Never on the public listing doc. Readable only by the seller and admins
 | requestedAt / verifiedAt / failedAt | timestamp? | |
 | consentAt | timestamp? | set on OTP request — the app gates the Aadhaar field behind an explicit consent checkbox, so requesting the OTP means consent was given |
 | aadhaarFingerprint | string? | salted HMAC-SHA256 of the Aadhaar (never the number); used for the duplicate-KYC check |
+| method | string? | `manual` when verified/rejected by an admin via `setUserKycStatus` (absent for Aadhaar flow) |
+| verifiedBy | string? | admin uid who manually verified/rejected |
+| reviewedAt | timestamp? | when the admin manually verified/rejected |
+| note | string? | admin's note on manual verify/reject |
+
+Client reads: owner-only, plus admins (the admin panel shows how each
+user was verified).
 
 ### `aadhaarIndex/{fingerprint}`
 Duplicate-KYC guard. Doc ID is the salted fingerprint of an Aadhaar number; the number itself is never stored anywhere.
@@ -149,7 +156,7 @@ Never store `photo_link` / XML blobs here.
 | Field | Type | Notes |
 |---|---|---|
 | title / body | string | |
-| type | string | `bid_received` \| `outbid` \| `bid_accepted` \| `bid_rejected` \| `listing_flagged` \| `order_update` \| legacy `bid`/`order`/`listing` |
+| type | string | `bid_received` \| `outbid` \| `bid_accepted` \| `bid_rejected` \| `listing_flagged` \| `kyc_verified` \| `kyc_rejected` \| `order_update` \| legacy `bid`/`order`/`listing` |
 | read | boolean | clients may only flip this (see `firestore.rules`) |
 | createdAt | timestamp | |
 
@@ -159,6 +166,10 @@ Writers (all in `trega_functions/src/marketplace.ts`):
 - `acceptBid` callable → `bid_accepted` to the winner ("pay within 24h");
   `bid_rejected` to the auto-rejected losers.
 - `reviewListing` callable → `listing_flagged` to the seller on takedown.
+
+Writers (in `trega_functions/src/admin.ts`):
+- `setUserKycStatus` callable → `kyc_verified` / `kyc_rejected` to the user
+  when the admin manually verifies or rejects their KYC.
 
 ### `reports/{listingId}_{reporterId}` (user-submitted, reactive moderation)
 
@@ -209,6 +220,25 @@ Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
 KYC (`kyc.ts`): `requestAadhaarOtp` / `verifyAadhaarOtp` — provider errors
 are surfaced with their real message (invalid Aadhaar, throttled, provider
 outage) instead of a generic failure.
+
+Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
+
+- `bootstrapAdmin()` — one-shot self-service bootstrap. Grants
+  `{admin: true}` to the caller **only** when their verified phone number
+  matches the `ADMIN_BOOTSTRAP_PHONE` secret (E.164). After it returns, the
+  client refreshes its ID token. The admin panel's login flow exposes this
+  as "Claim admin access" on the access-denied screen.
+- `setUserKycStatus({uid, status: "verified" | "rejected", note?})` —
+  manual KYC verification from the admin panel's Users page. Sets
+  `users/{uid}` (`kycStatus`, `verifiedSeller`, `kycNote`), merges a
+  `kycVerifications/{uid}` audit record (`method: "manual"`, `verifiedBy`,
+  `reviewedAt`, note), and notifies the user (`kyc_verified` /
+  `kyc_rejected`). A manually-verified user passes the same gates as an
+  Aadhaar-verified one (selling, making offers) because both read
+  `users/{uid}.kycStatus`.
+- `updateOrderFulfillment({orderId, status?, trackingNote?})` — advances
+  order fulfillment from the admin panel's Orders page. Payment status is
+  owned by the Cashfree webhook and cannot be set here.
 
 ## Storage
 `listingMedia/{listingId}/{filename}` — listing photos and videos.

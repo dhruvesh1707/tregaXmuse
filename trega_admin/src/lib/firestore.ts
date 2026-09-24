@@ -560,6 +560,22 @@ export async function updateOrder(orderId: string, status?: string, trackingNote
   }
 }
 
+const bootstrapAdminFn = httpsCallable<Record<string, never>, { admin: boolean }>(
+  functions,
+  'bootstrapAdmin',
+);
+
+/** One-shot admin bootstrap: grants the `admin` custom claim to the caller,
+ * but only when their verified phone number matches the
+ * ADMIN_BOOTSTRAP_PHONE secret on the functions backend. */
+export async function claimAdminAccess(): Promise<void> {
+  try {
+    await bootstrapAdminFn({});
+  } catch (e) {
+    throw new Error(callableError(e));
+  }
+}
+
 // ── Categories (Firestore rules grant create/update/delete to admins) ────
 function slugify(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');

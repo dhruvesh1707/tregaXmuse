@@ -19,6 +19,7 @@ import {
   CASHFREE_ENV,
   CASHFREE_SECRET_KEY,
   KYC_SALT,
+  ADMIN_BOOTSTRAP_PHONE,
 } from "./config";
 import { requestAadhaarOtpHandler, verifyAadhaarOtpHandler } from "./kyc";
 import {
@@ -35,6 +36,7 @@ import {
   reviewListingHandler,
 } from "./marketplace";
 import {
+  bootstrapAdminHandler,
   setUserKycStatusHandler,
   updateOrderFulfillmentHandler,
 } from "./admin";
@@ -156,9 +158,29 @@ export const cancelAcceptance = onCall(async (request) => {
 // ------------------------------------------------------------- Admin ------
 // Privileged mutations for the admin panel (admin custom claim required).
 // Categories are managed directly through Firestore rules (`isAdmin()`).
+
+/**
+ * One-shot self-service admin bootstrap. The founder signs in to the admin
+ * panel with their phone number, claims admin access, and this grants the
+ * `admin` custom claim — but ONLY when the caller's verified phone number
+ * matches the ADMIN_BOOTSTRAP_PHONE secret. Set it with:
+ *   firebase functions:secrets:set ADMIN_BOOTSTRAP_PHONE   # e.g. +919876543210
+ */
+export const bootstrapAdmin = onCall(
+  { secrets: [ADMIN_BOOTSTRAP_PHONE] },
+  async (request) => {
+    const uid = requireAuthUid(request);
+    return bootstrapAdminHandler(
+      uid,
+      request.auth?.token?.phone_number,
+      ADMIN_BOOTSTRAP_PHONE.value()
+    );
+  }
+);
+
 export const setUserKycStatus = onCall(async (request) => {
   const isAdmin = request.auth?.token?.admin === true;
-  return setUserKycStatusHandler(isAdmin, {
+  return setUserKycStatusHandler(isAdmin, requireAuthUid(request), {
     uid: request.data?.uid,
     status: request.data?.status,
     note: request.data?.note,
