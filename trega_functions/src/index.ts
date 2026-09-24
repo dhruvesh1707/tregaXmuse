@@ -18,6 +18,7 @@ import {
   CASHFREE_APP_ID,
   CASHFREE_ENV,
   CASHFREE_SECRET_KEY,
+  KYC_SALT,
 } from "./config";
 import { requestAadhaarOtpHandler, verifyAadhaarOtpHandler } from "./kyc";
 import {
@@ -41,7 +42,7 @@ import {
 admin.initializeApp();
 setGlobalOptions({ region: "asia-south1", maxInstances: 10 });
 
-const secrets = [BULKPE_API_TOKEN, CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV];
+const secrets = [BULKPE_API_TOKEN, CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV, KYC_SALT];
 
 function requireAuthUid(req: { auth?: { uid: string } | null }): string {
   if (!req.auth?.uid) {

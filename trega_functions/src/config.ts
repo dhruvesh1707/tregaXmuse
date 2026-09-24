@@ -5,6 +5,7 @@ import { defineSecret } from "firebase-functions/params";
 //   firebase functions:secrets:set CASHFREE_SECRET_KEY
 //   firebase functions:secrets:set CASHFREE_ENV          # "sandbox" | "production"
 //   firebase functions:secrets:set BULKPE_API_TOKEN
+//   firebase functions:secrets:set KYC_SALT             # random 32+ char string; salts Aadhaar dedupe hashes
 export const CASHFREE_APP_ID = defineSecret("CASHFREE_APP_ID");
 export const CASHFREE_SECRET_KEY = defineSecret("CASHFREE_SECRET_KEY");
 export const CASHFREE_ENV = defineSecret("CASHFREE_ENV");

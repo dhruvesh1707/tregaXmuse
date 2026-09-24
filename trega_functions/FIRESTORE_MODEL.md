@@ -103,6 +103,17 @@ Never on the public listing doc. Readable only by the seller and admins
 | address / yearOfBirth | string? | from Aadhaar on VALID |
 | requestedAt / verifiedAt / failedAt | timestamp? | |
 | consentAt | timestamp? | set on OTP request — the app gates the Aadhaar field behind an explicit consent checkbox, so requesting the OTP means consent was given |
+| aadhaarFingerprint | string? | salted HMAC-SHA256 of the Aadhaar (never the number); used for the duplicate-KYC check |
+
+### `aadhaarIndex/{fingerprint}`
+Duplicate-KYC guard. Doc ID is the salted fingerprint of an Aadhaar number; the number itself is never stored anywhere.
+
+| Field | Type | Notes |
+|---|---|---|
+| uid | string | the account that verified this Aadhaar |
+| verifiedAt | timestamp | |
+
+`verifyAadhaarOtp` claims the fingerprint in a transaction: if the doc already exists under a **different** uid, verification is rejected with `already-exists` ("already verified on another Trega account"). The check runs at verify time (not OTP-request time) so a bare Aadhaar number can't be used to probe whether it's taken. Client access is fully denied in `firestore.rules` — only the callable (Admin SDK) touches it. Same uid re-verifying is idempotent and allowed.
 
 Never store `photo_link` / XML blobs here.
 

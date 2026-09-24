@@ -128,6 +128,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── aadhaarIndex/{fingerprint} ───────────────────────────────
+    // Duplicate-KYC guard: doc ID is the salted HMAC-SHA256 fingerprint of
+    // an Aadhaar number (the number itself is never stored). Written ONLY
+    // by the verifyAadhaarOtp callable inside a transaction. No client —
+    // not even the owning user — may read or write it.
+    match /aadhaarIndex/{fingerprint} {
+      allow read, write: if false;
+    }
+
     // ── reports/{reportId} ─────────────────────────────────────────
     // User-submitted listing reports (reactive moderation). Doc ID is
     // `{listingId}_{reporterId}` so each user reports a listing at most
