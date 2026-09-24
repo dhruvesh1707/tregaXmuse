@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,9 +37,12 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   bool _busy = false;
   bool _consented = false;
   String? _error;
+  Timer? _cooldownTimer;
+  int _resendIn = 0; // seconds until the Resend OTP button re-enables
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _aadhaarController.dispose();
     _otpController.dispose();
     super.dispose();
@@ -68,6 +73,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         _refId = refId;
         _busy = false;
       });
+      _startCooldown();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('OTP sent to your Aadhaar-linked mobile number.'),
@@ -83,6 +89,45 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             fallback: 'Could not send the OTP. Please try again.',);
       });
     }
+  }
+
+  /// Resend issues a fresh OTP for the same Aadhaar number. The server
+  /// throttles OTP requests to one per 60 seconds, so the button runs a
+  /// matching client-side countdown instead of failing silently.
+  Future<void> _resendOtp() async {
+    _otpController.clear();
+    await _requestOtp();
+  }
+
+  void _startCooldown() {
+    _stopCooldown();
+    setState(() => _resendIn = 60);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        _resendIn--;
+        if (_resendIn <= 0) {
+          _resendIn = 0;
+          t.cancel();
+        }
+      });
+    });
+  }
+
+  void _stopCooldown() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = null;
+    _resendIn = 0;
+  }
+
+  String get _resendLabel {
+    if (_resendIn <= 0) return 'Resend OTP';
+    final m = _resendIn ~/ 60;
+    final s = (_resendIn % 60).toString().padLeft(2, '0');
+    return 'Resend OTP in $m:$s';
   }
 
   Future<void> _verifyOtp() async {
@@ -224,13 +269,18 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           const Center(child: CircularProgressIndicator())
         else if (_refId == null && _consented)
           TregaButton(label: 'Send OTP', onPressed: _requestOtp)
-        else ...[
+        else if (_refId != null) ...[
           TregaButton(label: 'Verify OTP', onPressed: _verifyOtp),
           const SizedBox(height: 12),
+          TextButton(
+            onPressed: _resendIn > 0 ? null : _resendOtp,
+            child: Text(_resendLabel),
+          ),
           TextButton(
             onPressed: () => setState(() {
               _refId = null;
               _otpController.clear();
+              _stopCooldown();
             }),
             child: const Text('Use a different Aadhaar number'),
           ),
