@@ -21,9 +21,10 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 /// (`trega_<orderId>`, see `trega_functions/src/payments.ts`), not the
 /// Firestore doc id and not Cashfree's numeric `cf_order_id`.
 class CashfreeService {
-  /// Must match the backend `CASHFREE_ENV` secret (currently production).
+  /// Must match the backend `CASHFREE_ENV` secret (currently sandbox for
+  /// pre-launch testing — flip back to PRODUCTION before going live).
   /// Sandbox and production sessions are NOT interchangeable.
-  static const CFEnvironment environment = CFEnvironment.PRODUCTION;
+  static const CFEnvironment environment = CFEnvironment.SANDBOX;
 
   /// Opens the Cashfree drop-checkout sheet.
   ///
