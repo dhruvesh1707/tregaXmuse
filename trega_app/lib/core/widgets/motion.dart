@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
@@ -288,7 +289,7 @@ class _LikeButtonState extends State<LikeButton>
       scale: _scale,
       child: IconButton(
         icon: Icon(
-          widget.isLiked ? Icons.favorite : Icons.favorite_border,
+          widget.isLiked ? PhosphorIconsFill.heart : PhosphorIconsRegular.heart,
           color: widget.isLiked ? AppColors.error : widget.unlikedColor,
         ),
         onPressed: () {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -24,7 +25,7 @@ class WishlistScreen extends ConsumerWidget {
       return const Scaffold(
         body: SafeArea(
           child: EmptyState(
-            icon: Icons.login_outlined,
+            icon: PhosphorIconsRegular.signIn,
             title: 'Sign in required',
             subtitle: 'Sign in to see your wishlist.',
           ),
@@ -57,7 +58,7 @@ class WishlistScreen extends ConsumerWidget {
             appBar: AppBar(title: const Text('Wishlist')),
             body: const SafeArea(
               child: EmptyState(
-                icon: Icons.cloud_off_outlined,
+                icon: PhosphorIconsRegular.cloudSlash,
                 title: 'Couldn\'t load wishlist',
                 subtitle: 'Check your connection and try again.',
               ),
@@ -81,7 +82,7 @@ class _WishlistGrid extends StatelessWidget {
       appBar: AppBar(title: const Text('Wishlist')),
       body: listings.isEmpty
           ? const EmptyState(
-              icon: Icons.favorite_outline,
+              icon: PhosphorIconsRegular.heart,
               title: 'Nothing saved yet',
               subtitle:
                   'Tap the heart on any listing to save it here.',

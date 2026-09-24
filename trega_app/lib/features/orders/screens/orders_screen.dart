@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -29,7 +30,7 @@ class OrdersScreen extends ConsumerWidget {
       return const Scaffold(
         body: SafeArea(
           child: EmptyState(
-            icon: Icons.login_outlined,
+            icon: PhosphorIconsRegular.signIn,
             title: 'Sign in required',
             subtitle: 'Sign in to see your orders.',
           ),
@@ -55,7 +56,7 @@ class OrdersScreen extends ConsumerWidget {
           return Scaffold(
             appBar: AppBar(title: const Text('My Orders')),
             body: const EmptyState(
-              icon: Icons.cloud_off_outlined,
+              icon: PhosphorIconsRegular.cloudSlash,
               title: 'Couldn\'t load orders',
               subtitle: 'Check your connection and try again.',
             ),
@@ -78,7 +79,7 @@ class _OrdersList extends StatelessWidget {
       appBar: AppBar(title: const Text('My Orders')),
       body: orders.isEmpty
           ? const EmptyState(
-              icon: Icons.inventory_2_outlined,
+              icon: PhosphorIconsRegular.package,
               title: 'No orders yet',
               subtitle:
                   'When you buy something, tracking will show up here.',
@@ -173,7 +174,7 @@ class _OrderCard extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Icon(Icons.chevron_right, color: AppColors.primary),
+                      Icon(PhosphorIconsRegular.caretRight, color: AppColors.primary),
                     ],
                   ),
                 ],

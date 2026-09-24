@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -55,7 +56,7 @@ class HelpScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.support_agent_outlined,
+                    PhosphorIconsRegular.headset,
                     color: Colors.white,
                     size: 28,
                   ),
@@ -140,7 +141,7 @@ class HelpScreen extends StatelessWidget {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.mail_outline,
+                child: const Icon(PhosphorIconsRegular.envelope,
                     color: Colors.white, size: 24,),
               ),
               title: Text(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../models/bid.dart';
 import '../models/category.dart';
@@ -13,12 +14,12 @@ import '../models/user.dart';
 /// land (see README.md "Backend wiring").
 abstract final class SampleData {
   static const List<Category> categories = [
-    Category(id: 'gaming', name: 'Gaming', slug: 'gaming', icon: Icons.sports_esports),
-    Category(id: 'mobiles', name: 'Mobiles', slug: 'mobile', icon: Icons.smartphone),
-    Category(id: 'laptops', name: 'Laptops', slug: 'laptop', icon: Icons.laptop),
-    Category(id: 'cameras', name: 'Cameras', slug: 'camera', icon: Icons.camera_alt),
-    Category(id: 'music', name: 'Music', slug: 'music', icon: Icons.music_note),
-    Category(id: 'others', name: 'Others', slug: 'others', icon: Icons.more_horiz),
+    Category(id: 'gaming', name: 'Gaming', slug: 'gaming', icon: PhosphorIconsRegular.gameController),
+    Category(id: 'mobiles', name: 'Mobiles', slug: 'mobile', icon: PhosphorIconsRegular.deviceMobile),
+    Category(id: 'laptops', name: 'Laptops', slug: 'laptop', icon: PhosphorIconsRegular.laptop),
+    Category(id: 'cameras', name: 'Cameras', slug: 'camera', icon: PhosphorIconsRegular.camera),
+    Category(id: 'music', name: 'Music', slug: 'music', icon: PhosphorIconsRegular.musicNote),
+    Category(id: 'others', name: 'Others', slug: 'others', icon: PhosphorIconsRegular.dotsThree),
   ];
 
   static final AppUser demoSeller = AppUser(

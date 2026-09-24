@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Marketplace category ("Explore by Passion").
 ///
 /// Canonical fields (`trega_functions/FIRESTORE_MODEL.md`): `name`, `slug`,
 /// `icon` (string key), `active`, `sortOrder`. Firestore stores `icon` as a
 /// string so new categories can be added from the admin panel without an app
-/// release; [iconKeyToIconData] maps it to a Material icon here.
+/// release; [iconKeyToIconData] maps it to a Phosphor icon here.
 class Category {
   final String id;
   final String name;
@@ -24,7 +25,7 @@ class Category {
       id: json['id'] as String,
       name: json['name'] as String,
       slug: json['slug'] as String? ?? '',
-      icon: Icons.category_outlined,
+      icon: PhosphorIconsRegular.squaresFour,
     );
   }
 
@@ -37,26 +38,26 @@ class Category {
     );
   }
 
-  /// Maps a stored icon key to a Material icon. Unknown keys fall back to a
+  /// Maps a stored icon key to a Phosphor icon. Unknown keys fall back to a
   /// generic category icon so admin-added categories never crash the app.
   static IconData iconKeyToIconData(String? key) {
     switch (key) {
       case 'gaming':
-        return Icons.sports_esports_outlined;
+        return PhosphorIconsRegular.gameController;
       case 'mobile':
-        return Icons.smartphone_outlined;
+        return PhosphorIconsRegular.deviceMobile;
       case 'laptop':
-        return Icons.laptop_outlined;
+        return PhosphorIconsRegular.laptop;
       case 'camera':
-        return Icons.photo_camera_outlined;
+        return PhosphorIconsRegular.camera;
       case 'music':
-        return Icons.music_note_outlined;
+        return PhosphorIconsRegular.musicNote;
       case 'watch':
-        return Icons.watch_outlined;
+        return PhosphorIconsRegular.watch;
       case 'collectible':
-        return Icons.collections_outlined;
+        return PhosphorIconsRegular.images;
       default:
-        return Icons.category_outlined;
+        return PhosphorIconsRegular.squaresFour;
     }
   }
 }

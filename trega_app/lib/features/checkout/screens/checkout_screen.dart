@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -264,7 +265,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           width: 72,
                           height: 72,
                           color: AppColors.primarySoft,
-                          child: const Icon(Icons.image_not_supported_outlined),
+                          child: const Icon(PhosphorIconsRegular.prohibit),
                         ),
                       ),
                     ),

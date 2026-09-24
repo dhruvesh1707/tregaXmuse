@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -107,7 +109,7 @@ class ProfileScreen extends ConsumerWidget {
                                               ),
                                             ),
                                             if (verified)
-                                              const Icon(Icons.verified,
+                                              const Icon(PhosphorIconsRegular.sealCheck,
                                                   size: 20,
                                                   color:
                                                       AppColors.primary,),
@@ -125,7 +127,7 @@ class ProfileScreen extends ConsumerWidget {
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
-                                            const Icon(Icons.star,
+                                            const Icon(PhosphorIconsRegular.star,
                                                 size: 16,
                                                 color: AppColors.accent,),
                                             Text(
@@ -147,14 +149,14 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                         if (!verified)
                           _MenuTile(
-                            icon: Icons.verified_outlined,
+                            icon: PhosphorIconsRegular.sealCheck,
                             title: 'Become a verified seller',
                             subtitle: 'Verify your Aadhaar with OTP',
                             onTap: () => Navigator.of(context)
                                 .pushNamed(KycScreen.routeName),
                           ),
                         _MenuTile(
-                          icon: Icons.inventory_2_outlined,
+                          icon: PhosphorIconsRegular.package,
                           title: 'My Listings',
                           subtitle: 'Manage what you’re selling',
                           onTap: () => Navigator.of(context)
@@ -162,35 +164,35 @@ class ProfileScreen extends ConsumerWidget {
                                   MyListingsScreen.routeName,),
                         ),
                         _MenuTile(
-                          icon: Icons.gavel_outlined,
+                          icon: PhosphorIconsRegular.gavel,
                           title: 'Bids & Offers',
                           subtitle: 'Track negotiations',
                           onTap: () => Navigator.of(context)
                               .pushNamed(BidsOffersScreen.routeName),
                         ),
                         _MenuTile(
-                          icon: Icons.inventory_2_outlined,
+                          icon: PhosphorIconsRegular.package,
                           title: 'My Orders',
                           subtitle: 'Purchases & deliveries',
                           onTap: () => Navigator.of(context)
                               .pushNamed(OrdersScreen.routeName),
                         ),
                         _MenuTile(
-                          icon: Icons.favorite_outline,
+                          icon: PhosphorIconsRegular.heart,
                           title: 'Wishlist',
                           subtitle: 'Saved items',
                           onTap: () => Navigator.of(context)
                               .pushNamed(WishlistScreen.routeName),
                         ),
                         _MenuTile(
-                          icon: Icons.settings_outlined,
+                          icon: PhosphorIconsRegular.gear,
                           title: 'Settings',
                           onTap: () => Navigator.of(context)
                               .pushNamed(
                                   SettingsScreen.routeName,),
                         ),
                         _MenuTile(
-                          icon: Icons.help_outline,
+                          icon: PhosphorIconsRegular.question,
                           title: 'Help & Support',
                           onTap: () => Navigator.of(context)
                               .pushNamed(HelpScreen.routeName),
@@ -199,7 +201,7 @@ class ProfileScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(16),
                           child: OutlinedButton.icon(
                             onPressed: () => _logout(context, ref),
-                            icon: const Icon(Icons.logout,
+                            icon: const Icon(PhosphorIconsRegular.signOut,
                                 color: AppColors.error,),
                             label: const Text('Log out',
                                 style:
@@ -248,7 +250,7 @@ class _MenuTile extends StatelessWidget {
       ),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle!),
-      trailing: const Icon(Icons.chevron_right,
+      trailing: const Icon(PhosphorIconsRegular.caretRight,
           color: AppColors.textSecondary,),
       onTap: onTap,
     );
@@ -276,19 +278,19 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
 
   Future<void> _changeAvatar() async {
     // Profile picture is the one place gallery upload is allowed.
-    final source = await showModalBottomSheet<ImageSource>(
+    final source = await showCupertinoModalBottomSheet<ImageSource>(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: const Icon(PhosphorIconsRegular.camera),
               title: const Text('Take a photo'),
               onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(PhosphorIconsRegular.images),
               title: const Text('Choose from gallery'),
               onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
             ),
@@ -357,7 +359,7 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
           child: hasAvatar
               ? null
               : const Icon(
-                  Icons.person,
+                  PhosphorIconsRegular.user,
                   size: 36,
                   color: AppColors.primary,
                 ),
@@ -386,7 +388,7 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
                   border: Border.all(color: Colors.white, width: 2),
                 ),
                 child: const Icon(
-                  Icons.camera_alt,
+                  PhosphorIconsRegular.camera,
                   size: 14,
                   color: Colors.white,
                 ),

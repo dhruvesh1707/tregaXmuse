@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/empty_state.dart';
@@ -40,7 +41,7 @@ class CategoryScreen extends ConsumerWidget {
           : listingsAsync.when(
               data: (listings) => listings.isEmpty
                   ? const EmptyState(
-                      icon: Icons.inventory_2_outlined,
+                      icon: PhosphorIconsRegular.package,
                       title: 'No listings yet',
                       subtitle:
                           'Be the first to list gear in this category.',
@@ -86,7 +87,7 @@ class CategoryScreen extends ConsumerWidget {
                 itemBuilder: (context, i) => const ProductCardSkeleton(),
               ),
               error: (_, __) => const EmptyState(
-                icon: Icons.cloud_off_outlined,
+                icon: PhosphorIconsRegular.cloudSlash,
                 title: 'Couldn\'t load listings',
                 subtitle: 'Check your connection and try again.',
               ),

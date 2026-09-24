@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/category.dart';
@@ -42,7 +44,7 @@ class HomeScreen extends ConsumerWidget {
             title: Image.asset('assets/logo/trega_logo.png', height: 28),
             actions: [
               IconButton(
-                icon: const Icon(Icons.search),
+                icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
                 onPressed: () =>
                     Navigator.of(context).pushNamed(SearchScreen.routeName),
               ),
@@ -50,9 +52,9 @@ class HomeScreen extends ConsumerWidget {
                 icon: unread > 0
                     ? Badge(
                         label: Text(unread > 99 ? '99+' : '$unread'),
-                        child: const Icon(Icons.notifications_outlined),
+                        child: const Icon(PhosphorIconsRegular.bell),
                       )
-                    : const Icon(Icons.notifications_outlined),
+                    : const Icon(PhosphorIconsRegular.bell),
                 onPressed: () => Navigator.of(context)
                     .pushNamed(NotificationsScreen.routeName),
               ),
@@ -81,7 +83,7 @@ class HomeScreen extends ConsumerWidget {
             data: (listings) => listings.isEmpty
                 ? const SliverToBoxAdapter(
                     child: EmptyState(
-                      icon: Icons.inventory_2_outlined,
+                      icon: PhosphorIconsRegular.package,
                       title: 'No listings yet',
                       subtitle: 'Be the first to list your gear on Trega.',
                     ),
@@ -104,7 +106,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             error: (_, __) => const SliverToBoxAdapter(
               child: EmptyState(
-                icon: Icons.cloud_off_outlined,
+                icon: PhosphorIconsRegular.cloudSlash,
                 title: 'Couldn\'t load listings',
                 subtitle: 'Check your connection and try again.',
               ),
@@ -134,24 +136,24 @@ class HomeScreen extends ConsumerWidget {
         },
         items: const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
+              icon: Icon(PhosphorIconsRegular.house),
+              activeIcon: Icon(PhosphorIconsRegular.house),
               label: 'Home',),
           BottomNavigationBarItem(
-              icon: Icon(Icons.search_outlined),
-              activeIcon: Icon(Icons.search),
+              icon: Icon(PhosphorIconsRegular.magnifyingGlass),
+              activeIcon: Icon(PhosphorIconsRegular.magnifyingGlass),
               label: 'Search',),
           BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline),
-              activeIcon: Icon(Icons.add_circle),
+              icon: Icon(PhosphorIconsRegular.plusCircle),
+              activeIcon: Icon(PhosphorIconsRegular.plusCircle),
               label: 'Sell',),
           BottomNavigationBarItem(
-              icon: Icon(Icons.gavel_outlined),
-              activeIcon: Icon(Icons.gavel),
+              icon: Icon(PhosphorIconsRegular.gavel),
+              activeIcon: Icon(PhosphorIconsRegular.gavel),
               label: 'Bids',),
           BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
+              icon: Icon(PhosphorIconsRegular.user),
+              activeIcon: Icon(PhosphorIconsRegular.user),
               label: 'Profile',),
         ],
       ),
@@ -162,7 +164,7 @@ class HomeScreen extends ConsumerWidget {
 /// "See all" for Explore by Passion: a bottom sheet with every category.
 /// Tapping a category opens its listings on the CategoryScreen.
 void _showAllCategories(BuildContext context, List<Category> categories) {
-  showModalBottomSheet<void>(
+  showCupertinoModalBottomSheet<void>(
     context: context,
     builder: (sheetContext) => SafeArea(
       child: Column(
@@ -189,7 +191,7 @@ void _showAllCategories(BuildContext context, List<Category> categories) {
                     color: AppColors.primary,
                   ),
                   title: Text(category.name),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: const Icon(PhosphorIconsRegular.caretRight),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     Navigator.of(context).pushNamed(

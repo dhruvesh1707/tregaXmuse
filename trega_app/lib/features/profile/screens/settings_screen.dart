@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -273,12 +274,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: const Icon(
-                      Icons.person_outline,
+                      PhosphorIconsRegular.user,
                       color: AppColors.primary,),
                   title: const Text('Edit profile'),
                   subtitle:
                       const Text('Name and email address'),
-                  trailing: const Icon(Icons.chevron_right,
+                  trailing: const Icon(PhosphorIconsRegular.caretRight,
                       color: AppColors.textSecondary,),
                   onTap: () =>
                       _editProfile(context, ref, uid),
@@ -300,12 +301,12 @@ class SettingsScreen extends ConsumerWidget {
                   builder: (context, snap) {
                     final upi = snap.data;
                     return ListTile(
-                      leading: const Icon(Icons.payments_outlined,
+                      leading: const Icon(PhosphorIconsRegular.wallet,
                           color: AppColors.primary,),
                       title: const Text('Payout UPI ID'),
                       subtitle: Text(
                         upi ?? 'Not set — add it to receive payouts',),
-                      trailing: const Icon(Icons.chevron_right,
+                      trailing: const Icon(PhosphorIconsRegular.caretRight,
                           color: AppColors.textSecondary,),
                       onTap: () =>
                           _editPayoutUpi(context, ref, uid),
@@ -313,22 +314,22 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.location_on_outlined,
+                  leading: const Icon(PhosphorIconsRegular.mapPin,
                       color: AppColors.primary,),
                   title: const Text('Saved pickup addresses'),
                   subtitle:
                       const Text('Reuse them across listings'),
-                  trailing: const Icon(Icons.chevron_right,
+                  trailing: const Icon(PhosphorIconsRegular.caretRight,
                       color: AppColors.textSecondary,),
                   onTap: () => Navigator.of(context).pushNamed(
                       SavedAddressesScreen.routeName,),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.help_outline,
+                  leading: const Icon(PhosphorIconsRegular.question,
                       color: AppColors.primary,),
                   title: const Text('Help & Support'),
-                  trailing: const Icon(Icons.chevron_right,
+                  trailing: const Icon(PhosphorIconsRegular.caretRight,
                       color: AppColors.textSecondary,),
                   onTap: () => Navigator.of(context)
                       .pushNamed(HelpScreen.routeName),
@@ -347,7 +348,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const ListTile(
-                  leading: Icon(Icons.info_outline,
+                  leading: Icon(PhosphorIconsRegular.info,
                       color: AppColors.primary,),
                   title: Text('Trega'),
                   subtitle: Text(

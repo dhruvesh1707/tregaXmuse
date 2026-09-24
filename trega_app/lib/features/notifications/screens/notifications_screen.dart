@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -33,23 +34,23 @@ class _NotificationsScreenState
   IconData _iconForType(String type) {
     switch (type) {
       case 'bid_received':
-        return Icons.gavel;
+        return PhosphorIconsRegular.gavel;
       case 'outbid':
-        return Icons.trending_up;
+        return PhosphorIconsRegular.trendUp;
       case 'bid_accepted':
-        return Icons.check_circle_outline;
+        return PhosphorIconsRegular.checkCircle;
       case 'bid_rejected':
-        return Icons.cancel_outlined;
+        return PhosphorIconsRegular.xCircle;
       case 'listing_flagged':
-        return Icons.flag_outlined;
+        return PhosphorIconsRegular.flag;
       case 'bid':
-        return Icons.gavel;
+        return PhosphorIconsRegular.gavel;
       case 'order':
-        return Icons.local_shipping_outlined;
+        return PhosphorIconsRegular.truck;
       case 'listing':
-        return Icons.verified_outlined;
+        return PhosphorIconsRegular.sealCheck;
       default:
-        return Icons.notifications_outlined;
+        return PhosphorIconsRegular.bell;
     }
   }
 
@@ -88,7 +89,7 @@ class _NotificationsScreenState
       ),
       body: uid == null
           ? const EmptyState(
-              icon: Icons.notifications_none_outlined,
+              icon: PhosphorIconsRegular.bell,
               title: 'Not signed in',
               subtitle: 'Sign in to see your notifications.',
             )
@@ -104,7 +105,7 @@ class _NotificationsScreenState
                 if (snap.hasError) {
                   return EmptyState(
                     icon:
-                        Icons.notifications_off_outlined,
+                        PhosphorIconsRegular.bellSlash,
                     title: 'Couldn’t load notifications',
                     subtitle:
                         'Check your connection and pull to try again.',
@@ -116,7 +117,7 @@ class _NotificationsScreenState
                 if (items.isEmpty) {
                   return const EmptyState(
                     icon:
-                        Icons.notifications_none_outlined,
+                        PhosphorIconsRegular.bell,
                     title: 'All caught up',
                     subtitle:
                         'We’ll notify you about bids, offers and orders.',

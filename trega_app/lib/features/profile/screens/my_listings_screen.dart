@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -126,7 +127,7 @@ class MyListingsScreen extends ConsumerWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.lock_outline,
+                    const Icon(PhosphorIconsRegular.lock,
                         size: 14,
                         color: AppColors.textSecondary,),
                     const SizedBox(width: 6),
@@ -162,7 +163,7 @@ class MyListingsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('My Listings')),
       body: uid == null
           ? const EmptyState(
-              icon: Icons.inventory_2_outlined,
+              icon: PhosphorIconsRegular.package,
               title: 'Not signed in',
               subtitle: 'Sign in to see the items you’re selling.',
             )
@@ -176,7 +177,7 @@ class MyListingsScreen extends ConsumerWidget {
                 final listings = snap.data ?? [];
                 if (listings.isEmpty) {
                   return EmptyState(
-                    icon: Icons.inventory_2_outlined,
+                    icon: PhosphorIconsRegular.package,
                     title: 'No listings yet',
                     subtitle:
                         'Sell your pre-owned gear in 30 seconds — photos, details, price, done.',
@@ -325,7 +326,7 @@ class MyListingsScreen extends ConsumerWidget {
       height: 72,
       color: AppColors.primarySoft,
       child:
-          const Icon(Icons.image, color: AppColors.primary),
+          const Icon(PhosphorIconsRegular.image, color: AppColors.primary),
     );
   }
 

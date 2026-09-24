@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -434,7 +435,7 @@ static bool _isValidUpi(String upi) =>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.error_outline,
+                  const Icon(PhosphorIconsRegular.warningCircle,
                       color: AppColors.error, size: 20,),
                   const SizedBox(width: 10),
                   Expanded(
@@ -563,7 +564,7 @@ static bool _isValidUpi(String upi) =>
                                           width: 96,
                                           height: 96,
                                           color: AppColors.primarySoft,
-                                          child: const Icon(Icons.image,
+                                          child: const Icon(PhosphorIconsRegular.image,
                                               color: AppColors.primary,),
                                         ),
                                       ),
@@ -584,7 +585,7 @@ static bool _isValidUpi(String upi) =>
                                             shape: BoxShape.circle,
                                           ),
                                           child: const Icon(
-                                            Icons.close,
+                                            PhosphorIconsRegular.x,
                                             size: 14,
                                             color: Colors.white,
                                           ),
@@ -612,7 +613,7 @@ static bool _isValidUpi(String upi) =>
                                 mainAxisAlignment:
                                     MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_a_photo_outlined,
+                                  Icon(PhosphorIconsRegular.cameraPlus,
                                       color: AppColors.primary,),
                                   SizedBox(height: 4),
                                   Text('Add',
@@ -713,7 +714,7 @@ static bool _isValidUpi(String upi) =>
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.insights_outlined,
+                            const Icon(PhosphorIconsRegular.chartBar,
                                 size: 16,
                                 color: AppColors.textSecondary,),
                             const SizedBox(width: 6),
@@ -835,7 +836,7 @@ static bool _isValidUpi(String upi) =>
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.lock_outline,
+                          const Icon(PhosphorIconsRegular.lock,
                               size: 14,
                               color: AppColors.textSecondary,),
                           const SizedBox(width: 6),
@@ -854,7 +855,7 @@ static bool _isValidUpi(String upi) =>
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.lock_outline,
+                          const Icon(PhosphorIconsRegular.lock,
                               size: 14,
                               color: AppColors.textSecondary,),
                           const SizedBox(width: 6),
@@ -932,8 +933,8 @@ class _CategoryTile extends StatelessWidget {
               ),
         ),
         trailing: selected
-            ? const Icon(Icons.check_circle, color: AppColors.primary)
-            : const Icon(Icons.chevron_right,
+            ? const Icon(PhosphorIconsRegular.checkCircle, color: AppColors.primary)
+            : const Icon(PhosphorIconsRegular.caretRight,
                 color: AppColors.textSecondary,),
         onTap: onTap,
       ),
@@ -1042,7 +1043,7 @@ class _ReviewSummary extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.bolt_outlined,
+            const Icon(PhosphorIconsRegular.lightning,
                 size: 16, color: AppColors.primary,),
             const SizedBox(width: 6),
             Expanded(

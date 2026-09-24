@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -142,7 +143,7 @@ class _TrackingContent extends ConsumerWidget {
           const SizedBox(height: 24),
           OutlinedButton.icon(
             onPressed: () {},
-            icon: const Icon(Icons.support_agent_outlined),
+            icon: const Icon(PhosphorIconsRegular.headset),
             label: const Text('Need help with this order?'),
           ),
         ],
@@ -181,7 +182,7 @@ class _TimelineTile extends StatelessWidget {
                 border: Border.all(color: color, width: 2),
               ),
               child: done
-                  ? const Icon(Icons.check,
+                  ? const Icon(PhosphorIconsRegular.check,
                       size: 14, color: Colors.white,)
                   : null,
             ),

@@ -28,6 +28,11 @@ dependencies:
   # Media
   image_picker: ^1.1.2
   image_cropper: ^12.2.1 # profile photo crop only — gallery stays out of the sell flow
+
+  # iOS-style UI: Phosphor icon set (pinned — 2.1.0 changed the access API)
+  # and iOS-animated modal bottom sheets.
+  phosphor_flutter: 2.0.1
+  modal_bottom_sheet: ^3.0.0
   video_player: ^2.9.2
   cached_network_image: ^3.4.1
 

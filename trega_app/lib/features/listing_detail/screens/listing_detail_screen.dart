@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -141,7 +143,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       );
       return;
     }
-    final reason = await showModalBottomSheet<String>(
+    final reason = await showCupertinoModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -243,7 +245,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                         ),
                         errorWidget: (context, url, error) => Container(
                           color: AppColors.primarySoft,
-                          child: const Icon(Icons.image_not_supported_outlined),
+                          child: const Icon(PhosphorIconsRegular.prohibit),
                         ),
                       );
                       // Hero flight target for the feed card's photo.
@@ -263,7 +265,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                       right: 16,
                       child: CircleAvatar(
                         backgroundColor: Colors.black54,
-                        child: Icon(Icons.play_arrow, color: Colors.white),
+                        child: Icon(PhosphorIconsRegular.play, color: Colors.white),
                       ),
                     ),
                   if (product.imageUrls.length > 1)
@@ -300,11 +302,11 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                 onTap: () => _toggleLike(listing),
               ),
               IconButton(
-                icon: const Icon(Icons.share_outlined),
+                icon: const Icon(PhosphorIconsRegular.shareNetwork),
                 onPressed: () => _shareListing(listing),
               ),
               IconButton(
-                icon: const Icon(Icons.flag_outlined),
+                icon: const Icon(PhosphorIconsRegular.flag),
                 tooltip: 'Report listing',
                 onPressed: () => _reportListing(context, listing),
               ),
@@ -526,7 +528,7 @@ class _VerifiedPill extends StatelessWidget {
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified, size: 14, color: AppColors.primary),
+          Icon(PhosphorIconsRegular.sealCheck, size: 14, color: AppColors.primary),
           SizedBox(width: 4),
           Text(
             'Verified seller',
@@ -567,7 +569,7 @@ class _SellerInfo extends ConsumerWidget {
                 const CircleAvatar(
                   radius: 24,
                   backgroundColor: AppColors.primarySoft,
-                  child: Icon(Icons.person, color: AppColors.primary),
+                  child: Icon(PhosphorIconsRegular.user, color: AppColors.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -580,7 +582,7 @@ class _SellerInfo extends ConsumerWidget {
                               style: Theme.of(context).textTheme.titleSmall,),
                           if (verified) ...[
                             const SizedBox(width: 4),
-                            const Icon(Icons.verified,
+                            const Icon(PhosphorIconsRegular.sealCheck,
                                 size: 16, color: AppColors.primary,),
                           ],
                         ],
@@ -683,10 +685,10 @@ class _ReportSheet extends StatelessWidget {
   const _ReportSheet();
 
   static const _reasons = [
-    ('Spam or misleading', Icons.report_outlined),
-    ('Fraud or scam', Icons.warning_amber_outlined),
-    ('Inappropriate content', Icons.block_outlined),
-    ('Wrong category', Icons.category_outlined),
+    ('Spam or misleading', PhosphorIconsRegular.flag),
+    ('Fraud or scam', PhosphorIconsRegular.warning),
+    ('Inappropriate content', PhosphorIconsRegular.prohibit),
+    ('Wrong category', PhosphorIconsRegular.squaresFour),
   ];
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -155,7 +156,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Icon(Icons.fingerprint,
+        const Icon(PhosphorIconsRegular.fingerprint,
             size: 64, color: AppColors.primary,),
         const SizedBox(height: 16),
         Text(
@@ -277,7 +278,7 @@ class _ConsentCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.privacy_tip_outlined, size: 20),
+              const Icon(PhosphorIconsRegular.shieldCheck, size: 20),
               const SizedBox(width: 8),
               Text('Your consent',
                   style: theme.textTheme.titleMedium,),
@@ -343,7 +344,7 @@ class _VerifiedState extends StatelessWidget {  final String? name;
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.verified,
+            const Icon(PhosphorIconsRegular.sealCheck,
                 size: 80, color: AppColors.success,),
             const SizedBox(height: 16),
             Text('Identity verified',

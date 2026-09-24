@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -20,19 +21,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   static const _slides = [
     (
-      icon: Icons.verified_outlined,
+      icon: PhosphorIconsRegular.sealCheck,
       title: 'Video-verified listings',
       body:
           'See the actual product working — every listing is reviewed by our team before it goes live.',
     ),
     (
-      icon: Icons.bolt_outlined,
+      icon: PhosphorIconsRegular.lightning,
       title: 'Sell in 30 seconds',
       body:
           'Snap a photo & video, add details, set your price. We handle pickup and doorstep delivery.',
     ),
     (
-      icon: Icons.handshake_outlined,
+      icon: PhosphorIconsRegular.handshake,
       title: 'Bid smart, buy safe',
       body:
           'Make offers on gear you love. Secure in-app payments, zero commission on your listings.',

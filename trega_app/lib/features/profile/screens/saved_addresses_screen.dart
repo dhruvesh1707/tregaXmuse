@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -225,7 +226,7 @@ class SavedAddressesScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.location_on_outlined,
+                          const Icon(PhosphorIconsRegular.mapPin,
                               size: 48, color: AppColors.textSecondary,),
                           const SizedBox(height: 12),
                           Text(
@@ -252,12 +253,12 @@ class SavedAddressesScreen extends ConsumerWidget {
                     final a = addresses[i];
                     return Card(
                       child: ListTile(
-                        leading: const Icon(Icons.location_on_outlined,
+                        leading: const Icon(PhosphorIconsRegular.mapPin,
                             color: AppColors.primary,),
                         title: Text(a.displayLabel),
                         subtitle: Text(a.fullAddress),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline,
+                          icon: const Icon(PhosphorIconsRegular.trash,
                               color: AppColors.error,),
                           onPressed: () =>
                               _deleteAddress(context, ref, uid, a),
@@ -272,7 +273,7 @@ class SavedAddressesScreen extends ConsumerWidget {
           ? null
           : FloatingActionButton.extended(
               onPressed: () => _addAddress(context, ref, uid),
-              icon: const Icon(Icons.add),
+              icon: const Icon(PhosphorIconsRegular.plus),
               label: const Text('Add address'),
             ),
     );

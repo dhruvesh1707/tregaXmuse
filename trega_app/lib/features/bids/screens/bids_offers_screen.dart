@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
@@ -143,7 +144,7 @@ class _MyOffersTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (stream == null) {
       return const EmptyState(
-        icon: Icons.login_outlined,
+        icon: PhosphorIconsRegular.signIn,
         title: 'Sign in required',
         subtitle: 'Sign in to see your offers.',
       );
@@ -162,7 +163,7 @@ class _MyOffersTab extends ConsumerWidget {
         }
         if (snap.hasError) {
           return const EmptyState(
-            icon: Icons.cloud_off_outlined,
+            icon: PhosphorIconsRegular.cloudSlash,
             title: "Couldn't load offers",
             subtitle: 'Check your connection and try again.',
           );
@@ -170,7 +171,7 @@ class _MyOffersTab extends ConsumerWidget {
         final bids = snap.data ?? const <Bid>[];
         if (bids.isEmpty) {
           return const EmptyState(
-            icon: Icons.gavel_outlined,
+            icon: PhosphorIconsRegular.gavel,
             title: 'No offers yet',
             subtitle: 'Make an offer on a listing and track it here.',
           );
@@ -283,7 +284,7 @@ class _OffersReceivedTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (stream == null) {
       return const EmptyState(
-        icon: Icons.login_outlined,
+        icon: PhosphorIconsRegular.signIn,
         title: 'Sign in required',
         subtitle: 'Sign in to see offers on your listings.',
       );
@@ -302,7 +303,7 @@ class _OffersReceivedTab extends ConsumerWidget {
         }
         if (snap.hasError) {
           return const EmptyState(
-            icon: Icons.cloud_off_outlined,
+            icon: PhosphorIconsRegular.cloudSlash,
             title: "Couldn't load offers",
             subtitle: 'Check your connection and try again.',
           );
@@ -310,7 +311,7 @@ class _OffersReceivedTab extends ConsumerWidget {
         final bids = snap.data ?? const <Bid>[];
         if (bids.isEmpty) {
           return const EmptyState(
-            icon: Icons.inbox_outlined,
+            icon: PhosphorIconsRegular.tray,
             title: 'No offers yet',
             subtitle: 'Offers on your listings will appear here.',
           );
