@@ -281,18 +281,21 @@ export async function acceptBidHandler(
       throw new HttpsError("failed-precondition", "Listing is not available.");
     }
 
+    // Firestore transactions require ALL reads before ALL writes — the
+    // other-bids query must run before the updates below, or the
+    // transaction throws (surfaced to the app as INTERNAL).
+    // Single-field query (no composite index needed); the "open" filter
+    // is applied in code.
+    const others = await tx.get(
+      db.collection("bids").where("listingId", "==", bid.listingId)
+    );
+
     tx.update(bidRef, {
       status: "accepted" satisfies BidStatus,
       acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     tx.update(listingRef, { acceptedBidId: bidId });
 
-    // Single-field query (no composite index needed); the "open" filter
-    // is applied in code. A (listingId, status) composite index does not
-    // exist, and the two-filter query throws inside the transaction.
-    const others = await tx.get(
-      db.collection("bids").where("listingId", "==", bid.listingId)
-    );
     for (const doc of others.docs) {
       if (doc.id !== bidId && doc.data().status === "open") {
         tx.update(doc.ref, { status: "rejected" satisfies BidStatus });
