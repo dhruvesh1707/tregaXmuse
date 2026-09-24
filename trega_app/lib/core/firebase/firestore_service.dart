@@ -77,17 +77,81 @@ class FirestoreService {
     return true;
   }
 
-  /// Updates the caller's own profile fields (name, email). Server-managed
-  /// fields stay untouched (enforced by `firestore.rules`).
+  /// Updates the caller's own profile fields (name, email, avatarUrl).
+  /// Server-managed fields stay untouched (enforced by `firestore.rules`).
   Future<void> updateProfile(
     String uid, {
     String? name,
     String? email,
+    String? avatarUrl,
   }) {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (email != null) data['email'] = email;
+    if (avatarUrl != null) data['avatarUrl'] = avatarUrl;
     return _users.doc(uid).set(data, SetOptions(merge: true));
+  }
+
+  /// Owner-only private data under `users/{uid}/private/{docId}`
+  /// (see `firestore.rules`): the payout UPI ID (`payout` doc) and saved
+  /// pickup addresses (`address_<id>` docs with `kind: 'address'`).
+  /// Never readable by other users — only the owner (and admins).
+  CollectionReference<Map<String, dynamic>> _private(String uid) =>
+      _users.doc(uid).collection('private');
+
+  /// Streams the seller's saved payout UPI ID (null when not set).
+  Stream<String?> watchPayoutUpi(String uid) {
+    return _private(uid).doc('payout').snapshots().map(
+          (doc) => doc.data()?['upiId'] as String?,
+        );
+  }
+
+  /// One-time read of the seller's saved payout UPI ID.
+  Future<String?> getPayoutUpi(String uid) async {
+    final doc = await _private(uid).doc('payout').get();
+    return doc.data()?['upiId'] as String?;
+  }
+
+  /// Saves the seller's payout UPI ID (owner-only).
+  Future<void> savePayoutUpi(String uid, String upiId) {
+    return _private(uid).doc('payout').set(
+      {
+        'upiId': upiId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Streams the seller's saved pickup addresses, newest first.
+  Stream<List<SavedAddress>> watchSavedAddresses(String uid) {
+    return _private(uid)
+        .where('kind', isEqualTo: 'address')
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => SavedAddress.fromFirestore(d.id, d.data()))
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
+  }
+
+  /// One-time read of the seller's saved pickup addresses.
+  Future<List<SavedAddress>> getSavedAddresses(String uid) async {
+    final snap =
+        await _private(uid).where('kind', isEqualTo: 'address').get();
+    return snap.docs
+        .map((d) => SavedAddress.fromFirestore(d.id, d.data()))
+        .toList();
+  }
+
+  /// Saves a pickup address for reuse (owner-only). Returns the doc id.
+  Future<String> saveAddress(String uid, SavedAddress address) async {
+    final doc = await _private(uid).add(address.toMap());
+    return doc.id;
+  }
+
+  /// Deletes a saved pickup address (owner-only).
+  Future<void> deleteSavedAddress(String uid, String addressId) {
+    return _private(uid).doc(addressId).delete();
   }
 
   /// Push-notification preference, stored under `settings.notifications`
