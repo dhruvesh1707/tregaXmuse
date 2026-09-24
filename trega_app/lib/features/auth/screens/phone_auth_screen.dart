@@ -179,8 +179,12 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   void _routeAfterSignIn(String name, bool isNewUser) {
     if (!mounted) return;
     if (isNewUser || name.trim().isEmpty) {
-      Navigator.of(context)
-          .pushReplacementNamed(ProfileSetupScreen.routeName);
+      // Clear the auth stack — there's no going back to the OTP screen
+      // once the number is verified.
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        ProfileSetupScreen.routeName,
+        (route) => false,
+      );
     } else {
       _goHome();
     }
@@ -188,7 +192,12 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
 
   void _goHome() {
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
+    // Home becomes the root of the stack: no back button, no way back
+    // into the auth screens.
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      HomeScreen.routeName,
+      (route) => false,
+    );
   }
 
   @override

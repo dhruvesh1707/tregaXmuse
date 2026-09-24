@@ -51,8 +51,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final uid = ref.read(currentUidProvider);
     if (uid == null) {
       if (!mounted) return;
-      Navigator.of(context)
-          .pushReplacementNamed(PhoneAuthScreen.routeName);
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        PhoneAuthScreen.routeName,
+        (route) => false,
+      );
       return;
     }
     setState(() {
@@ -64,7 +66,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           .read(firestoreServiceProvider)
           .updateProfile(uid, name: name, email: email);
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
+      // Profile done — home becomes the root of the stack.
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        HomeScreen.routeName,
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
