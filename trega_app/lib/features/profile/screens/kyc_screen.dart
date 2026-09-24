@@ -9,10 +9,12 @@ import '../../../core/widgets/trega_button.dart';
 
 /// Aadhaar KYC with OTP (BulkPe).
 ///
-/// Flow: enter 12-digit Aadhaar → [requestAadhaarOtp] sends an OTP to the
-/// Aadhaar-linked mobile → enter OTP → [verifyAadhaarOtp] completes
-/// verification. The Aadhaar number is never stored anywhere — it travels
-/// only to our Cloud Function over TLS.
+/// Flow: read the consent notice and tick the consent checkbox → enter
+/// 12-digit Aadhaar → [requestAadhaarOtp] sends an OTP to the Aadhaar-linked
+/// mobile → enter OTP → [verifyAadhaarOtp] completes verification. The
+/// Aadhaar number is never stored anywhere — it travels only to our Cloud
+/// Function over TLS, and the consent timestamp is recorded when the OTP
+/// is requested.
 ///
 /// Progress is watched from `kycVerifications/{uid}`: `otp_sent` →
 /// `verified` | `failed`. Verified sellers get the badge on their profile.
@@ -30,6 +32,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   final _otpController = TextEditingController();
   String? _refId;
   bool _busy = false;
+  bool _consented = false;
   String? _error;
 
   @override
@@ -40,6 +43,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   }
 
   Future<void> _requestOtp() async {
+    if (!_consented) {
+      setState(() =>
+          _error = 'Please tick the consent checkbox to continue.');
+      return;
+    }
     final aadhaar = _aadhaarController.text.replaceAll(RegExp(r'\D'), '');
     if (aadhaar.length != 12) {
       setState(() => _error = 'Enter your 12-digit Aadhaar number.');
@@ -140,23 +148,37 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Verify your Aadhaar with an OTP. Verification is required to '
-          'sell items and to make offers, and verified sellers get a badge '
-          'buyers trust. Your Aadhaar number is never stored.',
+          'Verify your Aadhaar with an OTP. First, please read and accept '
+          'the consent notice below — only then can you enter your Aadhaar '
+          'number. Verification is required to sell items and to make '
+          'offers, and verified sellers get a badge buyers trust. Your '
+          'Aadhaar number is never stored.',
           style: Theme.of(context).textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
-        TextField(
-          controller: _aadhaarController,
-          keyboardType: TextInputType.number,
-          maxLength: 12,
-          enabled: _refId == null && !_busy,
-          decoration: const InputDecoration(
-            labelText: 'Aadhaar number',
-            hintText: 'XXXX XXXX XXXX',
+        if (_refId == null) ...[
+          // Consent comes first: the Aadhaar field only appears after
+          // the user has explicitly ticked the consent checkbox.
+          _ConsentCard(
+            consented: _consented,
+            onChanged: (v) =>
+                setState(() => _consented = v ?? false),
           ),
-        ),
+          if (_consented) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _aadhaarController,
+              keyboardType: TextInputType.number,
+              maxLength: 12,
+              enabled: !_busy,
+              decoration: const InputDecoration(
+                labelText: 'Aadhaar number',
+                hintText: 'XXXX XXXX XXXX',
+              ),
+            ),
+          ],
+        ],
         if (_refId != null) ...[
           const SizedBox(height: 16),
           TextField(
@@ -182,7 +204,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         const SizedBox(height: 24),
         if (_busy)
           const Center(child: CircularProgressIndicator())
-        else if (_refId == null)
+        else if (_refId == null && _consented)
           TregaButton(label: 'Send OTP', onPressed: _requestOtp)
         else ...[
           TregaButton(label: 'Verify OTP', onPressed: _verifyOtp),
@@ -200,8 +222,88 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   }
 }
 
-class _VerifiedState extends StatelessWidget {
-  final String? name;
+/// Consent gate shown before the Aadhaar number field.
+///
+/// The user must explicitly tick the checkbox before the Aadhaar entry
+/// field (and the Send OTP button) is revealed. Ticking it is the
+/// informed consent UIDAI expects for Aadhaar-based verification; the
+/// timestamp is recorded server-side when the OTP is requested.
+class _ConsentCard extends StatelessWidget {
+  final bool consented;
+  final ValueChanged<bool?> onChanged;
+
+  const _ConsentCard({required this.consented, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.privacy_tip_outlined, size: 20),
+              const SizedBox(width: 8),
+              Text('Your consent',
+                  style: theme.textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _bullet(theme,
+              'Trega will use your Aadhaar number only to verify your identity, by sending an OTP to your Aadhaar-linked mobile number.'),
+          _bullet(theme,
+              'Your Aadhaar number is never stored — it is used once for this verification and discarded.'),
+          _bullet(theme,
+              'Verification is required to sell items and to make offers on Trega, and verified sellers get a trust badge.'),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => onChanged(!consented),
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(value: consented, onChanged: onChanged),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      'I have read and understood the above, and I give my consent for Trega to verify my identity using my Aadhaar number.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bullet(ThemeData theme, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('• ', style: theme.textTheme.bodyMedium),
+          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerifiedState extends StatelessWidget {  final String? name;
 
   const _VerifiedState({this.name});
 

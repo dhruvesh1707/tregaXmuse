@@ -106,6 +106,9 @@ export async function requestAadhaarOtpHandler(
       refId,
       status: "otp_sent",
       requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+      // The app gates the Aadhaar field behind an explicit consent
+      // checkbox, so reaching this call means consent was given.
+      consentAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true }
   );
