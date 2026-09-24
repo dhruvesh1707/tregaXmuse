@@ -231,7 +231,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: DropdownButtonFormField<String>(
-            value: _selectedSavedAddressId,
+            initialValue: _selectedSavedAddressId,
             decoration: const InputDecoration(
               labelText: 'Use a saved address',
             ),

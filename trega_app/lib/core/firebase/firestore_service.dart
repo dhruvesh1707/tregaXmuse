@@ -128,10 +128,12 @@ class FirestoreService {
     return _private(uid)
         .where('kind', isEqualTo: 'address')
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => SavedAddress.fromFirestore(d.id, d.data()))
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
+        .map(
+          (snap) => snap.docs
+              .map((d) => SavedAddress.fromFirestore(d.id, d.data()))
+              .toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+        );
   }
 
   /// One-time read of the seller's saved pickup addresses.

@@ -303,9 +303,8 @@ class SettingsScreen extends ConsumerWidget {
                       leading: const Icon(Icons.payments_outlined,
                           color: AppColors.primary,),
                       title: const Text('Payout UPI ID'),
-                      subtitle: Text(upi == null
-                          ? 'Not set — add it to receive payouts'
-                          : upi,),
+                      subtitle: Text(
+                        upi ?? 'Not set — add it to receive payouts',),
                       trailing: const Icon(Icons.chevron_right,
                           color: AppColors.textSecondary,),
                       onTap: () =>

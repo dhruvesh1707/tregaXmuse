@@ -7,6 +7,7 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
+import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
