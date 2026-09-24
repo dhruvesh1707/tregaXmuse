@@ -1,15 +1,25 @@
 import { initializeApp } from 'firebase/app';
+import type { FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import type { Firestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
+import type { Functions } from 'firebase/functions';
 
 /**
  * Firebase initialisation for the Trega admin panel (project `tregaxmuse`).
  *
- * Web config values come from Vite env vars (see .env.example). Get them from
- * Firebase console → Project settings → Your apps → Web app config.
- * None of these are secrets — they identify the project, and access is
- * enforced by Firestore rules + the `admin` custom claim.
+ * Web config values come from Vite env vars, written by `npm run setup`
+ * (see scripts/setup.mjs). None of these are secrets — they identify the
+ * project, and access is enforced by Firestore rules + the `admin` custom
+ * claim.
+ *
+ * If the config is missing (setup never ran), `configError` is set and the
+ * Firebase services are stubbed — main.tsx renders the error instead of
+ * the app, so a missing `.env` shows an actionable message rather than a
+ * blank page. (Without this guard, getAuth() throws auth/invalid-api-key
+ * at import time and React never mounts.)
  */
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string,
@@ -20,15 +30,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID as string,
 };
 
-if (!firebaseConfig.projectId) {
-  console.warn(
-    '[trega-admin] Missing VITE_FIREBASE_* env vars. Copy .env.example to .env and fill in the web config.'
-  );
-}
+const hasConfig = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const configError: string | null = hasConfig
+  ? null
+  : 'Firebase web config is missing. Run "npm run setup" inside trega_admin, then restart with "npm run dev".';
+
+// Never touched when configError is set (main.tsx refuses to render the
+// app), so the stub casts are safe.
+export const app: FirebaseApp = (hasConfig ? initializeApp(firebaseConfig) : {}) as FirebaseApp;
+export const auth: Auth = (hasConfig ? getAuth(app) : {}) as Auth;
+export const db: Firestore = (hasConfig ? getFirestore(app) : {}) as Firestore;
 // Cloud Functions are deployed in asia-south1 — the region MUST match or
 // callable invocations 404.
-export const functions = getFunctions(app, 'asia-south1');
+export const functions: Functions = (hasConfig ? getFunctions(app, 'asia-south1') : {}) as Functions;
