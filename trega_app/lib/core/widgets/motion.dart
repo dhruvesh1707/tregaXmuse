@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';

@@ -29,9 +29,10 @@ dependencies:
   image_picker: ^1.1.2
   image_cropper: ^12.2.1 # profile photo crop only — gallery stays out of the sell flow
 
-  # iOS-style UI: Phosphor icon set (pinned — 2.1.0 changed the access API)
+  # iOS-style UI: Phosphor icon set (vendored — phosphor_flutter 2.0.x can't
+  # compile on current Flutter stable because IconData is now final; the same
+  # OFL glyphs live in lib/core/icons/phosphor_icons.dart + assets/fonts/)
   # and iOS-animated modal bottom sheets.
-  phosphor_flutter: 2.0.1
   modal_bottom_sheet: ^3.0.0
   video_player: ^2.9.2
   cached_network_image: ^3.4.1
@@ -76,3 +77,13 @@ flutter:
 
   assets:
     - assets/logo/
+
+  fonts:
+    - family: PhosphorRegular
+      fonts:
+        - asset: assets/fonts/Phosphor.ttf
+          weight: 400
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/Phosphor-Fill.ttf
+          weight: 400
