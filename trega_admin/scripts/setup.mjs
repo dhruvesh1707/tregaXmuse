@@ -17,14 +17,31 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ENV_PATH = join(ROOT, ".env");
 
 function fb(args) {
+  // On Windows the CLI is firebase.cmd — it only resolves through a shell.
+  // If firebase isn't on PATH at all, fall back to npx (one-time download).
+  const shell = process.platform === "win32";
+  const opts = { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell };
   try {
-    return execFileSync("firebase", [...args, "--project", PROJECT], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    return execFileSync("firebase", [...args, "--project", PROJECT], opts);
   } catch (e) {
-    const err = (e.stderr || e.message || "").toString().split("\n").slice(0, 4).join("\n");
-    throw new Error(`firebase ${args.join(" ")} failed:\n${err}`);
+    const msg = (e.stderr || e.message || "").toString();
+    const notFound =
+      e.code === "ENOENT" || /not recognized|command not found/i.test(msg);
+    if (!notFound) {
+      const err = msg.split("\n").slice(0, 4).join("\n");
+      throw new Error(`firebase ${args.join(" ")} failed:\n${err}`);
+    }
+    console.log("Firebase CLI not on PATH — using npx firebase-tools instead…");
+    try {
+      return execFileSync(
+        "npx",
+        ["--yes", "firebase-tools", ...args, "--project", PROJECT],
+        opts
+      );
+    } catch (e2) {
+      const err2 = (e2.stderr || e2.message || "").toString().split("\n").slice(0, 4).join("\n");
+      throw new Error(`npx firebase-tools ${args.join(" ")} failed:\n${err2}`);
+    }
   }
 }
 
