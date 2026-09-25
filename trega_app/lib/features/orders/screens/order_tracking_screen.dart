@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
@@ -74,7 +75,16 @@ class _TrackingContent extends ConsumerWidget {
         .indexWhere((e) => e.$1 == order.status);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Track order')),
+      appBar: AppBar(
+        title: const Text('Track order'),
+        actions: [
+          IconButton(
+            icon: const Icon(PhosphorIconsRegular.shareNetwork),
+            tooltip: 'Share order',
+            onPressed: () => _shareOrder(ref, order),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -149,6 +159,25 @@ class _TrackingContent extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Shares this specific order as text with a link to it, so it can be
+  /// sent to anyone (WhatsApp, SMS, …). Deep links resolve in-app later;
+  /// text share works everywhere today.
+  Future<void> _shareOrder(WidgetRef ref, Order order) async {
+    final title = ref
+            .read(listingDetailProvider(order.listing.id))
+            .valueOrNull
+            ?.product
+            .title ??
+        'Trega order';
+    final shortId = order.id.length > 6
+        ? order.id.substring(0, 6).toUpperCase()
+        : order.id;
+    final text = '$title — ${formatINR(order.amount)} on Trega '
+        '(order #$shortId, ${order.status.label}). '
+        'Track it: https://trega.in/orders/${order.id}';
+    await Share.share(text, subject: 'Trega order #$shortId');
   }
 }
 
