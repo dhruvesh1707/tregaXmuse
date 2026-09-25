@@ -368,6 +368,9 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
     // Profile picture is the one place gallery upload is allowed.
     final source = await showCupertinoModalBottomSheet<ImageSource>(
       context: context,
+      // Explicit background: never let the sheet resolve its color from an
+      // ambient CupertinoTheme (a misconfigured theme paints the sheet grey).
+      backgroundColor: Colors.white,
       builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

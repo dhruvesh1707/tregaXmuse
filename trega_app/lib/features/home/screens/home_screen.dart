@@ -91,7 +91,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.only(top: 4, bottom: 4),
+              padding: EdgeInsets.only(top: 16, bottom: 4),
               child: PromoBannerCarousel(),
             ),
           ),
@@ -203,37 +203,51 @@ void _showAllCategories(BuildContext context) {
                   ),
             ),
           ),
-          Flexible(
+          // A Flexible/Expanded inside a min-sized Column collapses the
+          // list to zero height inside the Cupertino sheet. The list gets an
+          // explicit bound instead.
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.6,
+            ),
             child: Consumer(
               builder: (context, ref, _) {
                 final categoriesAsync = ref.watch(categoriesProvider);
                 return categoriesAsync.when(
-                  data: (categories) => ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: categories.length,
-                    itemBuilder: (context, i) {
-                      final category = categories[i];
-                      return ListTile(
-                        leading: Icon(
-                          category.icon,
-                          color: AppColors.primary,
+                  data: (categories) => categories.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text(
+                            'No categories yet.',
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: categories.length,
+                          itemBuilder: (context, i) {
+                            final category = categories[i];
+                            return ListTile(
+                              leading: Icon(
+                                category.icon,
+                                color: AppColors.primary,
+                              ),
+                              title: Text(category.name),
+                              trailing: const Icon(
+                                  PhosphorIconsRegular.caretRight),
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                Navigator.of(context).pushNamed(
+                                  CategoryScreen.routeName,
+                                  arguments: CategoryArgs(
+                                    categoryId: category.id,
+                                    categoryName: category.name,
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         ),
-                        title: Text(category.name),
-                        trailing:
-                            const Icon(PhosphorIconsRegular.caretRight),
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          Navigator.of(context).pushNamed(
-                            CategoryScreen.routeName,
-                            arguments: CategoryArgs(
-                              categoryId: category.id,
-                              categoryName: category.name,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
                   loading: () => const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: Center(child: CircularProgressIndicator()),

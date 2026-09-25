@@ -547,7 +547,17 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
         '${listing.product.title} — ${formatINR(listing.price)} on Trega '
         '(${listing.product.condition.label}). '
         'View it: https://trega.in/listings/${listing.id}';
-    await Share.share(text, subject: listing.product.title);
+    try {
+      await Share.share(text, subject: listing.product.title);
+    } catch (_) {
+      if (!mounted) return;
+      await showTregaToast(
+        context,
+        'Could not open the share sheet. Please try again.',
+        title: 'Share failed',
+        kind: TregaToastKind.error,
+      );
+    }
   }
 }
 
