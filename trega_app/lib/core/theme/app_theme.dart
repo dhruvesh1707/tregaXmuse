@@ -48,46 +48,69 @@ ThemeData buildTregaTheme() {
     onError: Colors.white,
   );
 
+  // Premium pass: tight tracking on display type, relaxed leading on body
+  // copy, tabular figures on prices handled at the call site.
   const textTheme = TextTheme(
     displaySmall: TextStyle(
       fontSize: 28,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w800,
       color: AppColors.textPrimary,
-      letterSpacing: -0.5,
+      letterSpacing: -0.8,
+      height: 1.2,
     ),
     headlineSmall: TextStyle(
       fontSize: 22,
       fontWeight: FontWeight.w700,
       color: AppColors.textPrimary,
+      letterSpacing: -0.4,
+      height: 1.25,
     ),
     titleLarge: TextStyle(
       fontSize: 18,
       fontWeight: FontWeight.w700,
       color: AppColors.textPrimary,
+      letterSpacing: -0.2,
+      height: 1.3,
     ),
     titleMedium: TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.w600,
       color: AppColors.textPrimary,
+      letterSpacing: -0.1,
+      height: 1.35,
     ),
     titleSmall: TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: AppColors.textPrimary,
+      height: 1.4,
     ),
-    bodyLarge: TextStyle(fontSize: 16, color: AppColors.textPrimary),
-    bodyMedium: TextStyle(fontSize: 14, color: AppColors.textPrimary),
-    bodySmall: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+    bodyLarge: TextStyle(
+      fontSize: 16,
+      color: AppColors.textPrimary,
+      height: 1.5,
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      color: AppColors.textPrimary,
+      height: 1.5,
+    ),
+    bodySmall: TextStyle(
+      fontSize: 12,
+      color: AppColors.textSecondary,
+      height: 1.45,
+    ),
     labelLarge: TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: AppColors.onPrimary,
+      letterSpacing: 0.1,
     ),
     labelSmall: TextStyle(
       fontSize: 11,
       fontWeight: FontWeight.w600,
       color: AppColors.textSecondary,
-      letterSpacing: 0.4,
+      letterSpacing: 0.6,
     ),
   );
 
@@ -108,27 +131,34 @@ ThemeData buildTregaTheme() {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
-        minimumSize: const Size(48, 52),
+        disabledBackgroundColor: AppColors.divider,
+        disabledForegroundColor: AppColors.textSecondary,
+        minimumSize: const Size(48, 54),
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
         ),
         textStyle: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
-        minimumSize: const Size(48, 52),
+        disabledForegroundColor: AppColors.textSecondary,
+        minimumSize: const Size(48, 54),
         side: const BorderSide(color: AppColors.primary, width: 1.5),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
         ),
         textStyle: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     ),
@@ -205,6 +235,32 @@ ThemeData buildTregaTheme() {
         side: const BorderSide(color: AppColors.divider),
       ),
       margin: EdgeInsets.zero,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: AppColors.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      titleTextStyle: textTheme.titleLarge,
+      contentTextStyle: textTheme.bodyMedium,
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColors.surface,
+      elevation: 0,
+      showDragHandle: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppColors.textPrimary,
+      contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
+      behavior: SnackBarBehavior.floating,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
     ),
   );
 }

@@ -44,6 +44,21 @@ dependencies:
   url_launcher: ^6.3.1
   share_plus: ^10.1.4
 
+  # Premium UI/UX — presentation layer only. These packages must never
+  # change workflows, routes, Firestore fields or callable names.
+  # All pinned exact (like the Cashfree SDK): UI packages have broken
+  # release builds on surprise minor updates before.
+  flutter_animate: 4.5.2 # chainable entrances, staggered lists, micro-interactions
+  page_transition: 2.2.2 # per-route transitions (modal slide-ups), Navigator 1.0 native
+  another_flushbar: 2.2.4 # floating gradient toasts (replaces plain SnackBars)
+  skeletonizer: 3.0.0 # auto skeleton loaders from real layouts (zero native code)
+  pinput: 6.0.2 # animated OTP pin fields (phone auth + Aadhaar)
+  photo_view: 0.15.0 # pinch/zoom gallery viewer for listing photos
+  smooth_page_indicator: 2.0.1 # iOS-grade animated carousel dots
+  flutter_slidable: 4.0.3 # iOS-style swipe actions on lists
+  easy_refresh: 3.5.1 # spring-physics pull-to-refresh
+  timelines_plus: 2.0.1 # order-tracking stepper timeline
+
   # Payments — Cashfree PG drop checkout (Android/iOS).
   # NOTE: the SDK environment below (PRODUCTION) must match the backend
   # `CASHFREE_ENV` secret in trega_functions.

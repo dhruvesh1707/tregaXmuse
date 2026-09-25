@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter/services.dart';
 
@@ -314,4 +315,144 @@ abstract final class TregaHaptics {
       HapticFeedback.mediumImpact();
     } catch (_) {}
   }
+}
+
+
+/// Premium staggered entrance: fade + gentle rise, driven by flutter_animate.
+///
+/// Pass the item [index] inside lists/grids for the signature staggered
+/// cascade. The per-item [baseDelay] step is small (55ms) so the first
+/// items appear almost immediately — lists feel alive, never slow.
+///
+/// This is the standard entrance for feed cards, list rows and grid tiles.
+/// [FadeSlideIn] is kept for one-off entrances that predate this helper.
+class Entrance extends StatelessWidget {
+  final Widget child;
+  final int index;
+  final Duration baseDelay;
+  final Duration duration;
+
+  const Entrance({
+    super.key,
+    required this.child,
+    this.index = 0,
+    this.baseDelay = const Duration(milliseconds: 55),
+    this.duration = const Duration(milliseconds: 450),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return child
+        .animate(delay: baseDelay * index)
+        .fadeIn(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        )
+        .slideY(
+          begin: 0.14,
+          end: 0,
+          duration: duration,
+          curve: Curves.easeOutCubic,
+        );
+  }
+}
+
+/// Animated draw-on success check: the circle pops in with a spring, then
+/// the tick draws itself. Fires a success haptic on completion.
+///
+/// A lightweight, dependency-free moment for order-placed, payment-success,
+/// bid-accepted and KYC-verified celebrations — no Lottie asset needed.
+class SuccessCheck extends StatefulWidget {
+  final double size;
+  final Color color;
+  final Color checkColor;
+
+  const SuccessCheck({
+    super.key,
+    this.size = 96,
+    this.color = AppColors.success,
+    this.checkColor = Colors.white,
+  });
+
+  @override
+  State<SuccessCheck> createState() => _SuccessCheckState();
+}
+
+class _SuccessCheckState extends State<SuccessCheck> {
+  bool _hapticFired = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 750),
+      curve: Curves.easeOutCubic,
+      onEnd: () {
+        if (!_hapticFired) {
+          _hapticFired = true;
+          TregaHaptics.success();
+        }
+      },
+      builder: (context, t, _) => CustomPaint(
+        size: Size.square(widget.size),
+        painter: _SuccessCheckPainter(
+          progress: t,
+          color: widget.color,
+          checkColor: widget.checkColor,
+        ),
+      ),
+    );
+  }
+}
+
+class _SuccessCheckPainter extends CustomPainter {
+  final double progress; // 0..1
+  final Color color;
+  final Color checkColor;
+
+  _SuccessCheckPainter({
+    required this.progress,
+    required this.color,
+    required this.checkColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2;
+
+    // Circle pops in over the first 40% with an overshoot spring.
+    final circleT = (progress / 0.4).clamp(0.0, 1.0);
+    if (circleT > 0) {
+      final r = radius * Curves.easeOutBack.transform(circleT);
+      canvas.drawCircle(center, r, Paint()..color = color);
+    }
+
+    // Tick draws itself over the remaining 60%.
+    final checkT = ((progress - 0.35) / 0.65).clamp(0.0, 1.0);
+    if (checkT > 0) {
+      final path = Path()
+        ..moveTo(size.width * 0.30, size.height * 0.545)
+        ..lineTo(size.width * 0.45, size.height * 0.685)
+        ..lineTo(size.width * 0.705, size.height * 0.335);
+      final metric = path.computeMetrics().first;
+      final drawn =
+          metric.extractPath(0, metric.length * checkT);
+      canvas.drawPath(
+        drawn,
+        Paint()
+          ..color = checkColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size.width * 0.095
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SuccessCheckPainter old) =>
+      old.progress != progress ||
+      old.color != color ||
+      old.checkColor != checkColor;
 }

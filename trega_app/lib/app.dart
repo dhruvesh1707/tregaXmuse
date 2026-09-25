@@ -22,6 +22,8 @@ import 'features/profile/screens/settings_screen.dart';
 import 'features/search/screens/category_screen.dart';
 import 'features/search/screens/search_screen.dart';
 import 'features/sell/screens/sell_flow_screen.dart';
+import 'package:page_transition/page_transition.dart';
+
 import 'features/wishlist/screens/wishlist_screen.dart';
 
 /// Root navigator key — lets notification taps (FCM `onMessageOpenedApp` /
@@ -79,7 +81,17 @@ class TregaApp extends StatelessWidget {
               (_) => ListingDetailScreen(listingId: args as String?);
         }
       case SellFlowScreen.routeName:
-        builder = (_) => const SellFlowScreen();
+        // Modal-style flow: slides up like a sheet, slides back down on
+        // pop. The multi-step sell flow feels like a focused task, not
+        // just another page.
+        return PageTransition(
+          type: PageTransitionType.bottomToTop,
+          settings: settings,
+          duration: const Duration(milliseconds: 380),
+          reverseDuration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          child: const SellFlowScreen(),
+        );
       case BidsOffersScreen.routeName:
         final bidsArgs = settings.arguments as BidsOffersArgs?;
         builder = (_) => BidsOffersScreen(
@@ -87,7 +99,14 @@ class TregaApp extends StatelessWidget {
             );
       case CheckoutScreen.routeName:
         final checkoutArgs = settings.arguments as CheckoutArgs?;
-        builder = (_) => CheckoutScreen(bidId: checkoutArgs?.bidId ?? '');
+        return PageTransition(
+          type: PageTransitionType.bottomToTop,
+          settings: settings,
+          duration: const Duration(milliseconds: 380),
+          reverseDuration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          child: CheckoutScreen(bidId: checkoutArgs?.bidId ?? ''),
+        );
       case OrdersScreen.routeName:
         builder = (_) => const OrdersScreen();
       case OrderTrackingScreen.routeName:
