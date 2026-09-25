@@ -45,3 +45,7 @@
 -keep class * implements android.os.Parcelable {
   public static final android.os.Parcelable$Creator *;
 }
+
+# --- Play Core (referenced by Flutter's deferred-component manager; not used
+# --- by Trega — silence R8's missing-class errors) ---
+-dontwarn com.google.android.play.core.**
