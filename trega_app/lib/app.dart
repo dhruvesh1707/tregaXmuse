@@ -13,6 +13,7 @@ import 'features/notifications/screens/notifications_screen.dart';
 import 'features/orders/screens/order_tracking_screen.dart';
 import 'features/orders/screens/orders_screen.dart';
 import 'features/profile/screens/help_screen.dart';
+import 'features/profile/screens/legal/legal_page_screen.dart';
 import 'features/profile/screens/kyc_screen.dart';
 import 'features/profile/screens/my_listings_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
@@ -104,6 +105,10 @@ class TregaApp extends StatelessWidget {
         builder = (_) => const SettingsScreen();
       case HelpScreen.routeName:
         builder = (_) => const HelpScreen();
+      case LegalPageScreen.routeName:
+        final legalArgs = settings.arguments as LegalPageArgs?;
+        builder = (_) =>
+            LegalPageScreen(pageId: legalArgs?.pageId ?? 'privacy');
       case KycScreen.routeName:
         builder = (_) => const KycScreen();
       case SavedAddressesScreen.routeName:

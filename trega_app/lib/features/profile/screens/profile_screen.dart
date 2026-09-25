@@ -15,6 +15,7 @@ import '../../bids/screens/bids_offers_screen.dart';
 import '../../orders/screens/orders_screen.dart';
 import '../../wishlist/screens/wishlist_screen.dart';
 import 'help_screen.dart';
+import 'legal/legal_page_screen.dart';
 import 'kyc_screen.dart';
 import 'my_listings_screen.dart';
 import 'settings_screen.dart';
@@ -196,6 +197,54 @@ class ProfileScreen extends ConsumerWidget {
                           title: 'Help & Support',
                           onTap: () => Navigator.of(context)
                               .pushNamed(HelpScreen.routeName),
+                        ),
+                        const Padding(
+                          padding:
+                              EdgeInsets.fromLTRB(16, 12, 16, 4),
+                          child: Text(
+                            'Legal',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        _MenuTile(
+                          icon: PhosphorIconsRegular.shieldCheck,
+                          title: 'Privacy Policy',
+                          onTap: () => Navigator.of(context).pushNamed(
+                            LegalPageScreen.routeName,
+                            arguments:
+                                const LegalPageArgs('privacy'),
+                          ),
+                        ),
+                        _MenuTile(
+                          icon: PhosphorIconsRegular.handshake,
+                          title: 'Terms of Service',
+                          onTap: () => Navigator.of(context).pushNamed(
+                            LegalPageScreen.routeName,
+                            arguments:
+                                const LegalPageArgs('terms'),
+                          ),
+                        ),
+                        _MenuTile(
+                          icon: PhosphorIconsRegular.wallet,
+                          title: 'Refund & Cancellation',
+                          onTap: () => Navigator.of(context).pushNamed(
+                            LegalPageScreen.routeName,
+                            arguments:
+                                const LegalPageArgs('refund'),
+                          ),
+                        ),
+                        _MenuTile(
+                          icon: PhosphorIconsRegular.info,
+                          title: 'About Trega',
+                          onTap: () => Navigator.of(context).pushNamed(
+                            LegalPageScreen.routeName,
+                            arguments:
+                                const LegalPageArgs('about'),
+                          ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(16),
