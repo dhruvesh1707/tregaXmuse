@@ -90,9 +90,8 @@ class _OrdersList extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final order = orders[i];
-                return FadeSlideIn(
-                  delay: Duration(milliseconds: (i % 6) * 50),
-                  duration: const Duration(milliseconds: 400),
+                return Entrance(
+                  index: i % 6,
                   child: _OrderCard(order: order),
                 );
               },
