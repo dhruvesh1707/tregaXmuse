@@ -7,6 +7,7 @@ import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/floating_tab_bar.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../../core/widgets/section_header.dart';
@@ -18,6 +19,7 @@ import '../../search/screens/category_screen.dart';
 import '../../search/screens/search_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 import '../providers/listing_providers.dart';
+import '../widgets/promo_banner_carousel.dart';
 
 /// Main marketplace feed: search entry, "Explore by Passion" categories,
 /// and the live listing feed.
@@ -37,7 +39,9 @@ class HomeScreen extends ConsumerWidget {
     final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
 
     return Scaffold(
-      body: CustomScrollView(
+      body: Stack(
+        children: [
+          CustomScrollView(
         slivers: [
           SliverAppBar(
             floating: true,
@@ -68,6 +72,12 @@ class HomeScreen extends ConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: _CategoryRail(categoriesAsync: categoriesAsync),
+          ),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 4, bottom: 4),
+              child: PromoBannerCarousel(),
+            ),
           ),
           SliverToBoxAdapter(
             child: SectionHeader(
@@ -109,49 +119,44 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (i) {
-          TregaHaptics.tap();
-          // Bottom-nav destinations: Home / Search / Sell / Bids / Profile.
-          switch (i) {
-            case 1:
-              Navigator.of(context).pushNamed(SearchScreen.routeName);
-            case 2:
-              Navigator.of(context).pushNamed(SellFlowScreen.routeName);
-            case 3:
-              Navigator.of(context).pushNamed(BidsOffersScreen.routeName);
-            case 4:
-              Navigator.of(context).pushNamed(ProfileScreen.routeName);
-            case 0:
-            default:
-              break; // Already on Home.
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(PhosphorIconsRegular.house),
-              activeIcon: Icon(PhosphorIconsRegular.house),
-              label: 'Home',),
-          BottomNavigationBarItem(
-              icon: Icon(PhosphorIconsRegular.magnifyingGlass),
-              activeIcon: Icon(PhosphorIconsRegular.magnifyingGlass),
-              label: 'Search',),
-          BottomNavigationBarItem(
-              icon: Icon(PhosphorIconsRegular.plusCircle),
-              activeIcon: Icon(PhosphorIconsRegular.plusCircle),
-              label: 'Sell',),
-          BottomNavigationBarItem(
-              icon: Icon(PhosphorIconsRegular.gavel),
-              activeIcon: Icon(PhosphorIconsRegular.gavel),
-              label: 'Bids',),
-          BottomNavigationBarItem(
-              icon: Icon(PhosphorIconsRegular.user),
-              activeIcon: Icon(PhosphorIconsRegular.user),
-              label: 'Profile',),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: FloatingTabBar(
+                  currentIndex: 0,
+                  onTap: (i) {
+                    // Bottom-nav destinations: Home / Search / Sell / Bids /
+                    // Profile. (Haptics live inside FloatingTabBar.)
+                    switch (i) {
+                      case 1:
+                        Navigator.of(context)
+                            .pushNamed(SearchScreen.routeName);
+                      case 2:
+                        Navigator.of(context)
+                            .pushNamed(SellFlowScreen.routeName);
+                      case 3:
+                        Navigator.of(context)
+                            .pushNamed(BidsOffersScreen.routeName);
+                      case 4:
+                        Navigator.of(context)
+                            .pushNamed(ProfileScreen.routeName);
+                      case 0:
+                      default:
+                        break; // Already on Home.
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
