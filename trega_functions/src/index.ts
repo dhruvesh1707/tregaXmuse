@@ -40,6 +40,7 @@ import {
   setUserKycStatusHandler,
   updateOrderFulfillmentHandler,
 } from "./admin";
+import { deleteAccountHandler } from "./account";
 
 admin.initializeApp();
 setGlobalOptions({ region: "asia-south1", maxInstances: 10 });
@@ -194,4 +195,16 @@ export const updateOrderFulfillment = onCall(async (request) => {
     status: request.data?.status,
     trackingNote: request.data?.trackingNote,
   });
+});
+
+// ---------------------------------------------------------- Account --------
+/**
+ * Deletes the caller's account and EVERY record tied to it (listings,
+ * bids, orders, reviews, reports, notifications, KYC, media, the Auth
+ * user itself). No undo — the app gates this behind an explicit
+ * confirmation dialog.
+ */
+export const deleteAccount = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  return deleteAccountHandler(uid);
 });

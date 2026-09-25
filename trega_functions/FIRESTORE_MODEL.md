@@ -247,6 +247,15 @@ Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
   order fulfillment from the admin panel's Orders page. Payment status is
   owned by the Cashfree webhook and cannot be set here.
 
+Account (`trega_functions/src/account.ts`):
+
+- `deleteAccount()` — wipes the caller's account completely: `users/{uid}`
+  and all its subcollections, the user's listings (+ private details, media
+  in Storage, bids on them), bids placed, orders as buyer or seller, reviews
+  by/about the user, reports filed, `kycVerifications/{uid}`, the user's
+  `aadhaarIndex` claims (frees the Aadhaar for a future account), the avatar,
+  and finally the Firebase Auth user. No undo; the app confirms explicitly.
+
 ## Storage
 `listingMedia/{listingId}/{filename}` — listing photos and videos.
 `avatars/{uid}.jpg` — profile pictures.

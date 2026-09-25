@@ -30,6 +30,7 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// - `acceptBid` ({bidId}) -> {success}
 /// - `rejectBid` ({bidId}) -> {success}
 /// - `cancelAcceptance` ({bidId}) -> {success}
+/// - `deleteAccount` () -> {deleted} — wipes the account completely
 /// - `reviewListing` ({listingId, approve, reason?}) -> {success, status}
 ///   (admin custom claim only)
 class FunctionsService {
@@ -116,5 +117,15 @@ class FunctionsService {
   /// The listing opens up for offers again.
   Future<void> cancelAcceptance({required String bidId}) async {
     await _functions.httpsCallable('cancelAcceptance').call({'bidId': bidId});
+  }
+
+  // ---------------------------------------------------------- account
+
+  /// Deletes the caller's account and every record tied to it, server-side:
+  /// profile, listings (+ photos), bids, orders, reviews, reports,
+  /// notifications, KYC, and the Auth user itself. No undo — the UI
+  /// confirms explicitly before calling this.
+  Future<void> deleteAccount() async {
+    await _functions.httpsCallable('deleteAccount').call();
   }
 }
