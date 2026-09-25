@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:easy_refresh/easy_refresh.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/category.dart';
