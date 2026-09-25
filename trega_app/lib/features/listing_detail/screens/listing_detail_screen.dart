@@ -97,6 +97,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
           title: 'Verification needed',
           kind: TregaToastKind.info,
         );
+        if (!context.mounted) return;
         Navigator.of(context).pushNamed(KycScreen.routeName);
         return;
       }
@@ -274,7 +275,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                           : image;
                       return GestureDetector(
                         onTap: () => _openGallery(
-                            context, product.imageUrls, i),
+                            context, product.imageUrls, i,),
                         child: page,
                       );
                     },

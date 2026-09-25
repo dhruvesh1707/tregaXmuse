@@ -337,6 +337,7 @@ static bool _isValidUpi(String upi) =>
         title: 'Verification needed',
         kind: TregaToastKind.info,
       );
+      if (!mounted) return;
       Navigator.of(context).pushNamed(KycScreen.routeName);
       return;
     }
@@ -553,7 +554,8 @@ static bool _isValidUpi(String upi) =>
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                     ],
-                  )),
+                    ),
+                  ),
                 ),
                 Step(
                   title: const Text('Photos & video'),
@@ -660,7 +662,8 @@ static bool _isValidUpi(String upi) =>
                             Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
-                  )),
+                    ),
+                  ),
                 ),
                 Step(
                   title: const Text('Details'),
@@ -718,7 +721,8 @@ static bool _isValidUpi(String upi) =>
                         ),
                       ),
                     ],
-                  )),
+                    ),
+                  ),
                 ),
                 Step(
                   title: const Text('Price'),
@@ -776,7 +780,8 @@ static bool _isValidUpi(String upi) =>
                             setState(() => _negotiable = v),
                       ),
                     ],
-                  )),
+                    ),
+                  ),
                 ),
                 Step(
                   title: const Text('Pickup address'),
@@ -911,7 +916,8 @@ static bool _isValidUpi(String upi) =>
                         ],
                       ),
                     ],
-                  )),
+                    ),
+                  ),
                 ),
                 Step(
                   title: const Text('Review'),
@@ -935,7 +941,8 @@ static bool _isValidUpi(String upi) =>
                     addressLine:
                         '${_addrLine1Controller.text.trim()}, ${_addrCityController.text.trim()} ${_addrPinController.text.trim()}'
                             .trim(),
-                  )),
+                    ),
+                  ),
                 ),
               ],
             ),

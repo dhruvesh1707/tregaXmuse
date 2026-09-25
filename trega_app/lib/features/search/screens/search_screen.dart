@@ -138,15 +138,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             header: const ClassicHeader(
                               textStyle: TextStyle(
                                   color: AppColors.textSecondary,
-                                  fontSize: 12),
+                                  fontSize: 12,),
                               iconTheme:
                                   IconThemeData(color: AppColors.primary),
                               processedText: 'All caught up',
                             ),
-                            onRefresh: () async {
-                              await ref
-                                  .refresh(liveListingsProvider.future);
-                            },
+                            onRefresh: () =>
+                                ref.refresh(liveListingsProvider.future),
                             child: GridView.builder(
                               padding: const EdgeInsets.all(16),
                               gridDelegate:

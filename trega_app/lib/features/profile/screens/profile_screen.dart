@@ -313,8 +313,7 @@ class _MenuTile extends StatelessWidget {
   final VoidCallback? onTap;
   final int index;
 
-  const _MenuTile(
-                            index: 12,{
+  const _MenuTile({
     required this.icon,
     required this.title,
     this.subtitle,

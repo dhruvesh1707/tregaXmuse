@@ -82,7 +82,7 @@ Future<void> showTregaToast(
     ],
     leftBarIndicatorColor: accent,
     isDismissible: true,
-    dismissDirection: DismissDirection.horizontal,
+    dismissDirection: FlushbarDismissDirection.HORIZONTAL,
     animationDuration: const Duration(milliseconds: 350),
     forwardAnimationCurve: Curves.easeOutCubic,
     reverseAnimationCurve: Curves.easeInCubic,

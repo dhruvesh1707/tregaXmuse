@@ -231,7 +231,7 @@ class SettingsScreen extends ConsumerWidget {
   /// Deletes the account and every record tied to it, after an explicit
   /// confirmation. On success the user is signed out and returned to the
   /// sign-in screen.
-  Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
+  Future<void> deleteAccount(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => const _DeleteAccountDialog(),
@@ -398,12 +398,12 @@ class SettingsScreen extends ConsumerWidget {
                       'Version 1.0.0 • India’s marketplace for pre-owned gear',),
                 ),
                 const Divider(height: 1),
-                Padding(
+                const Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 8,),
-                  child: Text(
+                  child: const Text(
                     'Danger zone',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: AppColors.error,
@@ -418,7 +418,7 @@ class SettingsScreen extends ConsumerWidget {
                       style: TextStyle(color: AppColors.error),),
                   subtitle: const Text(
                       'Permanently delete your account and all data',),
-                  onTap: () => _deleteAccount(context, ref),
+                  onTap: () => deleteAccount(context, ref),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(24),
