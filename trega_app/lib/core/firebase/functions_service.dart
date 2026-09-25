@@ -85,6 +85,18 @@ class FunctionsService {
     return Map<String, dynamic>.from(result.data as Map);
   }
 
+  /// Verifies a payment server-side. Call after the Cashfree SDK reports
+  /// success — the app must treat the order as paid ONLY when this returns
+  /// `paymentStatus: 'SUCCESS'`. The server asks Cashfree's Orders API
+  /// directly with the secret key; the SDK's on-device callback alone is
+  /// never proof that money moved.
+  Future<Map<String, dynamic>> verifyPayment({required String orderId}) async {
+    final result = await _functions
+        .httpsCallable('verifyPayment')
+        .call({'orderId': orderId});
+    return Map<String, dynamic>.from(result.data as Map);
+  }
+
   // ------------------------------------------------------------ bids/offers
 
   /// Places a bid on a live listing. Server validates: not the seller,

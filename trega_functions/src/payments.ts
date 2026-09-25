@@ -10,6 +10,16 @@ import {
 } from "./config";
 
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED" | "USER_DROPPED";
+
+/**
+ * Public URL of the `cashfreeWebhook` function — Cashfree POSTs payment
+ * updates here. NOTE: v2 (Cloud Run) functions live at the REGIONAL
+ * cloudfunctions.net host. The old `https://<project>.cloudfunctions.net`
+ * pattern does NOT route to them, so webhooks sent there silently never
+ * arrive and orders would stay PENDING forever.
+ */
+const CASHFREE_WEBHOOK_URL =
+  "https://asia-south1-tregaxmuse.cloudfunctions.net/cashfreeWebhook";
 export type OrderStatus =
   | "placed"
   | "pickup_scheduled"
@@ -164,8 +174,7 @@ export async function createCashfreeOrderHandler(
           "9999999999",
       },
       order_meta: {
-        // Registered webhook URL (see README).
-        notify_url: `https://${process.env.GCLOUD_PROJECT}.cloudfunctions.net/cashfreeWebhook`,
+        notify_url: CASHFREE_WEBHOOK_URL,
       },
     }),
   });
@@ -239,29 +248,141 @@ export async function handleCashfreeWebhook(
   const order = q.docs[0].data();
 
   if (paymentStatus === "SUCCESS") {
-    const batch = db.batch();
-    batch.update(orderRef, {
-      paymentStatus: "SUCCESS" satisfies PaymentStatus,
-      paidAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    batch.update(db.collection("listings").doc(order.listingId as string), {
-      status: "sold",
-      soldAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-    // Reject any other open bids on the listing.
-    const openBids = await db
-      .collection("bids")
-      .where("listingId", "==", order.listingId)
-      .where("status", "==", "open")
-      .get();
-    for (const b of openBids.docs) {
-      batch.update(b.ref, { status: "rejected" });
-    }
-    await batch.commit();
+    await applyPaymentSuccess(orderRef, order);
   } else if (paymentStatus === "FAILED" || paymentStatus === "USER_DROPPED") {
     await orderRef.update({
       paymentStatus: paymentStatus as PaymentStatus,
     });
   }
   return { ok: true };
+}
+
+/**
+ * Marks an order paid and applies the sale side-effects: order → SUCCESS +
+ * paidAt, listing → sold, every other open bid on the listing → rejected.
+ *
+ * Idempotent: if the order is already SUCCESS this is a no-op, so the
+ * webhook and `verifyPayment` can safely race — whichever arrives first
+ * wins.
+ *
+ * The open-bids lookup uses a single-field query + in-code status filter.
+ * There is no (listingId, status) composite index, and a two-where query
+ * would throw inside the webhook (same lesson as the acceptBid fix).
+ */
+async function applyPaymentSuccess(
+  orderRef: admin.firestore.DocumentReference,
+  order: admin.firestore.DocumentData
+): Promise<void> {
+  const fresh = await orderRef.get();
+  if (fresh.data()?.paymentStatus === "SUCCESS") return;
+
+  const db = admin.firestore();
+  const batch = db.batch();
+  batch.update(orderRef, {
+    paymentStatus: "SUCCESS" satisfies PaymentStatus,
+    paidAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  batch.update(db.collection("listings").doc(order.listingId as string), {
+    status: "sold",
+    soldAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  // Reject any other open bids on the listing.
+  const bidsSnap = await db
+    .collection("bids")
+    .where("listingId", "==", order.listingId)
+    .get();
+  for (const b of bidsSnap.docs) {
+    if (b.data()?.status === "open") {
+      batch.update(b.ref, { status: "rejected" });
+    }
+  }
+  await batch.commit();
+}
+
+interface CashfreeOrderStatusResponse {
+  order_id: string;
+  /** ACTIVE (payment pending) | PAID (money received) | EXPIRED | ... */
+  order_status: string;
+  order_amount?: number;
+}
+
+/**
+ * Server-side payment verification — the ONLY thing the app trusts before
+ * treating an order as paid.
+ *
+ * Why this exists: the Cashfree SDK's on-device success callback only means
+ * "the payment sheet reported success on this phone". It is not proof that
+ * money moved, and a tampered client could claim it without paying. This
+ * callable asks Cashfree's Orders API directly (secret key, server-side) for
+ * the authoritative order status, then applies the same SUCCESS side-effects
+ * as the webhook (idempotent — whichever arrives first wins).
+ *
+ * The buyer calls this right after the SDK reports success; the app shows
+ * its success UI only when this returns paymentStatus === "SUCCESS".
+ */
+export async function verifyPaymentHandler(
+  uid: string,
+  orderId: unknown
+): Promise<{ paymentStatus: PaymentStatus; orderId: string }> {
+  if (typeof orderId !== "string" || !orderId) {
+    throw new HttpsError("invalid-argument", "orderId is required.");
+  }
+  const db = admin.firestore();
+  const orderRef = db.collection("orders").doc(orderId);
+  const snap = await orderRef.get();
+  const order = snap.data();
+  if (!snap.exists || !order) {
+    throw new HttpsError("not-found", "Order not found.");
+  }
+  if (order.buyerId !== uid) {
+    throw new HttpsError("permission-denied", "This order is not yours.");
+  }
+
+  // A terminal status written by the webhook (or an earlier verify) is
+  // authoritative — never downgrade it from a later poll.
+  const current = order.paymentStatus as PaymentStatus | undefined;
+  if (current === "SUCCESS" || current === "FAILED" || current === "USER_DROPPED") {
+    return { paymentStatus: current, orderId };
+  }
+
+  const cfOrderRef = order.cfOrderRef as string | undefined;
+  if (!cfOrderRef) {
+    throw new HttpsError(
+      "failed-precondition",
+      "This order has no payment session yet."
+    );
+  }
+
+  // Ask Cashfree directly — the authoritative source of truth.
+  const base = cashfreeBase(CASHFREE_ENV.value() || "sandbox");
+  const res = await fetch(`${base}/orders/${encodeURIComponent(cfOrderRef)}`, {
+    method: "GET",
+    headers: cashfreeHeaders(),
+  }).catch(() => {
+    throw new HttpsError(
+      "unavailable",
+      "Could not reach the payment provider."
+    );
+  });
+  if (!res.ok) {
+    throw new HttpsError(
+      "unavailable",
+      `Payment status check failed (${res.status}).`
+    );
+  }
+  const cf = (await res.json()) as CashfreeOrderStatusResponse;
+
+  if (cf.order_status === "PAID") {
+    await applyPaymentSuccess(orderRef, order);
+    return { paymentStatus: "SUCCESS", orderId };
+  }
+  if (cf.order_status === "EXPIRED") {
+    await orderRef.update({
+      paymentStatus: "FAILED" satisfies PaymentStatus,
+    });
+    return { paymentStatus: "FAILED", orderId };
+  }
+  // ACTIVE or anything else: the payment hasn't completed. Don't guess —
+  // the webhook may still deliver, or the buyer can retry.
+  return { paymentStatus: "PENDING", orderId };
 }

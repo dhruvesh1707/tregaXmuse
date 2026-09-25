@@ -54,6 +54,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   String? _error;
   bool _placing = false;
+  bool _confirmingPayment = false;
   bool _prefilled = false;
 
   @override
@@ -144,16 +145,47 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         paymentSessionId: sessionId,
         onVerified: (_) async {
           if (!mounted) return;
-          // Payment success beats a snackbar: celebrate, then move to
-          // Orders where the new purchase is already listed.
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (_) => const _PaymentCelebration(),
-          );
-          if (!mounted) return;
-          Navigator.of(context)
-              .pushReplacementNamed(OrdersScreen.routeName);
+          // The SDK callback only means the sheet reported success on this
+          // device — NOT that money moved. Verify with the server (which
+          // asks Cashfree directly) before celebrating or navigating.
+          // A failed payment or a back-press surfaces through onError and
+          // never reaches here.
+          setState(() => _confirmingPayment = true);
+          try {
+            final verification = await ref
+                .read(functionsServiceProvider)
+                .verifyPayment(orderId: orderId);
+            if (!mounted) return;
+            final status = verification['paymentStatus'] as String?;
+            if (status == 'SUCCESS') {
+              setState(() => _confirmingPayment = false);
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const _PaymentCelebration(),
+              );
+              if (!mounted) return;
+              Navigator.of(context)
+                  .pushReplacementNamed(OrdersScreen.routeName);
+            } else {
+              setState(() {
+                _placing = false;
+                _confirmingPayment = false;
+                _error = status == 'FAILED'
+                    ? 'The payment did not go through. No money was debited — please try again.'
+                    : 'We could not confirm your payment yet. If money was debited it will reflect shortly — please check Orders before paying again.';
+              });
+            }
+          } catch (e) {
+            if (!mounted) return;
+            setState(() {
+              _placing = false;
+              _confirmingPayment = false;
+              _error = functionsErrorMessage(e,
+                  fallback:
+                      'Could not confirm your payment. Please check Orders before paying again.',);
+            });
+          }
         },
         onError: (message, _) {
           if (!mounted) return;
@@ -222,10 +254,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               child: SafeArea(
                 top: false,
                 child: TregaButton(
-                  label: _placing
-                      ? 'Processing...'
-                      : 'Pay ${formatINR(bid.amount)}',
-                  onPressed: _placing ? null : () => _pay(bid),
+                  label: _confirmingPayment
+                      ? 'Confirming payment...'
+                      : _placing
+                          ? 'Processing...'
+                          : 'Pay ${formatINR(bid.amount)}',
+                  onPressed:
+                      (_placing || _confirmingPayment) ? null : () => _pay(bid),
                 ),
               ),
             ),

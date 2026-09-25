@@ -25,6 +25,7 @@ import { requestAadhaarOtpHandler, verifyAadhaarOtpHandler } from "./kyc";
 import {
   createCashfreeOrderHandler,
   handleCashfreeWebhook,
+  verifyPaymentHandler,
 } from "./payments";
 import {
   acceptBidHandler,
@@ -74,6 +75,17 @@ export const createCashfreeOrder = onCall({ secrets }, async (request) => {
     customerPhone: request.data?.customerPhone,
     deliveryAddress: request.data?.deliveryAddress,
   });
+});
+
+/**
+ * Server-side payment verification. The app calls this after the Cashfree
+ * SDK reports success and treats the order as paid ONLY when this returns
+ * `paymentStatus: "SUCCESS"` — the SDK's on-device callback alone is never
+ * trusted (it only means the sheet reported success on that phone).
+ */
+export const verifyPayment = onCall({ secrets }, async (request) => {
+  const uid = requireAuthUid(request);
+  return verifyPaymentHandler(uid, request.data?.orderId);
 });
 
 /**

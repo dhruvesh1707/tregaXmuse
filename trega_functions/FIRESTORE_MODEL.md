@@ -223,6 +223,15 @@ Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
   — `deliveryAddress` is required when `bidId` is set (accepted-offer
   checkout), validated server-side and stored on the order; the `bidId` path
   charges exactly the accepted bid amount.
+- `verifyPayment({orderId})` — server-side payment verification. The app
+  calls this after the Cashfree SDK reports success and shows its success UI
+  ONLY when this returns `paymentStatus: "SUCCESS"`. The server asks
+  the Cashfree Orders API directly (secret key) and applies the same sale
+  side-effects as the webhook (order → SUCCESS, listing → sold, other open
+  bids rejected) — idempotent, so the webhook and the verifier can safely
+  race. The on-device SDK callback alone is never treated as proof of
+  payment (a user pressing back / a failed payment surfaces through the
+  SDK error callback, never as success).
 
 KYC (`kyc.ts`): `requestAadhaarOtp` / `verifyAadhaarOtp` — provider errors
 are surfaced with their real message (invalid Aadhaar, throttled, provider
