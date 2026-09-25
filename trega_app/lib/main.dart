@@ -42,6 +42,14 @@ Future<void> main() async {
   );
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+  // iOS: show the banner + badge + sound even when the app is in the
+  // foreground. Without this, foreground pushes are silently swallowed.
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
   // Tapping a push while the app is backgrounded: the navigator is already
   // up, so route straight away.
   FirebaseMessaging.onMessageOpenedApp.listen(_routePushMessage);

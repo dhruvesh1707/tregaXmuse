@@ -139,38 +139,49 @@ class TregaApp extends StatelessWidget {
   }
 }
 
-/// Trega's route transition: a quick fade with a gentle 5% rise.
+/// Trega's route: a [CupertinoPageRoute] so the native iOS edge-swipe-back
+/// gesture works everywhere, with [buildTransitions] overridden for our
+/// transition language (a quick fade with a gentle 5% rise) instead of the
+/// default iOS slide.
 ///
 /// One consistent transition language across the whole app feels more
 /// premium than per-screen effects, and it composes cleanly with the
-/// product-image Hero flights on the listing detail route.
-class _TregaPageRoute<T> extends PageRouteBuilder<T> {
+/// product-image Hero flights on the listing detail route. On Android the
+/// swipe gesture is a no-op; the system back button still pops.
+class _TregaPageRoute<T> extends CupertinoPageRoute<T> {
   _TregaPageRoute({
     required WidgetBuilder builder,
     required RouteSettings settings,
-  }) : super(
-          settings: settings,
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              builder(context),
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 220),
-          transitionsBuilder:
-              (context, animation, secondaryAnimation, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.05),
-                  end: Offset.zero,
-                ).animate(curved),
-                child: child,
-              ),
-            );
-          },
-        );
+  }) : super(builder: builder, settings: settings);
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 300);
+
+  @override
+  Duration get reverseTransitionDuration =>
+      const Duration(milliseconds: 220);
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.05),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
+  }
 }
