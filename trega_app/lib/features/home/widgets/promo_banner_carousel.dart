@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/icons/phosphor_icons.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../profile/screens/help_screen.dart';
 import '../../profile/screens/kyc_screen.dart';
@@ -110,24 +112,17 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var i = 0; i < _slides.length; i++)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == _index ? 22 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: i == _index
-                      ? AppColors.primary
-                      : AppColors.primary.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-          ],
+        AnimatedSmoothIndicator(
+          activeIndex: _index,
+          count: _slides.length,
+          effect: WormEffect(
+            dotWidth: 6,
+            dotHeight: 6,
+            spacing: 6,
+            radius: 3,
+            activeDotColor: AppColors.primary,
+            dotColor: AppColors.primary.withValues(alpha: 0.25),
+          ),
         ),
       ],
     );

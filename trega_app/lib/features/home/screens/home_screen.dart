@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
+import 'package:easy_refresh/easy_refresh.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +42,22 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: Stack(
         children: [
-          CustomScrollView(
+          EasyRefresh(
+            header: const ClassicHeader(
+              textStyle:
+                  TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              iconTheme: IconThemeData(color: AppColors.primary),
+              processedText: 'All caught up',
+            ),
+            onRefresh: () async {
+              // The feed notifier serves its disk cache first, so this
+              // completes fast and the stream refills in the background.
+              await Future.wait([
+                ref.refresh(liveListingsProvider.future),
+                ref.refresh(categoriesProvider.future),
+              ]);
+            },
+            child: CustomScrollView(
         slivers: [
           SliverAppBar(
             floating: true,
@@ -122,6 +138,7 @@ class HomeScreen extends ConsumerWidget {
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
+          ),
           Positioned(
             left: 20,
             right: 20,
@@ -255,9 +272,8 @@ class _CategoryRail extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
           final category = categories[i];
-          return FadeSlideIn(
-            delay: Duration(milliseconds: i * 60),
-            duration: const Duration(milliseconds: 400),
+          return Entrance(
+            index: i,
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () => Navigator.of(context).pushNamed(
@@ -318,9 +334,10 @@ class _ListingGrid extends StatelessWidget {
         delegate: SliverChildBuilderDelegate(
           (context, i) {
             final listing = listings[i];
-            return FadeSlideIn(
-              // Staggered entrance: first two rows cascade in.
-              delay: Duration(milliseconds: (i % 8) * 45),
+            return Entrance(
+              // Staggered entrance: the cascade restarts every 8 items
+              // so long scrolls keep feeling alive.
+              index: i % 8,
               child: ProductCard(
                 listing: listing,
                 onTap: () => Navigator.of(context).pushNamed(

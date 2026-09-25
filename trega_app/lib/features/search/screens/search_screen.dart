@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
+import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/listing.dart';
@@ -133,30 +134,48 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           )
-                        : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.68,
-              ),
-              itemCount: results.length,
-              itemBuilder: (context, i) {
-                final listing = results[i];
-                return ProductCard(
-                  listing: listing,
-                  onTap: () => Navigator.of(context).pushNamed(
-                    ListingDetailScreen.routeName,
-                    arguments: ListingDetailArgs(
-                      listingId: listing.id,
-                      initial: listing,
-                    ),
-                  ),
-                );
-              },
-            ),
+                        : EasyRefresh(
+                            header: const ClassicHeader(
+                              textStyle: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12),
+                              iconTheme:
+                                  IconThemeData(color: AppColors.primary),
+                              processedText: 'All caught up',
+                            ),
+                            onRefresh: () async {
+                              await ref
+                                  .refresh(liveListingsProvider.future);
+                            },
+                            child: GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 0.68,
+                              ),
+                              itemCount: results.length,
+                              itemBuilder: (context, i) {
+                                final listing = results[i];
+                                return Entrance(
+                                  index: i % 8,
+                                  child: ProductCard(
+                                    listing: listing,
+                                    onTap: () =>
+                                        Navigator.of(context).pushNamed(
+                                      ListingDetailScreen.routeName,
+                                      arguments: ListingDetailArgs(
+                                        listingId: listing.id,
+                                        initial: listing,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
           ),
         ],
       ),

@@ -58,8 +58,8 @@ class CategoryScreen extends ConsumerWidget {
                       itemCount: listings.length,
                       itemBuilder: (context, i) {
                         final listing = listings[i];
-                        return FadeSlideIn(
-                          delay: Duration(milliseconds: (i % 8) * 45),
+                        return Entrance(
+                          index: i % 8,
                           child: ProductCard(
                             listing: listing,
                             onTap: () => Navigator.of(context).pushNamed(

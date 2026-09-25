@@ -38,7 +38,10 @@ class ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final product = listing.product;
-    return Card(
+    // Tactile press: the whole card dips slightly on touch-down, like an
+    // iOS collection cell. Tap handling stays on the inner InkWell.
+    return PressScale(
+      child: Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -124,6 +127,7 @@ class ProductCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
