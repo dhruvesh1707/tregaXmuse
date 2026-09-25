@@ -173,7 +173,7 @@ class _TregaPageRoute<T> extends CupertinoPageRoute<T> {
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic,
     );
-    return FadeTransition(
+    Widget transition = FadeTransition(
       opacity: curved,
       child: SlideTransition(
         position: Tween<Offset>(
@@ -182,6 +182,66 @@ class _TregaPageRoute<T> extends CupertinoPageRoute<T> {
         ).animate(curved),
         child: child,
       ),
+    );
+    // Android: the Cupertino back gesture is iOS-only, so add a left-edge
+    // swipe detector. iOS keeps the fully interactive native gesture.
+    if (Theme.of(context).platform == TargetPlatform.android) {
+      transition = _AndroidEdgeSwipeBack(
+        onSwipeBack: () => Navigator.of(context).maybePop(),
+        child: transition,
+      );
+    }
+    return transition;
+  }
+}
+
+/// Left-edge swipe-to-back for Android.
+///
+/// Tracks horizontal drags that start within 24px of the left screen edge;
+/// pops the route on a rightward fling or a drag past 120px. Other gestures
+/// (PageView, horizontal lists) are unaffected — they don't start at the
+/// extreme edge.
+class _AndroidEdgeSwipeBack extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onSwipeBack;
+
+  const _AndroidEdgeSwipeBack({
+    required this.child,
+    required this.onSwipeBack,
+  });
+
+  @override
+  State<_AndroidEdgeSwipeBack> createState() => _AndroidEdgeSwipeBackState();
+}
+
+class _AndroidEdgeSwipeBackState extends State<_AndroidEdgeSwipeBack> {
+  bool _tracking = false;
+  double _dragDistance = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragStart: (details) {
+        _tracking = details.globalPosition.dx < 24;
+        _dragDistance = 0;
+      },
+      onHorizontalDragUpdate: (details) {
+        if (!_tracking) return;
+        _dragDistance += details.delta.dx;
+        // Abort if the user reverses direction significantly.
+        if (_dragDistance < -24) _tracking = false;
+      },
+      onHorizontalDragEnd: (details) {
+        if (!_tracking) return;
+        _tracking = false;
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity > 400 || _dragDistance > 120) {
+          widget.onSwipeBack();
+        }
+      },
+      onHorizontalDragCancel: () => _tracking = false,
+      child: widget.child,
     );
   }
 }
