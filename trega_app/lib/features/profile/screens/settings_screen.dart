@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/trega_toast.dart';
 import '../../auth/screens/phone_auth_screen.dart';
 import 'help_screen.dart';
 import 'saved_addresses_screen.dart';
@@ -92,11 +93,11 @@ class SettingsScreen extends ConsumerWidget {
                             name: name, email: email,);
                         if (!ctx.mounted) return;
                         Navigator.of(ctx).pop();
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Profile updated.',),),
+                        await showTregaToast(
+                          context,
+                          'Your name and email are up to date.',
+                          title: 'Profile updated',
+                          kind: TregaToastKind.success,
                         );
                       } catch (e) {
                         setDialogState(() {
@@ -191,9 +192,11 @@ class SettingsScreen extends ConsumerWidget {
                         await service.savePayoutUpi(uid, upi);
                         if (!ctx.mounted) return;
                         Navigator.of(ctx).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Payout UPI ID saved.',),),
+                        await showTregaToast(
+                          context,
+                          'Sale payouts will go to this UPI ID.',
+                          title: 'Payout UPI saved',
+                          kind: TregaToastKind.success,
                         );
                       } catch (_) {
                         setDialogState(() {
@@ -252,8 +255,12 @@ class SettingsScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop(); // Dismiss progress.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(functionsErrorMessage(e))),
+        await showTregaToast(
+          context,
+          functionsErrorMessage(e,
+              fallback: 'Could not complete that. Try again.',),
+          title: 'Something went wrong',
+          kind: TregaToastKind.error,
         );
       }
     }

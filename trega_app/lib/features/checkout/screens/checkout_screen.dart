@@ -10,6 +10,7 @@ import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/payments/cashfree_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../orders/screens/orders_screen.dart';
@@ -141,13 +142,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       CashfreeService().pay(
         cfOrderId: cfOrderId,
         paymentSessionId: sessionId,
-        onVerified: (_) {
+        onVerified: (_) async {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment done! Confirming your order...'),
-            ),
+          // Payment success beats a snackbar: celebrate, then move to
+          // Orders where the new purchase is already listed.
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => const _PaymentCelebration(),
           );
+          if (!mounted) return;
           Navigator.of(context)
               .pushReplacementNamed(OrdersScreen.routeName);
         },
@@ -386,6 +390,62 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       keyboardType: keyboardType,
       inputFormatters: formatters,
       decoration: InputDecoration(labelText: label),
+    );
+  }
+}
+
+/// "Payment successful" celebration shown after Cashfree verifies payment.
+///
+/// Auto-dismisses once the check draws itself; the screen then replaces
+/// itself with Orders. Pure presentation — the order is already placed.
+class _PaymentCelebration extends StatefulWidget {
+  const _PaymentCelebration();
+
+  @override
+  State<_PaymentCelebration> createState() => _PaymentCelebrationState();
+}
+
+class _PaymentCelebrationState extends State<_PaymentCelebration> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 1700), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(32, 36, 32, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SuccessCheck(size: 96),
+            const SizedBox(height: 20),
+            Text(
+              'Payment successful!',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your order is confirmed. The seller has been notified to hand over the item for pickup.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

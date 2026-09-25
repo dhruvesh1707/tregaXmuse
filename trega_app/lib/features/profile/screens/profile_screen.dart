@@ -3,6 +3,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -10,6 +11,8 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/trega_toast.dart';
 import '../../auth/screens/phone_auth_screen.dart';
 import '../../bids/screens/bids_offers_screen.dart';
 import '../../orders/screens/orders_screen.dart';
@@ -71,6 +74,12 @@ class ProfileScreen extends ConsumerWidget {
               stream: service.watchUser(uid),
               builder: (context, userSnap) {
                 final user = userSnap.data;
+                // While the profile loads, shimmer the real header layout
+                // instead of a spinner — data just fades in when ready.
+                final profileLoading =
+                    userSnap.connectionState ==
+                            ConnectionState.waiting &&
+                        user == null;
                 return StreamBuilder<KycVerification>(
                   stream: service.watchKyc(uid),
                   builder: (context, kycSnap) {
@@ -82,75 +91,79 @@ class ProfileScreen extends ConsumerWidget {
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  _AvatarEditor(
-                                    uid: uid,
-                                    avatarUrl: user?.avatarUrl,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                (user?.name.isNotEmpty ??
-                                                        false)
-                                                    ? user!.name
-                                                    : 'Trega user',
+                          child: Skeletonizer(
+                            enabled: profileLoading,
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    _AvatarEditor(
+                                      uid: uid,
+                                      avatarUrl: user?.avatarUrl,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  (user?.name.isNotEmpty ??
+                                                          false)
+                                                      ? user!.name
+                                                      : 'Trega user',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleLarge,
+                                                ),
+                                              ),
+                                              if (verified)
+                                                const Icon(PhosphorIconsRegular.sealCheck,
+                                                    size: 20,
+                                                    color:
+                                                        AppColors.primary,),
+                                            ],
+                                          ),
+                                          Text(
+                                            user?.phone ?? '',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                    color: AppColors
+                                                        .textSecondary,),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(PhosphorIconsRegular.star,
+                                                  size: 16,
+                                                  color: AppColors.accent,),
+                                              Text(
+                                                ' ${user?.rating ?? '–'} '
+                                                '(${user?.reviewsCount ?? 0} reviews)',
                                                 style: Theme.of(context)
                                                     .textTheme
-                                                    .titleLarge,
+                                                    .bodySmall,
                                               ),
-                                            ),
-                                            if (verified)
-                                              const Icon(PhosphorIconsRegular.sealCheck,
-                                                  size: 20,
-                                                  color:
-                                                      AppColors.primary,),
-                                          ],
-                                        ),
-                                        Text(
-                                          user?.phone ?? '',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                  color: AppColors
-                                                      .textSecondary,),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(PhosphorIconsRegular.star,
-                                                size: 16,
-                                                color: AppColors.accent,),
-                                            Text(
-                                              ' ${user?.rating ?? '–'} '
-                                              '(${user?.reviewsCount ?? 0} reviews)',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall,
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                         if (!verified)
                           _MenuTile(
+                            index: 0,
                             icon: PhosphorIconsRegular.sealCheck,
                             title: 'Become a verified seller',
                             subtitle: 'Verify your Aadhaar with OTP',
@@ -158,6 +171,7 @@ class ProfileScreen extends ConsumerWidget {
                                 .pushNamed(KycScreen.routeName),
                           ),
                         _MenuTile(
+                            index: 1,
                           icon: PhosphorIconsRegular.package,
                           title: 'My Listings',
                           subtitle: 'Manage what you’re selling',
@@ -166,6 +180,7 @@ class ProfileScreen extends ConsumerWidget {
                                   MyListingsScreen.routeName,),
                         ),
                         _MenuTile(
+                            index: 2,
                           icon: PhosphorIconsRegular.gavel,
                           title: 'Bids & Offers',
                           subtitle: 'Track negotiations',
@@ -173,6 +188,7 @@ class ProfileScreen extends ConsumerWidget {
                               .pushNamed(BidsOffersScreen.routeName),
                         ),
                         _MenuTile(
+                            index: 3,
                           icon: PhosphorIconsRegular.package,
                           title: 'My Orders',
                           subtitle: 'Purchases & deliveries',
@@ -180,6 +196,7 @@ class ProfileScreen extends ConsumerWidget {
                               .pushNamed(OrdersScreen.routeName),
                         ),
                         _MenuTile(
+                            index: 4,
                           icon: PhosphorIconsRegular.heart,
                           title: 'Wishlist',
                           subtitle: 'Saved items',
@@ -187,6 +204,7 @@ class ProfileScreen extends ConsumerWidget {
                               .pushNamed(WishlistScreen.routeName),
                         ),
                         _MenuTile(
+                            index: 5,
                           icon: PhosphorIconsRegular.gear,
                           title: 'Settings',
                           onTap: () => Navigator.of(context)
@@ -194,6 +212,7 @@ class ProfileScreen extends ConsumerWidget {
                                   SettingsScreen.routeName,),
                         ),
                         _MenuTile(
+                            index: 6,
                           icon: PhosphorIconsRegular.question,
                           title: 'Help & Support',
                           onTap: () => Navigator.of(context)
@@ -212,6 +231,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         _MenuTile(
+                            index: 7,
                           icon: PhosphorIconsRegular.shieldCheck,
                           title: 'Privacy Policy',
                           onTap: () => Navigator.of(context).pushNamed(
@@ -221,6 +241,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         _MenuTile(
+                            index: 8,
                           icon: PhosphorIconsRegular.handshake,
                           title: 'Terms of Service',
                           onTap: () => Navigator.of(context).pushNamed(
@@ -230,6 +251,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         _MenuTile(
+                            index: 9,
                           icon: PhosphorIconsRegular.wallet,
                           title: 'Refund & Cancellation',
                           onTap: () => Navigator.of(context).pushNamed(
@@ -239,6 +261,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         _MenuTile(
+                            index: 10,
                           icon: PhosphorIconsRegular.info,
                           title: 'About Trega',
                           onTap: () => Navigator.of(context).pushNamed(
@@ -248,6 +271,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         _MenuTile(
+                            index: 11,
                           icon: PhosphorIconsRegular.envelope,
                           title: 'Contact Us',
                           onTap: () => Navigator.of(context).pushNamed(
@@ -287,17 +311,22 @@ class _MenuTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
+  final int index;
 
-  const _MenuTile({
+  const _MenuTile(
+                            index: 12,{
     required this.icon,
     required this.title,
     this.subtitle,
     this.onTap,
+    this.index = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    return Entrance(
+      index: index,
+      child: ListTile(
       leading: Container(
         width: 40,
         height: 40,
@@ -312,6 +341,7 @@ class _MenuTile extends StatelessWidget {
       trailing: const Icon(PhosphorIconsRegular.caretRight,
           color: AppColors.textSecondary,),
       onTap: onTap,
+      ),
     );
   }
 }
@@ -391,14 +421,19 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
           .read(firestoreServiceProvider)
           .updateProfile(widget.uid, avatarUrl: url);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile photo updated.')),
+      await showTregaToast(
+        context,
+        'Your new photo is live on your profile.',
+        title: 'Photo updated',
+        kind: TregaToastKind.success,
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Could not update photo. Please try again.'),),
+      await showTregaToast(
+        context,
+        'Could not update your photo. Please try again.',
+        title: 'Something went wrong',
+        kind: TregaToastKind.error,
       );
     } finally {
       if (mounted) setState(() => _uploading = false);

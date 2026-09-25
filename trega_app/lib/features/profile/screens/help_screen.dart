@@ -3,15 +3,16 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/trega_toast.dart';
 
 /// Help centre: how Trega works + how to reach support.
 ///
-/// (Support email is a placeholder — swap `care@trega.in` for the real
-/// support inbox before launch.)
+/// Support inbox — matches the Contact page (support@trega.in).
 class HelpScreen extends StatelessWidget {
   static const String routeName = '/profile/help';
 
-  static const _supportEmail = 'care@trega.in';
+  static const _supportEmail = 'support@trega.in';
 
   const HelpScreen({super.key});
 
@@ -24,8 +25,11 @@ class HelpScreen extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email us at $_supportEmail')),
+      await showTregaToast(
+        context,
+        'Write to $_supportEmail — we reply within a day.',
+        title: 'Contact support',
+        kind: TregaToastKind.info,
       );
     }
   }
@@ -83,6 +87,7 @@ class HelpScreen extends StatelessWidget {
           ),
           const _SectionLabel('Selling'),
           const _FaqTile(
+            index: 0,
             question: 'How does selling work?',
             answer:
                 'Tap Sell, capture your item with the camera, add details and a price, and publish — '
@@ -90,12 +95,14 @@ class HelpScreen extends StatelessWidget {
                 'pickup address you provided.',
           ),
           const _FaqTile(
+            index: 1,
             question: 'Is my address visible to buyers?',
             answer:
                 'Never. Your pickup address is visible only to you and the Trega team, and is used solely '
                 'to collect sold items. Buyers only see the city/area on the listing.',
           ),
           const _FaqTile(
+            index: 2,
             question: 'When do I get paid as a seller?',
             answer:
                 'After we pick up your item and verify it matches the listing, the payout is released '
@@ -103,6 +110,7 @@ class HelpScreen extends StatelessWidget {
           ),
           const _SectionLabel('Bids & offers'),
           const _FaqTile(
+            index: 3,
             question: 'How do bids & offers work?',
             answer:
                 'Every listing has bidding switched on — there are no chats on Trega. '
@@ -111,12 +119,14 @@ class HelpScreen extends StatelessWidget {
           ),
           const _SectionLabel('Trust & safety'),
           const _FaqTile(
+            index: 4,
             question: 'Why was my listing flagged or removed?',
             answer:
                 'Listings get flagged for misleading or blurry photos, prohibited items, a price far from '
                 'market value, or missing details. Fix the issue and publish again — or write to us below.',
           ),
           const _FaqTile(
+            index: 5,
             question: 'Is my Aadhaar data safe?',
             answer:
                 'Aadhaar verification is optional and only used to earn the “Verified seller” badge. '
@@ -204,41 +214,47 @@ class _FaqTile extends StatelessWidget {
   final String question;
   final String answer;
 
-  const _FaqTile({required this.question, required this.answer});
+  final int index;
+
+  const _FaqTile(
+      {required this.question, required this.answer, this.index = 0,});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
-      ),
-      // ExpansionTile draws hairline dividers above/below its children —
-      // hide them so they don't double up with the container border.
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding:
-              const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          iconColor: AppColors.primary,
-          collapsedIconColor: AppColors.textSecondary,
-          title: Text(question, style: textTheme.titleSmall),
-          children: [
-            Text(
-              answer,
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.55,
+    return Entrance(
+      index: index,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider),
+        ),
+        // ExpansionTile draws hairline dividers above/below its children —
+        // hide them so they don't double up with the container border.
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            childrenPadding:
+                const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            iconColor: AppColors.primary,
+            collapsedIconColor: AppColors.textSecondary,
+            title: Text(question, style: textTheme.titleSmall),
+            children: [
+              Text(
+                answer,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.55,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+    }
   }
-}
