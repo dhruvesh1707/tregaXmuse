@@ -17,7 +17,13 @@ export const NotificationType = {
 function queueNotification(
   batch: admin.firestore.WriteBatch,
   uid: string,
-  n: { type: string; title: string; body: string }
+  n: {
+    type: string;
+    title: string;
+    body: string;
+    /** Deep-link payload — the app opens the matching screen on tap. */
+    data?: { listingId?: string; bidId?: string; orderId?: string };
+  }
 ): void {
   batch.set(
     admin
@@ -112,6 +118,7 @@ export async function reviewListingHandler(
     if (sellerId) {
       queueNotification(batch, sellerId, {
         type: NotificationType.listingFlagged,
+        data: { listingId },
         title: "Your listing was flagged",
         body: `“${snap.data()?.title ?? "Your listing"}” was taken down${
           reason?.trim() ? `: ${reason!.trim()}` : "."
@@ -167,6 +174,7 @@ export async function onBidCreateHandler(
   if (ownerId && ownerId !== buyerId) {
     queueNotification(batch, ownerId, {
       type: NotificationType.bidReceived,
+      data: { listingId, bidId },
       title: "New bid on your listing",
       body: `${formatINR(amount)} offered on “${listingTitle}” — review it in Bids & offers.`,
     });
@@ -174,6 +182,7 @@ export async function onBidCreateHandler(
   if (prevHighest && amount > prevHighest.amount) {
     queueNotification(batch, prevHighest.buyerId, {
       type: NotificationType.outbid,
+      data: { listingId, bidId },
       title: "You've been outbid",
       body: `Someone bid ${formatINR(amount)} on “${listingTitle}” — place a higher bid to stay in the race.`,
     });
@@ -257,7 +266,8 @@ export async function acceptBidHandler(
   let winnerId = "";
   let winnerAmount = 0;
   let listingTitle = "the item";
-  const losers: Array<{ buyerId: string; amount: number }> = [];
+  let acceptedListingId = "";
+  const losers: Array<{ bidId: string; buyerId: string; amount: number }> = [];
 
   await db.runTransaction(async (tx) => {
     const bidRef = db.collection("bids").doc(bidId);
@@ -300,6 +310,7 @@ export async function acceptBidHandler(
       if (doc.id !== bidId && doc.data().status === "open") {
         tx.update(doc.ref, { status: "rejected" satisfies BidStatus });
         losers.push({
+          bidId: doc.id,
           buyerId: doc.data().buyerId as string,
           amount: doc.data().amount as number,
         });
@@ -309,17 +320,20 @@ export async function acceptBidHandler(
     winnerId = bid.buyerId as string;
     winnerAmount = bid.amount as number;
     listingTitle = (listing.title as string | undefined) ?? listingTitle;
+    acceptedListingId = bid.listingId as string;
   });
 
   const batch = db.batch();
   queueNotification(batch, winnerId, {
     type: NotificationType.bidAccepted,
+    data: { listingId: acceptedListingId, bidId },
     title: "Your offer was accepted!",
     body: `The seller accepted your ${formatINR(winnerAmount)} offer on “${listingTitle}” — open the listing to pay ${formatINR(winnerAmount)} and complete your purchase.`,
   });
   for (const loser of losers) {
     queueNotification(batch, loser.buyerId, {
       type: NotificationType.bidRejected,
+      data: { listingId: acceptedListingId, bidId: loser.bidId },
       title: "Bid not accepted",
       body: `Your ${formatINR(loser.amount)} bid on “${listingTitle}” wasn't accepted — the item went to someone else.`,
     });
@@ -368,6 +382,7 @@ export async function rejectBidHandler(
   const batch = db.batch();
   queueNotification(batch, bid.buyerId as string, {
     type: NotificationType.bidRejected,
+    data: { listingId: bid.listingId as string, bidId },
     title: "Offer not accepted",
     body: `Your ${formatINR(bid.amount as number)} offer on “${listingTitle}” wasn't accepted — you can send a new offer.`,
   });
@@ -390,6 +405,7 @@ export async function cancelAcceptanceHandler(
   const db = admin.firestore();
   let buyerId = "";
   let listingTitle = "the item";
+  let cancelledListingId = "";
 
   await db.runTransaction(async (tx) => {
     const bidRef = db.collection("bids").doc(bidId);
@@ -422,11 +438,13 @@ export async function cancelAcceptanceHandler(
 
     buyerId = bid.buyerId as string;
     listingTitle = (listing.title as string | undefined) ?? listingTitle;
+    cancelledListingId = bid.listingId as string;
   });
 
   const batch = db.batch();
   queueNotification(batch, buyerId, {
     type: NotificationType.bidRejected,
+    data: { listingId: cancelledListingId, bidId },
     title: "Accepted offer cancelled",
     body: `The seller cancelled your accepted offer on “${listingTitle}” — the listing is open for offers again.`,
   });

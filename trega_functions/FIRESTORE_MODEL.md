@@ -159,6 +159,13 @@ Never store `photo_link` / XML blobs here.
 | type | string | `bid_received` \| `outbid` \| `bid_accepted` \| `bid_rejected` \| `listing_flagged` \| `kyc_verified` \| `kyc_rejected` \| `order_update` \| legacy `bid`/`order`/`listing` |
 | read | boolean | clients may only flip this (see `firestore.rules`) |
 | createdAt | timestamp | |
+| data | map | deep-link payload the app opens on tap: `listingId` / `bidId` / `orderId` (only the relevant keys are set) |
+
+Tap targets (see `trega_app/lib/core/notifications/notification_router.dart`):
+`bid_received` → Offers Received tab · `outbid` → listing detail ·
+`bid_accepted` → checkout · `bid_rejected` → My Offers tab ·
+`listing_flagged` → My Listings · `kyc_verified`/`kyc_rejected` → KYC screen ·
+`order_update` → order tracking.
 
 Writers (all in `trega_functions/src/marketplace.ts`):
 - `onBidCreate` trigger → `bid_received` to the seller; `outbid` to the

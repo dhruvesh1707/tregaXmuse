@@ -23,6 +23,10 @@ import 'features/search/screens/search_screen.dart';
 import 'features/sell/screens/sell_flow_screen.dart';
 import 'features/wishlist/screens/wishlist_screen.dart';
 
+/// Root navigator key — lets notification taps (FCM `onMessageOpenedApp` /
+/// `getInitialMessage`) route even when they fire outside a widget context.
+final tregaNavigatorKey = GlobalKey<NavigatorState>();
+
 /// Root widget: theme + named-route table.
 ///
 /// Navigation is deliberately kept on [MaterialApp.onGenerateRoute] so deep
@@ -37,6 +41,7 @@ class TregaApp extends StatelessWidget {
       title: 'Trega',
       debugShowCheckedModeBanner: false,
       theme: buildTregaTheme(),
+      navigatorKey: tregaNavigatorKey,
       initialRoute: SplashScreen.routeName,
       onGenerateRoute: _onGenerateRoute,
     );

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/notifications/notification_router.dart';
 import 'onboarding_screen.dart';
 
 /// Launch screen: the Trega logo breathes gently, then routes to onboarding
@@ -31,6 +32,12 @@ class _SplashScreenState extends State<SplashScreen>
     Timer(const Duration(seconds: 2), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(OnboardingScreen.routeName);
+      // Cold start from a tapped push notification: open what it was about.
+      final pending = pendingNotificationTarget;
+      pendingNotificationTarget = null;
+      if (pending != null && mounted) {
+        openNotificationTarget(context, pending);
+      }
     });
   }
 

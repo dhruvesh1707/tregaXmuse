@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/app_notification.dart';
+import '../../../core/notifications/notification_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -55,6 +56,23 @@ class _NotificationsScreenState
         return PhosphorIconsRegular.sealCheck;
       default:
         return PhosphorIconsRegular.bell;
+    }
+  }
+
+  /// A tap marks the notification read and opens the screen it is about
+  /// (offer accepted -> checkout, outbid -> listing, and so on). Taps on
+  /// notifications with no destination just mark them read.
+  void _onTapNotification(AppNotification n) {
+    final uid = ref.read(currentUidProvider);
+    if (uid != null && !n.read) {
+      ref
+          .read(firestoreServiceProvider)
+          .markNotificationRead(uid, n.id)
+          .catchError((_) {});
+    }
+    final target = targetForAppNotification(n);
+    if (target != null && mounted) {
+      openNotificationTarget(context, target);
     }
   }
 
@@ -166,11 +184,7 @@ class _NotificationsScreenState
                         subtitle: Text(
                             '${n.body}${time.isEmpty ? '' : '\n$time'}',),
                         isThreeLine: true,
-                        onTap: n.read
-                            ? null
-                            : () => service
-                                .markNotificationRead(uid, n.id)
-                                .catchError((_) {}),
+                        onTap: () => _onTapNotification(n),
                       );
                     },
                   ),

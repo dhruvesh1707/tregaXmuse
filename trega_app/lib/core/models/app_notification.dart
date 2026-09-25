@@ -13,6 +13,10 @@ class AppNotification {
   final bool read;
   final DateTime? createdAt;
 
+  /// Deep-link payload written server-side (`listingId` / `bidId` /
+  /// `orderId`) — tells the app which screen a tap should open.
+  final Map<String, dynamic> data;
+
   const AppNotification({
     required this.id,
     required this.title,
@@ -20,10 +24,12 @@ class AppNotification {
     required this.type,
     required this.read,
     this.createdAt,
+    this.data = const {},
   });
 
   static AppNotification fromFirestore(
       Map<String, dynamic> data, String docId,) {
+    final rawData = data['data'];
     return AppNotification(
       id: docId,
       title: data['title'] as String? ?? '',
@@ -33,6 +39,9 @@ class AppNotification {
       createdAt: data['createdAt'] == null
           ? null
           : firestoreDate(data['createdAt']),
+      data: rawData is Map
+          ? Map<String, dynamic>.from(rawData)
+          : const {},
     );
   }
 }
