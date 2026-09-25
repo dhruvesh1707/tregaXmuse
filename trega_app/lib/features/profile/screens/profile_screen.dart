@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -366,11 +365,15 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
 
   Future<void> _changeAvatar() async {
     // Profile picture is the one place gallery upload is allowed.
-    final source = await showCupertinoModalBottomSheet<ImageSource>(
+    // Material sheet (not the Cupertino one): the Cupertino sheet resolves
+    // its background from CupertinoTheme, which paints grey inside our
+    // MaterialApp and left users staring at a blank grey panel.
+    final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      // Explicit background: never let the sheet resolve its color from an
-      // ambient CupertinoTheme (a misconfigured theme paints the sheet grey).
       backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
