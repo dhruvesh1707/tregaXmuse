@@ -504,12 +504,14 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     );
   }
 
-  /// Shares the listing as text (title, price, condition). Deep links
-  /// come later; text share works everywhere today.
+  /// Shares this specific listing as text with a link to it, so it can
+  /// be sent to anyone (WhatsApp, SMS, …). Deep links resolve in-app later;
+  /// text share works everywhere today.
   Future<void> _shareListing(Listing listing) async {
     final text =
         '${listing.product.title} — ${formatINR(listing.price)} on Trega '
-        '(${listing.product.condition.label})';
+        '(${listing.product.condition.label}). '
+        'View it: https://trega.in/listings/${listing.id}';
     await Share.share(text, subject: listing.product.title);
   }
 }
