@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
@@ -15,6 +17,8 @@ import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
+import '../../../core/widgets/trega_toast.dart';
+import '../widgets/gallery_viewer.dart';
 import '../../bids/screens/bids_offers_screen.dart';
 import '../../checkout/screens/checkout_screen.dart';
 import '../../home/providers/listing_providers.dart';
@@ -87,10 +91,11 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       final me = await ref.read(firestoreServiceProvider).getUser(uid);
       if (me == null || !me.isKycVerified) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verify your Aadhaar to make an offer.'),
-          ),
+        await showTregaToast(
+          context,
+          'Only Aadhaar-verified buyers can make offers.',
+          title: 'Verification needed',
+          kind: TregaToastKind.info,
         );
         Navigator.of(context).pushNamed(KycScreen.routeName);
         return;
@@ -110,16 +115,20 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
             amount: amount,
           );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your offer was sent to the seller.')),
+      await showTregaToast(
+        context,
+        'The seller has been notified and can accept or reject.',
+        title: 'Offer sent',
+        kind: TregaToastKind.success,
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(functionsErrorMessage(e,
-              fallback: 'Could not send the offer. Try again.',),),
-        ),
+      await showTregaToast(
+        context,
+        functionsErrorMessage(e,
+            fallback: 'Could not send the offer. Try again.',),
+        title: 'Offer failed',
+        kind: TregaToastKind.error,
       );
     }
   }
@@ -131,15 +140,18 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
   Future<void> _reportListing(BuildContext context, Listing listing) async {
     final uid = ref.read(currentUidProvider);
     if (uid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to report a listing.')),
+      await showTregaToast(
+        context,
+        'Sign in to report a listing.',
+        kind: TregaToastKind.info,
       );
       return;
     }
     if (listing.seller.id == uid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("You can't report your own listing."),),
+      await showTregaToast(
+        context,
+        "You can't report your own listing.",
+        kind: TregaToastKind.info,
       );
       return;
     }
@@ -158,16 +170,19 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
             reason: reason,
           );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Thanks — our team will review this listing.'),
-        ),
+      await showTregaToast(
+        context,
+        'Our team will review this listing shortly.',
+        title: 'Report submitted',
+        kind: TregaToastKind.success,
       );
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Couldn't submit the report. Try again."),),
+      await showTregaToast(
+        context,
+        "Couldn't submit the report. Try again.",
+        title: 'Something went wrong',
+        kind: TregaToastKind.error,
       );
     }
   }
@@ -248,14 +263,20 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                           child: const Icon(PhosphorIconsRegular.prohibit),
                         ),
                       );
-                      // Hero flight target for the feed card's photo.
-                      if (i == 0) {
-                        return Hero(
-                          tag: 'listing-photo-${listing.id}',
-                          child: image,
-                        );
-                      }
-                      return image;
+                      // Tap zooms into the full-screen viewer. The Hero
+                      // flight target for the feed card's photo stays on
+                      // the first page, untouched.
+                      final page = i == 0
+                          ? Hero(
+                              tag: 'listing-photo-${listing.id}',
+                              child: image,
+                            )
+                          : image;
+                      return GestureDetector(
+                        onTap: () => _openGallery(
+                            context, product.imageUrls, i),
+                        child: page,
+                      );
                     },
                   ),
                   if (product.videoUrl != null)
@@ -273,21 +294,17 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                       bottom: 16,
                       left: 0,
                       right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          product.imageUrls.length,
-                          (i) => Container(
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 3),
-                            width: _page == i ? 20 : 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: _page == i
-                                  ? Colors.white
-                                  : Colors.white54,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
+                      child: Center(
+                        child: AnimatedSmoothIndicator(
+                          activeIndex: _page,
+                          count: product.imageUrls.length,
+                          effect: const ExpandingDotsEffect(
+                            dotWidth: 8,
+                            dotHeight: 8,
+                            spacing: 5,
+                            expansionFactor: 2.2,
+                            activeDotColor: Colors.white,
+                            dotColor: Colors.white54,
                           ),
                         ),
                       ),
@@ -313,7 +330,10 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
             ],
           ),
           SliverToBoxAdapter(
-            child: Padding(
+            child: Entrance(
+              // Plays once on first paint; stream rebuilds keep the state
+              // so it never replays when listing data refreshes.
+              child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,11 +412,25 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                   const SizedBox(height: 100),
                 ],
               ),
+              ),
             ),
           ),
         ],
       ),
       bottomSheet: _buildBottomBar(context, listing),
+    );
+  }
+
+  /// Opens the full-screen pinch-to-zoom photo viewer.
+  void _openGallery(BuildContext context, List<String> urls, int index) {
+    TregaHaptics.tap();
+    Navigator.of(context).push(
+      PageTransition(
+        type: PageTransitionType.fade,
+        duration: const Duration(milliseconds: 250),
+        reverseDuration: const Duration(milliseconds: 200),
+        child: GalleryViewer(imageUrls: urls, initialIndex: index),
+      ),
     );
   }
 
