@@ -244,10 +244,35 @@ const Map<String, LegalPage> legalPages = {
         'Cashfree\'s secure gateway, and our review team moderates listings '
         '— so you can trade pre-owned with confidence.',
       ),
+    ],
+  ),
+  'contact': LegalPage(
+    id: 'contact',
+    title: 'Contact Us',
+    updated: 'September 2026',
+    icon: PhosphorIconsRegular.envelope,
+    sections: [
       LegalSection(
-        'Contact us',
-        'Questions, feedback or support: write to support@trega.in and we\'ll '
-        'get back to you within 2 business days.',
+        'Support',
+        'Questions about an order, a payment, verification or anything else? '
+        'Write to support@trega.in and we\'ll get back to you within 2 '
+        'business days.',
+      ),
+      LegalSection(
+        'Refunds and disputes',
+        'For refund requests or disputes, raise the issue through Help & '
+        'Support in the app within 48 hours of delivery (or of the failed '
+        'pickup/delivery), and include your order ID.',
+      ),
+      LegalSection(
+        'Privacy requests',
+        'For access, correction or deletion of your personal data, write to '
+        'support@trega.in with the subject "Privacy request". We respond '
+        'within 30 days.',
+      ),
+      LegalSection(
+        'Feedback',
+        'Ideas to make Trega better are always welcome at support@trega.in.',
       ),
     ],
   ),

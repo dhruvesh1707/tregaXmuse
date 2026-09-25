@@ -7,7 +7,6 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
-import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_theme.dart';
@@ -39,39 +38,6 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
-  /// Deletes the account and every record tied to it, after an explicit
-  /// confirmation. On success the user is signed out and returned to the
-  /// sign-in screen.
-  Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => const _DeleteAccountDialog(),
-    );
-    if (confirmed != true || !context.mounted) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      await ref.read(functionsServiceProvider).deleteAccount();
-      await ref.read(authServiceProvider).signOut();
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Dismiss progress.
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          PhoneAuthScreen.routeName,
-          (_) => false,
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Dismiss progress.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(functionsErrorMessage(e))),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -281,6 +247,15 @@ class ProfileScreen extends ConsumerWidget {
                                 const LegalPageArgs('about'),
                           ),
                         ),
+                        _MenuTile(
+                          icon: PhosphorIconsRegular.envelope,
+                          title: 'Contact Us',
+                          onTap: () => Navigator.of(context).pushNamed(
+                            LegalPageScreen.routeName,
+                            arguments:
+                                const LegalPageArgs('contact'),
+                          ),
+                        ),
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: OutlinedButton.icon(
@@ -296,15 +271,6 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        Center(
-                          child: TextButton(
-                            onPressed: () =>
-                                _deleteAccount(context, ref),
-                            child: const Text(
-                              'Delete account',
-                              style: TextStyle(color: AppColors.error),
-                            ),
-                          ),
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -509,71 +475,6 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
               ),
             ),
           ),
-      ],
-    );
-  }
-}
-
-
-/// Confirmation for account deletion: spells out exactly what disappears
-/// and requires an explicit acknowledgment before the destructive action
-/// is enabled.
-class _DeleteAccountDialog extends StatefulWidget {
-  const _DeleteAccountDialog();
-
-  @override
-  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
-}
-
-class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
-  bool _acknowledged = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Delete account?'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'This permanently deletes your account and every record tied '
-            'to it:',
-          ),
-          const SizedBox(height: 8),
-          const Text('• Your profile and verification'),
-          const Text('• Your listings and their photos'),
-          const Text('• Your bids, offers and orders'),
-          const Text('• Your reviews, reports and notifications'),
-          const SizedBox(height: 12),
-          CheckboxListTile(
-            value: _acknowledged,
-            onChanged: (v) =>
-                setState(() => _acknowledged = v ?? false),
-            title: const Text(
-              'I understand this cannot be undone.',
-              style: TextStyle(fontSize: 13),
-            ),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            dense: true,
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: _acknowledged
-              ? () => Navigator.of(context).pop(true)
-              : null,
-          child: const Text(
-            'Delete my account',
-            style: TextStyle(color: AppColors.error),
-          ),
-        ),
       ],
     );
   }
