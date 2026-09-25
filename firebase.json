@@ -35,6 +35,7 @@
     ],
     "predeploy": [
       "npm --prefix trega_admin run build"
-    ]
+    ],
+    "cleanUrls": true
   }
 }
