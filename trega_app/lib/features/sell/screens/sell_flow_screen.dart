@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +13,9 @@ import '../../../core/models/product.dart';
 import '../../../core/models/saved_address.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
+import '../../../core/widgets/trega_toast.dart';
 import '../../home/providers/listing_providers.dart';
 import '../../profile/screens/kyc_screen.dart';
 
@@ -74,6 +77,11 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   static const _lastStep = 5;
 
   int _step = 0;
+  /// Slide direction of the last step change (+1 forward, -1 back) and a
+  /// counter bumped on every navigation so the entering step's transition
+  /// replays even when revisiting a step.
+  int _direction = 1;
+  int _navCount = 0;
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -323,10 +331,11 @@ static bool _isValidUpi(String upi) =>
         () => _error =
             'Verify your Aadhaar to sell on Trega. It takes a minute.',
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aadhaar verification is required to sell.'),
-        ),
+      await showTregaToast(
+        context,
+        'Only Aadhaar-verified sellers can publish listings.',
+        title: 'Verification needed',
+        kind: TregaToastKind.info,
       );
       Navigator.of(context).pushNamed(KycScreen.routeName);
       return;
@@ -392,12 +401,13 @@ static bool _isValidUpi(String upi) =>
       await firestore.savePayoutUpi(uid, upi);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your listing is now live!'),
-          backgroundColor: AppColors.success,
-        ),
+      // Celebration beats a snackbar: the listing is live, take a beat.
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const _PublishedCelebration(),
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -456,6 +466,8 @@ static bool _isValidUpi(String upi) =>
               onStepTapped: (i) {
                 if (_publishing) return;
                 setState(() {
+                  _direction = i > _step ? 1 : -1;
+                  _navCount++;
                   _step = i;
                   _error = null;
                 });
@@ -465,6 +477,8 @@ static bool _isValidUpi(String upi) =>
                 if (_step < _lastStep) {
                   if (!_validateStep(_step)) return;
                   setState(() {
+                    _direction = 1;
+                    _navCount++;
                     _step += 1;
                     _error = null;
                   });
@@ -476,6 +490,8 @@ static bool _isValidUpi(String upi) =>
                 if (_publishing) return;
                 if (_step > 0) {
                   setState(() {
+                    _direction = -1;
+                    _navCount++;
                     _step -= 1;
                     _error = null;
                   });
@@ -515,7 +531,12 @@ static bool _isValidUpi(String upi) =>
                   isActive: _step >= 0,
                   state:
                       _step > 0 ? StepState.complete : StepState.indexed,
-                  content: Column(
+                  content: _StepTransition(
+                    step: _step,
+                    index: 0,
+                    direction: _direction,
+                    nav: _navCount,
+                    child: Column(
                     children: [
                       for (final c in categories)
                         _CategoryTile(
@@ -532,7 +553,7 @@ static bool _isValidUpi(String upi) =>
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                     ],
-                  ),
+                  )),
                 ),
                 Step(
                   title: const Text('Photos & video'),
@@ -540,7 +561,12 @@ static bool _isValidUpi(String upi) =>
                   isActive: _step >= 1,
                   state:
                       _step > 1 ? StepState.complete : StepState.indexed,
-                  content: Column(
+                  content: _StepTransition(
+                    step: _step,
+                    index: 1,
+                    direction: _direction,
+                    nav: _navCount,
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Wrap(
@@ -634,7 +660,7 @@ static bool _isValidUpi(String upi) =>
                             Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
-                  ),
+                  )),
                 ),
                 Step(
                   title: const Text('Details'),
@@ -642,7 +668,12 @@ static bool _isValidUpi(String upi) =>
                   isActive: _step >= 2,
                   state:
                       _step > 2 ? StepState.complete : StepState.indexed,
-                  content: Column(
+                  content: _StepTransition(
+                    step: _step,
+                    index: 2,
+                    direction: _direction,
+                    nav: _navCount,
+                    child: Column(
                     children: [
                       // Headroom so the floating labels are never clipped
                       // against the step header.
@@ -687,7 +718,7 @@ static bool _isValidUpi(String upi) =>
                         ),
                       ),
                     ],
-                  ),
+                  )),
                 ),
                 Step(
                   title: const Text('Price'),
@@ -695,7 +726,12 @@ static bool _isValidUpi(String upi) =>
                   isActive: _step >= 3,
                   state:
                       _step > 3 ? StepState.complete : StepState.indexed,
-                  content: Column(
+                  content: _StepTransition(
+                    step: _step,
+                    index: 3,
+                    direction: _direction,
+                    nav: _navCount,
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
@@ -740,7 +776,7 @@ static bool _isValidUpi(String upi) =>
                             setState(() => _negotiable = v),
                       ),
                     ],
-                  ),
+                  )),
                 ),
                 Step(
                   title: const Text('Pickup address'),
@@ -748,7 +784,12 @@ static bool _isValidUpi(String upi) =>
                   isActive: _step >= 4,
                   state:
                       _step > 4 ? StepState.complete : StepState.indexed,
-                  content: Column(
+                  content: _StepTransition(
+                    step: _step,
+                    index: 4,
+                    direction: _direction,
+                    nav: _navCount,
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
@@ -870,14 +911,19 @@ static bool _isValidUpi(String upi) =>
                         ],
                       ),
                     ],
-                  ),
+                  )),
                 ),
                 Step(
                   title: const Text('Review'),
                   subtitle: const Text('Check before you publish'),
                   isActive: _step >= 5,
                   state: StepState.indexed,
-                  content: _ReviewSummary(
+                  content: _StepTransition(
+                    step: _step,
+                    index: 5,
+                    direction: _direction,
+                    nav: _navCount,
+                    child: _ReviewSummary(
                     title: _titleController.text.trim(),
                     categoryName:
                         selectedCategory?.name ?? 'Not selected',
@@ -889,7 +935,7 @@ static bool _isValidUpi(String upi) =>
                     addressLine:
                         '${_addrLine1Controller.text.trim()}, ${_addrCityController.text.trim()} ${_addrPinController.text.trim()}'
                             .trim(),
-                  ),
+                  )),
                 ),
               ],
             ),
@@ -1055,6 +1101,99 @@ class _ReviewSummary extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Directional slide + fade for the sell-flow step content.
+///
+/// Inactive steps render their content plainly. The moment a step becomes
+/// active its content remounts under a fresh animation key (bumped on every
+/// navigation via `nav`) and slides in from the travel direction. All step
+/// state (controllers, photos, selections) lives in the screen's State, so
+/// the remount loses nothing.
+class _StepTransition extends StatelessWidget {
+  final int step;
+  final int index;
+  final int direction;
+  final int nav;
+  final Widget child;
+
+  const _StepTransition({
+    required this.step,
+    required this.index,
+    required this.direction,
+    required this.nav,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (step != index) return child;
+    return child
+        .animate(key: ValueKey('sell-step-$index-$nav'))
+        .fadeIn(duration: const Duration(milliseconds: 280))
+        .slideX(
+          begin: direction >= 0 ? 0.12 : -0.12,
+          end: 0,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+  }
+}
+
+/// "Listing is live" celebration shown after a successful publish.
+///
+/// Auto-dismisses after the check draws itself; the screen pops the flow
+/// once it closes. Pure presentation — the listing is already live.
+class _PublishedCelebration extends StatefulWidget {
+  const _PublishedCelebration();
+
+  @override
+  State<_PublishedCelebration> createState() => _PublishedCelebrationState();
+}
+
+class _PublishedCelebrationState extends State<_PublishedCelebration> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 1700), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(32, 36, 32, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SuccessCheck(size: 96),
+            const SizedBox(height: 20),
+            Text(
+              'Your listing is live!',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Buyers can discover it right now. We\u2019ll notify you the moment an offer lands.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

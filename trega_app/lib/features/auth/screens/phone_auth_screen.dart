@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pinput/pinput.dart';
 
 import '../../../core/firebase/auth_service.dart';
 import '../../../core/firebase/firebase_providers.dart';
@@ -200,6 +201,23 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
     );
   }
 
+  /// iOS-style boxed OTP cell theme, tinted by state.
+  PinTheme _pinTheme(Color border) {
+    return PinTheme(
+      width: 52,
+      height: 60,
+      textStyle:
+          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -242,17 +260,30 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                   ),
                 )
               else
-                TextField(
+                Pinput(
                   controller: _otpController,
+                  length: 6,
+                  autofocus: true,
+                  showCursor: true,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(6),
                   ],
-                  decoration: const InputDecoration(
-                    labelText: 'OTP',
-                    hintText: '6-digit code',
-                  ),
+                  defaultPinTheme: _pinTheme(AppColors.divider),
+                  focusedPinTheme: _pinTheme(AppColors.primary),
+                  submittedPinTheme:
+                      _pinTheme(AppColors.primary),
+                  errorPinTheme: _pinTheme(AppColors.error),
+                  pinputAutovalidateMode:
+                      PinputAutovalidateMode.onSubmit,
+                  onChanged: (_) {
+                    // A fresh edit clears a previous "wrong code" error.
+                    if (_error != null) {
+                      setState(() => _error = null);
+                    }
+                  },
+                  // The code submits itself the moment the 6th digit lands.
+                  onCompleted: (_) => _verifyOtp(),
                 ),
               if (_interrupted && !_otpSent) ...[
                 const SizedBox(height: 12),

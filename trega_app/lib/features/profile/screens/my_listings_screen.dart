@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +9,9 @@ import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../core/widgets/trega_toast.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 
@@ -83,16 +86,19 @@ class MyListingsScreen extends ConsumerWidget {
     try {
       await ref.read(firestoreServiceProvider).deleteListing(listing.id);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Listing deleted.')),
+      await showTregaToast(
+        context,
+        '“${listing.product.title}” is gone for good.',
+        title: 'Listing deleted',
+        kind: TregaToastKind.info,
       );
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not delete this listing right now.'),
-          backgroundColor: AppColors.error,
-        ),
+      await showTregaToast(
+        context,
+        'Could not delete this listing right now. Try again.',
+        title: 'Something went wrong',
+        kind: TregaToastKind.error,
       );
     }
   }
@@ -198,7 +204,46 @@ class MyListingsScreen extends ConsumerWidget {
                         listing.product.imageUrls.isNotEmpty
                             ? listing.product.imageUrls.first
                             : null;
-                    return Card(
+                    return Entrance(
+                      index: i % 8,
+                      child: Slidable(
+                      key: ValueKey(listing.id),
+                      // Swipe right for the pickup address, left to delete.
+                      startActionPane: ActionPane(
+                        motion: const DrawerMotion(),
+                        extentRatio: 0.3,
+                        children: [
+                          SlidableAction(
+                            onPressed: (_) => _showPickupAddress(
+                                context, ref, listing.id,),
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            icon: PhosphorIconsRegular.mapPin,
+                            label: 'Address',
+                            borderRadius:
+                                BorderRadius.circular(12),
+                          ),
+                        ],
+                      ),
+                      endActionPane: ActionPane(
+                        motion: const DrawerMotion(),
+                        extentRatio: 0.3,
+                        children: [
+                          if (listing.status !=
+                              ListingStatus.sold)
+                            SlidableAction(
+                              onPressed: (_) => _confirmDelete(
+                                  context, ref, listing,),
+                              backgroundColor: AppColors.error,
+                              foregroundColor: Colors.white,
+                              icon: PhosphorIconsRegular.trash,
+                              label: 'Delete',
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                            ),
+                        ],
+                      ),
+                      child: Card(
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
                         onTap: () => Navigator.of(context).pushNamed(
@@ -263,54 +308,16 @@ class MyListingsScreen extends ConsumerWidget {
                                   ],
                                 ),
                               ),
-                              Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.end,
-                                children: [
-                                  StatusChip(
-                                    label: chip.label,
-                                    background: chip.bg,
-                                    foreground: chip.fg,
-                                  ),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons
-                                        .more_vert,),
-                                    onSelected: (value) {
-                                      if (value == 'address') {
-                                        _showPickupAddress(
-                                            context,
-                                            ref,
-                                            listing.id,);
-                                      } else if (value ==
-                                          'delete') {
-                                        _confirmDelete(
-                                            context,
-                                            ref,
-                                            listing,);
-                                      }
-                                    },
-                                    itemBuilder: (_) => [
-                                      const PopupMenuItem(
-                                        value: 'address',
-                                        child: Text(
-                                            'Pickup address',),
-                                      ),
-                                      if (listing.status !=
-                                          ListingStatus.sold)
-                                        const PopupMenuItem(
-                                          value: 'delete',
-                                          child: Text('Delete',
-                                              style: TextStyle(
-                                                  color: AppColors
-                                                      .error,),),
-                                        ),
-                                    ],
-                                  ),
-                                ],
+                              StatusChip(
+                                label: chip.label,
+                                background: chip.bg,
+                                foreground: chip.fg,
                               ),
                             ],
                           ),
                         ),
+                      ),
+                      ),
                       ),
                     );
                   },

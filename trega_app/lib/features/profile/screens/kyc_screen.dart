@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:pinput/pinput.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +9,9 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
+import '../../../core/widgets/trega_toast.dart';
 
 /// Aadhaar KYC with OTP (BulkPe).
 ///
@@ -74,10 +77,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         _busy = false;
       });
       _startCooldown();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('OTP sent to your Aadhaar-linked mobile number.'),
-        ),
+      await showTregaToast(
+        context,
+        'Enter the 6-digit code sent to your Aadhaar-linked mobile number.',
+        title: 'OTP sent',
+        kind: TregaToastKind.success,
       );
     } catch (e) {
       if (!mounted) return;
@@ -197,6 +201,22 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     );
   }
 
+  /// iOS-style boxed OTP cell theme, tinted by state.
+  PinTheme _pinTheme(Color border) {
+    return PinTheme(
+      width: 52,
+      height: 60,
+      textStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border, width: 1.5),
+      ),
+    );
+  }
+
   Widget _buildForm(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -244,16 +264,22 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         ],
         if (_refId != null) ...[
           const SizedBox(height: 16),
-          TextField(
+          Pinput(
             controller: _otpController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
+            length: 6,
             enabled: !_busy,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'OTP',
-              hintText: 'Enter the 6-digit OTP',
-            ),
+            showCursor: true,
+            keyboardType: TextInputType.number,
+            defaultPinTheme: _pinTheme(AppColors.divider),
+            focusedPinTheme: _pinTheme(AppColors.primary),
+            submittedPinTheme: _pinTheme(AppColors.primary),
+            errorPinTheme: _pinTheme(AppColors.error),
+            pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+            },
+            onCompleted: (_) => _verifyOtp(),
           ),
         ],
         if (_error != null) ...[
@@ -383,8 +409,7 @@ class _VerifiedState extends StatelessWidget {  final String? name;
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(PhosphorIconsRegular.sealCheck,
-                size: 80, color: AppColors.success,),
+            const SuccessCheck(size: 96),
             const SizedBox(height: 16),
             Text('Identity verified',
                 style: Theme.of(context).textTheme.titleLarge,),

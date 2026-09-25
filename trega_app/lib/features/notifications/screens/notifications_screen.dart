@@ -8,6 +8,8 @@ import '../../../core/notifications/notification_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/trega_toast.dart';
 
 /// Push + in-app notification inbox.
 ///
@@ -85,11 +87,11 @@ class _NotificationsScreenState
           .markAllNotificationsRead(uid);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not update notifications.'),
-          backgroundColor: AppColors.error,
-        ),
+      await showTregaToast(
+        context,
+        'Could not update notifications. Try again.',
+        title: 'Something went wrong',
+        kind: TregaToastKind.error,
       );
     }
   }
@@ -156,7 +158,9 @@ class _NotificationsScreenState
                       final time = n.createdAt == null
                           ? ''
                           : timeAgo(n.createdAt!);
-                      return ListTile(
+                      return Entrance(
+                        index: i % 8,
+                        child: ListTile(
                         tileColor: n.read
                             ? null
                             : AppColors.primarySoft
@@ -185,6 +189,7 @@ class _NotificationsScreenState
                             '${n.body}${time.isEmpty ? '' : '\n$time'}',),
                         isThreeLine: true,
                         onTap: () => _onTapNotification(n),
+                      ),
                       );
                     },
                   ),

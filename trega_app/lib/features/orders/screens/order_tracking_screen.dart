@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:timelines_plus/timelines_plus.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../home/providers/listing_providers.dart';
 
@@ -137,19 +139,105 @@ class _TrackingContent extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text('Timeline', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ...OrderTrackingScreen._timeline.asMap().entries.map((entry) {
-            final index = entry.key;
-            final (status, label) = entry.value;
-            final done = currentIndex == -1 || index <= currentIndex;
-            final isCurrent = index == currentIndex;
-            return _TimelineTile(
-              label: label,
-              done: done,
-              isCurrent: isCurrent,
-              isLast: index == OrderTrackingScreen._timeline.length - 1,
-            );
-          }),
+          const SizedBox(height: 12),
+          // Shipment tracker: filled brand dots for completed steps,
+          // hollow dots ahead, solid connectors behind and dashed ahead.
+          Entrance(
+            child: TimelineTheme(
+              data: TimelineThemeData(
+                color: AppColors.primary,
+                indicatorTheme:
+                    const IndicatorThemeData(size: 26),
+              ),
+              child: Timeline.tileBuilder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                builder: TimelineTileBuilder.connectedFromStyle(
+                  connectionDirection: ConnectionDirection.before,
+                  contentsAlign: ContentsAlign.basic,
+                  contentsBuilder: (context, index) {
+                    final (_, label) =
+                        OrderTrackingScreen._timeline[index];
+                    final done = currentIndex == -1 ||
+                        index <= currentIndex;
+                    final isCurrent = index == currentIndex;
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        left: 12,
+                        top: 2,
+                        bottom: 28,
+                      ),
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  fontWeight: isCurrent
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: done
+                                      ? AppColors.textPrimary
+                                      : AppColors.textSecondary,
+                                ),
+                          ),
+                          if (isCurrent) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding:
+                                  const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySoft,
+                                borderRadius:
+                                    BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Current status',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                  // The connector above step `index` is solid once the
+                  // step before it is done, dashed while still ahead.
+                  connectorStyleBuilder: (context, index) {
+                    final prevDone = index == 0 ||
+                        currentIndex == -1 ||
+                        index - 1 <= currentIndex;
+                    return prevDone
+                        ? ConnectorStyle.solidLine
+                        : ConnectorStyle.dashedLine;
+                  },
+                  indicatorStyleBuilder: (context, index) {
+                    final done = currentIndex == -1 ||
+                        index <= currentIndex;
+                    return done
+                        ? IndicatorStyle.dot
+                        : IndicatorStyle.outlined;
+                  },
+                  itemCount:
+                      OrderTrackingScreen._timeline.length,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           OutlinedButton.icon(
             onPressed: () {},
@@ -178,62 +266,5 @@ class _TrackingContent extends ConsumerWidget {
         '(order #$shortId, ${order.status.label}). '
         'Track it: https://trega.in/orders/${order.id}';
     await Share.share(text, subject: 'Trega order #$shortId');
-  }
-}
-
-class _TimelineTile extends StatelessWidget {
-  final String label;
-  final bool done;
-  final bool isCurrent;
-  final bool isLast;
-
-  const _TimelineTile({
-    required this.label,
-    required this.done,
-    required this.isCurrent,
-    required this.isLast,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = done ? AppColors.primary : AppColors.divider;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: done ? AppColors.primary : AppColors.surface,
-                border: Border.all(color: color, width: 2),
-              ),
-              child: done
-                  ? const Icon(PhosphorIconsRegular.check,
-                      size: 14, color: Colors.white,)
-                  : null,
-            ),
-            if (!isLast)
-              Container(width: 2, height: 28, color: color),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight:
-                      isCurrent ? FontWeight.w700 : FontWeight.w400,
-                  color: done
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary,
-                ),
-          ),
-        ),
-      ],
-    );
   }
 }

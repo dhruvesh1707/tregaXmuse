@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../core/widgets/trega_button.dart';
+import '../../../core/widgets/trega_toast.dart';
 import '../../checkout/screens/checkout_screen.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 
@@ -182,9 +184,8 @@ class _MyOffersTab extends ConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, i) {
             final bid = bids[i];
-            return FadeSlideIn(
-              delay: Duration(milliseconds: (i % 6) * 50),
-              duration: const Duration(milliseconds: 400),
+            return Entrance(
+              index: i % 6,
               child: _MyOfferCard(bid: bid),
             );
           },
@@ -329,9 +330,8 @@ class _OffersReceivedTab extends ConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, i) {
             final entry = groups.entries.elementAt(i);
-            return FadeSlideIn(
-              delay: Duration(milliseconds: (i % 6) * 50),
-              duration: const Duration(milliseconds: 400),
+            return Entrance(
+              index: i % 6,
               child: _ListingOffersGroup(
                 listingId: entry.key,
                 bids: entry.value,
@@ -380,19 +380,21 @@ class _ListingOffersGroup extends ConsumerWidget {
     try {
       await ref.read(functionsServiceProvider).acceptBid(bidId: bid.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Offer accepted — the buyer can now pay.'),
-          ),
+        await showTregaToast(
+          context,
+          'The buyer has been notified and can now pay.',
+          title: 'Offer accepted',
+          kind: TregaToastKind.success,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(functionsErrorMessage(e,
-                fallback: 'Could not accept the offer.',),),
-          ),
+        await showTregaToast(
+          context,
+          functionsErrorMessage(e,
+              fallback: 'Could not accept the offer.',),
+          title: 'Something went wrong',
+          kind: TregaToastKind.error,
         );
       }
     }
@@ -423,17 +425,21 @@ class _ListingOffersGroup extends ConsumerWidget {
     try {
       await ref.read(functionsServiceProvider).rejectBid(bidId: bid.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Offer rejected.')),
+        await showTregaToast(
+          context,
+          'The buyer was notified and can send a new offer.',
+          title: 'Offer rejected',
+          kind: TregaToastKind.info,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(functionsErrorMessage(e,
-                fallback: 'Could not reject the offer.',),),
-          ),
+        await showTregaToast(
+          context,
+          functionsErrorMessage(e,
+              fallback: 'Could not reject the offer.',),
+          title: 'Something went wrong',
+          kind: TregaToastKind.error,
         );
       }
     }
@@ -466,19 +472,21 @@ class _ListingOffersGroup extends ConsumerWidget {
           .read(functionsServiceProvider)
           .cancelAcceptance(bidId: bid.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Acceptance cancelled — listing is open again.'),
-          ),
+        await showTregaToast(
+          context,
+          'The listing is open for offers again.',
+          title: 'Acceptance cancelled',
+          kind: TregaToastKind.info,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(functionsErrorMessage(e,
-                fallback: 'Could not cancel the acceptance.',),),
-          ),
+        await showTregaToast(
+          context,
+          functionsErrorMessage(e,
+              fallback: 'Could not cancel the acceptance.',),
+          title: 'Something went wrong',
+          kind: TregaToastKind.error,
         );
       }
     }
@@ -633,7 +641,39 @@ class _OfferRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Container(
+    // Swipe right to accept, left to reject — the buttons stay for
+    // explicit taps; both paths show the same confirm dialog.
+    return Slidable(
+      key: ValueKey(bid.id),
+      startActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.28,
+        children: [
+          SlidableAction(
+            onPressed: (_) => onAccept(),
+            backgroundColor: AppColors.success,
+            foregroundColor: Colors.white,
+            icon: PhosphorIconsRegular.check,
+            label: 'Accept',
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ],
+      ),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.28,
+        children: [
+          SlidableAction(
+            onPressed: (_) => onReject(),
+            backgroundColor: AppColors.error,
+            foregroundColor: Colors.white,
+            icon: PhosphorIconsRegular.x,
+            label: 'Reject',
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ],
+      ),
+      child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.divider),
@@ -682,6 +722,7 @@ class _OfferRow extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }
