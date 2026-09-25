@@ -399,11 +399,11 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const Divider(height: 1),
                 const Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 16, vertical: 8,),
-                  child: const Text(
+                  child: Text(
                     'Danger zone',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: AppColors.error,
