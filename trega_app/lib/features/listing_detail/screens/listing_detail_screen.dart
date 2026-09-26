@@ -558,12 +558,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     final expressConfig = ref.read(expressConfigProvider).valueOrNull ??
         ExpressDeliveryConfig.defaults;
     final express = expressConfig.isCityEligible(listing.city);
-    final city = listing.city?.trim();
+    final city = listing.city.trim();
     final text = StringBuffer()
       ..writeln(
-          '${listing.product.title} — ${formatINR(listing.price)} on Trega')
+        '${listing.product.title} — ${formatINR(listing.price)} on Trega',
+      )
       ..writeln('Condition: ${listing.product.condition.label}'
-          '${city != null && city.isNotEmpty ? ' · $city' : ''}'
+          '${city.isNotEmpty ? ' · $city' : ''}'
           '${express ? ' · Trega Express (next-day delivery)' : ''}')
       ..write('View it here: https://tregaxmuse.web.app/l/${listing.id}');
     try {
