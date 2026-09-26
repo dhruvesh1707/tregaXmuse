@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listing on Trega</title>
+<meta name="description" content="View this listing on Trega — India's marketplace for pre-owned gear.">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #faf8f4; color: #1c1917;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  }
+  header { width: 100%; padding: 18px 20px; display: flex; align-items: center; gap: 10px; }
+  header .logo { font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
+  header .logo .dot { color: #e8a020; }
+  main {
+    width: 100%; max-width: 520px; padding: 12px 20px 40px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .card {
+    background: #fff; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,.08);
+  }
+  .photo { width: 100%; aspect-ratio: 4/3; background: #e7e2d9; object-fit: cover; display: block; }
+  .body { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .price { font-size: 26px; font-weight: 800; }
+  .title { font-size: 18px; font-weight: 600; line-height: 1.35; }
+  .meta { font-size: 14px; color: #78716c; }
+  .express {
+    display: inline-block; font-size: 13px; font-weight: 700; color: #92610a;
+    background: #fef3c7; border-radius: 999px; padding: 4px 12px; width: fit-content;
+  }
+  .cta {
+    display: block; text-align: center; text-decoration: none;
+    background: #1c1917; color: #fff; font-weight: 700; font-size: 17px;
+    border-radius: 16px; padding: 16px; margin-top: 8px;
+  }
+  .cta small { display: block; font-weight: 400; font-size: 12px; color: #d6d3d1; margin-top: 4px; }
+  .hint { text-align: center; font-size: 13px; color: #a8a29e; }
+  .error { text-align: center; padding: 60px 20px; color: #78716c; }
+  .spinner {
+    width: 40px; height: 40px; border: 4px solid #e7e2d9; border-top-color: #1c1917;
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 80px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header><div class="logo">trega<span class="dot">.</span></div></header>
+<main id="app"><div class="spinner"></div></main>
+<script>
+(function () {
+  var app = document.getElementById('app');
+  // URL is /l/<listingId>
+  var parts = window.location.pathname.split('/').filter(Boolean);
+  var id = parts.length >= 2 && parts[0] === 'l' ? parts[1] : '';
+
+  function unwrap(v) {
+    if (v == null) return '';
+    if (typeof v === 'string') return v;
+    if (v.stringValue !== undefined) return v.stringValue;
+    if (v.integerValue !== undefined) return v.integerValue;
+    if (v.doubleValue !== undefined) return v.doubleValue;
+    if (v.booleanValue !== undefined) return v.booleanValue;
+    if (v.mapValue && v.mapValue.fields) {
+      var o = {};
+      Object.keys(v.mapValue.fields).forEach(function (k) { o[k] = unwrap(v.mapValue.fields[k]); });
+      return o;
+    }
+    if (v.arrayValue && v.arrayValue.values) return v.arrayValue.values.map(unwrap);
+    return '';
+  }
+
+  function fail(msg) {
+    app.innerHTML = '<div class="error"><p style="font-size:18px;font-weight:700;margin-bottom:8px">Couldn\u2019t load this listing</p><p>' +
+      msg + '</p><a class="cta" href="trega://">Open the Trega app<small>or search Trega on the Play Store</small></a></div>';
+  }
+
+  if (!id) { fail('This link doesn\u2019t point to a listing.'); return; }
+
+  var url = 'https://firestore.googleapis.com/v1/projects/tregaxmuse/databases/(default)/documents/listings/' +
+    encodeURIComponent(id);
+
+  fetch(url).then(function (r) {
+    if (!r.ok) throw new Error('not found');
+    return r.json();
+  }).then(function (doc) {
+    var f = {};
+    Object.keys(doc.fields || {}).forEach(function (k) { f[k] = unwrap(doc.fields[k]); });
+
+    var product = f.product || {};
+    var title = product.title || 'Listing on Trega';
+    var price = Number(f.price) || 0;
+    var priceText = price > 0 ? '\u20B9' + price.toLocaleString('en-IN') : '';
+    var condition = product.condition;
+    if (condition && typeof condition === 'object') condition = condition.label || condition.value || '';
+    var city = f.city || '';
+    var photos = Array.isArray(f.photos) ? f.photos : [];
+    var photo = photos.length ? photos[0] : '';
+
+    document.title = title + ' on Trega';
+
+    var html = '<div class="card">';
+    if (photo) html += '<img class="photo" src="' + photo.replace(/"/g, '&quot;') + '" alt="">';
+    html += '<div class="body">';
+    if (priceText) html += '<div class="price">' + priceText + '</div>';
+    html += '<div class="title"></div>';
+    var meta = [];
+    if (condition) meta.push(String(condition));
+    if (city) meta.push(String(city));
+    if (meta.length) html += '<div class="meta">' + meta.map(function (m) {
+      return m.replace(/</g, '&lt;');
+    }).join(' \u00B7 ') + '</div>';
+    html += '</div></div>';
+    html += '<a class="cta" href="trega://listing/' + encodeURIComponent(id) + '">Open in the Trega app' +
+      '<small>Don\u2019t have it yet? Search \u201CTrega\u201D on the Play Store</small></a>';
+    html += '<p class="hint">Trega \u2014 pre-owned gear, verified sellers, secure payments.</p>';
+    app.innerHTML = html;
+    app.querySelector('.title').textContent = title;
+  }).catch(function () {
+    fail('The listing may have been sold or removed.');
+  });
+})();
+</script>
+</body>
+</html>

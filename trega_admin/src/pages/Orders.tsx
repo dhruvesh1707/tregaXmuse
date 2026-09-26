@@ -42,10 +42,11 @@ export default function Orders() {
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<Order | null>(null);
+  const [expressOnly, setExpressOnly] = useState(false);
   const [newStatus, setNewStatus] = useState<OrderStatus>('placed');
   const [trackingNote, setTrackingNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const { rows, total, loading, error, refresh } = useOrders(status, page, PAGE_SIZE, query);
+  const { rows, total, loading, error, refresh } = useOrders(status, page, PAGE_SIZE, query, expressOnly);
 
   const openEdit = (o: Order) => {
     setEditing(o);
@@ -116,6 +117,20 @@ export default function Orders() {
         </span>
       ),
     },
+    {
+      key: 'delivery',
+      header: 'Delivery',
+      render: (o) =>
+        o.deliveryType === 'express' ? (
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
+            ⚡ Express
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600 ring-1 ring-inset ring-stone-200">
+            Standard
+          </span>
+        ),
+    },
     { key: 'status', header: 'Status', render: (o) => <StatusBadge value={o.status} /> },
     {
       key: 'actions',
@@ -162,6 +177,19 @@ export default function Orders() {
             {t.label}
           </button>
         ))}
+        <button
+          onClick={() => {
+            setExpressOnly((v) => !v);
+            setPage(1);
+          }}
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            expressOnly
+              ? 'bg-amber-500 text-white'
+              : 'bg-white text-stone-600 ring-1 ring-stone-300 hover:bg-stone-100'
+          }`}
+        >
+          ⚡ Express only
+        </button>
       </div>
 
       <form
@@ -212,6 +240,15 @@ export default function Orders() {
               <div className="mt-1 text-xs text-stone-500">
                 Payment: <StatusBadge value={editing.paymentStatus.toLowerCase()} />{' '}
                 <span className="text-stone-400">(set by the Cashfree webhook)</span>
+              </div>
+              <div className="mt-1 text-xs">
+                {editing.deliveryType === 'express' ? (
+                  <span className="font-semibold text-amber-700">
+                    ⚡ Express delivery — book same-day courier for this order
+                  </span>
+                ) : (
+                  <span className="text-stone-500">Delivery: Standard</span>
+                )}
               </div>
             </div>
 

@@ -29,6 +29,10 @@
     ],
     "rewrites": [
       {
+        "source": "/l/**",
+        "destination": "/l/index.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

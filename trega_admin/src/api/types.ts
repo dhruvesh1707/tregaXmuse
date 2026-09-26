@@ -76,6 +76,8 @@ export interface Order {
   currency: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  /** 'express' = next-day same-city (Trega Express); team must book same-day courier. */
+  deliveryType?: 'express' | 'standard';
   trackingNote?: string;
   createdAt: string; // ISO
 }

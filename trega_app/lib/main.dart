@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:app_links/app_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/notifications/notification_router.dart';
+import 'features/listing_detail/screens/listing_detail_screen.dart';
 import 'firebase_options.dart';
 
 /// Entry point for the Trega marketplace app.
@@ -39,6 +41,24 @@ void _routePushMessage(RemoteMessage message) {
   if (target == null) return;
   tregaNavigatorKey.currentState
       ?.pushNamed(target.routeName, arguments: target.arguments);
+}
+
+/// Deep links from shared listings: trega://listing/<id>.
+/// Cold start: stashed for the splash screen (navigator isn't up yet) —
+/// same mechanism as a tapped push on a terminated app.
+/// Warm (app already running): routed immediately like a tapped push.
+void _handleDeepLink(Uri uri, {required bool cold}) {
+  if (uri.scheme != 'trega' || uri.host != 'listing') return;
+  final id = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+  if (id.isEmpty) return;
+  const route = ListingDetailScreen.routeName;
+  if (cold) {
+    pendingNotificationTarget =
+        NotificationTarget(route, ListingDetailArgs(listingId: id));
+  } else {
+    tregaNavigatorKey.currentState
+        ?.pushNamed(route, arguments: ListingDetailArgs(listingId: id));
+  }
 }
 
 Future<void> main() async {
@@ -81,6 +101,16 @@ Future<void> main() async {
       data: message.data,
     );
   });
+
+  // Shared-listing deep links (trega://listing/<id>).
+  final appLinks = AppLinks();
+  appLinks.getInitialLink().then((uri) {
+    if (uri != null) _handleDeepLink(uri, cold: true);
+  }).catchError((_) {});
+  appLinks.uriLinkStream.listen(
+    (uri) => _handleDeepLink(uri, cold: false),
+    onError: (_) {},
+  );
 
   // Local cache: Firestore keeps query results on disk and serves them
   // instantly on cold start / offline, then syncs with the server in the

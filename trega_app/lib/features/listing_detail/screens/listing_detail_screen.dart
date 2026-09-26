@@ -551,16 +551,23 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     );
   }
 
-  /// Shares this specific listing as text with a link to it, so it can
-  /// be sent to anyone (WhatsApp, SMS, …). Deep links resolve in-app later;
-  /// text share works everywhere today.
+  /// Shares the listing marketplace-style: title, price, condition and a
+  /// link that opens the listing — in the app when Trega is installed
+  /// (trega:// deep link), otherwise a web preview page.
   Future<void> _shareListing(Listing listing) async {
-    final text =
-        '${listing.product.title} — ${formatINR(listing.price)} on Trega '
-        '(${listing.product.condition.label}). '
-        'View it: https://trega.in/listings/${listing.id}';
+    final expressConfig = ref.read(expressConfigProvider).valueOrNull ??
+        ExpressDeliveryConfig.defaults;
+    final express = expressConfig.isCityEligible(listing.city);
+    final city = listing.city?.trim();
+    final text = StringBuffer()
+      ..writeln(
+          '${listing.product.title} — ${formatINR(listing.price)} on Trega')
+      ..writeln('Condition: ${listing.product.condition.label}'
+          '${city != null && city.isNotEmpty ? ' · $city' : ''}'
+          '${express ? ' · Trega Express (next-day delivery)' : ''}')
+      ..write('View it here: https://tregaxmuse.web.app/l/${listing.id}');
     try {
-      await Share.share(text, subject: listing.product.title);
+      await Share.share(text.toString(), subject: listing.product.title);
     } catch (_) {
       if (!mounted) return;
       await showTregaToast(

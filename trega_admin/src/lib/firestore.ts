@@ -134,6 +134,7 @@ export async function mapOrder(id: string, d: DocumentData): Promise<Order> {
     currency: (d.currency as string) ?? 'INR',
     status: (d.status as Order['status']) ?? 'placed',
     paymentStatus: (d.paymentStatus as Order['paymentStatus']) ?? 'PENDING',
+    deliveryType: (d.deliveryType as Order['deliveryType']) ?? 'standard',
     trackingNote: d.trackingNote as string | undefined,
     createdAt: tsToIso(d.createdAt),
   };
@@ -365,12 +366,19 @@ export function useUsers(kyc: string, page: number, pageSize: number, search: st
   );
 }
 
-export function useOrders(status: string, page: number, pageSize: number, search: string): Paged<Order> {
+export function useOrders(
+  status: string,
+  page: number,
+  pageSize: number,
+  search: string,
+  expressOnly = false,
+): Paged<Order> {
   const constraints: QueryConstraint[] = status === 'all' ? [] : [where('status', '==', status)];
+  if (expressOnly) constraints.push(where('deliveryType', '==', 'express'));
   return usePagedQuery<Order>(
     'orders',
     constraints,
-    `orders|${status}|${page}|${search}`,
+    `orders|${status}|${page}|${search}|${expressOnly}`,
     mapOrder,
     {
       page,

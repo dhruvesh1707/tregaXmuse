@@ -11,6 +11,7 @@ import '../../../core/models/kyc_verification.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/photo_viewer.dart';
 import '../../../core/widgets/trega_toast.dart';
 import '../../auth/screens/phone_auth_screen.dart';
 import '../../bids/screens/bids_offers_screen.dart';
@@ -458,9 +459,14 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
     // has no error slot and renders a broken tile instead.
     return Stack(
       children: [
-        SizedBox(
-          width: 64,
-          height: 64,
+        GestureDetector(
+          // WhatsApp-style: tap the photo to see it full-screen.
+          onTap: hasAvatar
+              ? () => showFullScreenPhoto(context, widget.avatarUrl!)
+              : null,
+          child: SizedBox(
+            width: 64,
+            height: 64,
           child: ClipOval(
             child: hasAvatar
                 ? CachedNetworkImage(
@@ -481,6 +487,7 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
                     color: AppColors.primarySoft,
                     child: fallbackIcon,
                   ),
+            ),
           ),
         ),
         if (_uploading)

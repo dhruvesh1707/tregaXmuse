@@ -38,6 +38,89 @@ function queueNotification(
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     }
   );
+  // Mirror to FCM: the app already routes push taps via notification_router.
+  pushOutbox.push({
+    uid,
+    title: n.title,
+    body: n.body,
+    type: n.type,
+    listingId: n.data?.listingId,
+    bidId: n.data?.bidId,
+    orderId: n.data?.orderId,
+  });
+}
+
+/** Push outbox: queueNotification() records an FCM job here; the handler
+ * delivers it after its batch commits. FCM sends can't run inside the
+ * batch, so they're staged here instead. Drained on every flush so a
+ * failed commit can't leak a push into the next invocation. */
+type PushJob = {
+  uid: string;
+  title: string;
+  body: string;
+  type: string;
+  listingId?: string;
+  bidId?: string;
+  orderId?: string;
+};
+const pushOutbox: PushJob[] = [];
+
+/** Sends one push via FCM. Never throws — a push must not fail the callable. */
+async function sendPush(job: PushJob): Promise<void> {
+  try {
+    const snap = await admin.firestore().collection("users").doc(job.uid).get();
+    const tokens = (snap.data()?.fcmTokens as string[] | undefined) ?? [];
+    if (!tokens.length) return;
+    // FCM data values must be strings.
+    const data: Record<string, string> = { type: job.type };
+    if (job.listingId) data.listingId = job.listingId;
+    if (job.bidId) data.bidId = job.bidId;
+    if (job.orderId) data.orderId = job.orderId;
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: { title: job.title, body: job.body },
+      data,
+    });
+    // Prune dead tokens so the array doesn't rot over time.
+    const dead: string[] = [];
+    res.responses.forEach((r, i) => {
+      if (r.success) return;
+      const code = (r.error as { code?: string } | undefined)?.code;
+      if (
+        code === "messaging/invalid-registration-token" ||
+        code === "messaging/registration-token-not-registered"
+      ) {
+        dead.push(tokens[i]);
+      }
+    });
+    if (dead.length) {
+      await admin.firestore().collection("users").doc(job.uid).update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...dead),
+      });
+    }
+  } catch (e) {
+    console.warn(`FCM push to ${job.uid} failed:`, e);
+  }
+}
+
+/** Delivers queued pushes; always drains the outbox. */
+async function flushPushOutbox(): Promise<void> {
+  const jobs = pushOutbox.splice(0, pushOutbox.length);
+  await Promise.all(jobs.map(sendPush));
+}
+
+/** Commits the batch, then delivers any queued pushes. If the commit
+ * fails, queued pushes are dropped — the inbox write failed too. */
+async function commitAndNotify(
+  batch: admin.firestore.WriteBatch
+): Promise<void> {
+  try {
+    await batch.commit();
+  } catch (e) {
+    pushOutbox.length = 0;
+    throw e;
+  }
+  await flushPushOutbox();
 }
 
 function formatINR(amount: number): string {
@@ -126,7 +209,7 @@ export async function reviewListingHandler(
       });
     }
   }
-  await batch.commit();
+  await commitAndNotify(batch);
   return { status };
 }
 
@@ -187,7 +270,7 @@ export async function onBidCreateHandler(
       body: `Someone bid ${formatINR(amount)} on “${listingTitle}” — place a higher bid to stay in the race.`,
     });
   }
-  await batch.commit();
+  await commitAndNotify(batch);
 }
 
 /** Buyer places a structured offer/bid on a live listing. No chat involved. */
@@ -338,7 +421,7 @@ export async function acceptBidHandler(
       body: `Your ${formatINR(loser.amount)} bid on “${listingTitle}” wasn't accepted — the item went to someone else.`,
     });
   }
-  await batch.commit();
+  await commitAndNotify(batch);
   return { accepted: true as const };
 }
 
@@ -386,7 +469,7 @@ export async function rejectBidHandler(
     title: "Offer not accepted",
     body: `Your ${formatINR(bid.amount as number)} offer on “${listingTitle}” wasn't accepted — you can send a new offer.`,
   });
-  await batch.commit();
+  await commitAndNotify(batch);
   return { rejected: true as const };
 }
 
@@ -448,6 +531,6 @@ export async function cancelAcceptanceHandler(
     title: "Accepted offer cancelled",
     body: `The seller cancelled your accepted offer on “${listingTitle}” — the listing is open for offers again.`,
   });
-  await batch.commit();
+  await commitAndNotify(batch);
   return { cancelled: true as const };
 }
