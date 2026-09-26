@@ -36,6 +36,52 @@ interface CashfreeOrderResponse {
   order_status: string;
 }
 
+// Bundled fallback for the `config/delivery` doc (mirrors the app's
+// ExpressDeliveryConfig.defaults). The console-owned `config/delivery` doc
+// ({enabled, expressCities[], cutoffHour}) overrides this when present.
+const EXPRESS_CITIES_FALLBACK = [
+  "mumbai",
+  "delhi",
+  "new delhi",
+  "bengaluru",
+  "bangalore",
+  "hyderabad",
+  "chennai",
+  "pune",
+  "kolkata",
+  "ahmedabad",
+];
+
+const normCity = (s?: string) => (s ?? "").trim().toLowerCase();
+
+/**
+ * Throws unless Trega Express can actually do next-day for this order:
+ * the listing's city must be an express city AND match the buyer's
+ * delivery city. The client can never force `express` past this.
+ */
+async function assertExpressEligible(
+  db: admin.firestore.Firestore,
+  listingRef: admin.firestore.DocumentReference,
+  buyerCity?: string
+): Promise<void> {
+  const fail = () =>
+    new HttpsError(
+      "failed-precondition",
+      "Express delivery is not available for this order."
+    );
+  const cfgSnap = await db.collection("config").doc("delivery").get();
+  const cfg = cfgSnap.data();
+  if (cfg?.enabled === false) throw fail();
+  const cities: string[] = Array.isArray(cfg?.expressCities)
+    ? (cfg.expressCities as string[]).map(normCity)
+    : EXPRESS_CITIES_FALLBACK;
+  const listingSnap = await listingRef.get();
+  const listingCity = normCity(listingSnap.data()?.city as string | undefined);
+  const buyer = normCity(buyerCity);
+  if (!listingCity || !buyer || !cities.includes(listingCity)) throw fail();
+  if (listingCity !== buyer) throw fail();
+}
+
 function cashfreeHeaders(): Record<string, string> {
   const appId = CASHFREE_APP_ID.value();
   const secret = CASHFREE_SECRET_KEY.value();
@@ -84,6 +130,7 @@ export async function createCashfreeOrderHandler(
     bidId?: string;
     customerPhone?: string;
     deliveryAddress?: Record<string, string>;
+    deliveryType?: string;
   }
 ): Promise<{ paymentSessionId: string; orderId: string; cfOrderId: number; cfOrderRef: string }> {
   const db = admin.firestore();
@@ -139,6 +186,15 @@ export async function createCashfreeOrderHandler(
     assertValidDeliveryAddress(input.deliveryAddress);
   }
 
+  // Delivery speed. `express` is only honored when the courier network can
+  // actually do next-day — validated server-side; anything else (or a
+  // missing/invalid value) falls back to `standard`.
+  let deliveryType: "standard" | "express" = "standard";
+  if (input.deliveryType === "express") {
+    await assertExpressEligible(db, listingRef, input.deliveryAddress?.city);
+    deliveryType = "express";
+  }
+
   // 1. Create the order doc first (payment PENDING).
   const orderRef = db.collection("orders").doc();
   const orderId = orderRef.id;
@@ -151,6 +207,7 @@ export async function createCashfreeOrderHandler(
     sellerId,
     amount,
     currency: "INR",
+    deliveryType,
     paymentStatus: "PENDING" satisfies PaymentStatus,
     status: "placed" satisfies OrderStatus,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),

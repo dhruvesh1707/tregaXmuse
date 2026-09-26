@@ -171,6 +171,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── config/{docId} ───────────────────────────────────────────
+    // Public app config (e.g. `config/delivery`: express-delivery cities
+    // + cutoff hour + enabled flag). Written only via the Firebase
+    // console by the team; the app falls back to bundled defaults when
+    // the doc is missing.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ── reviews/{reviewId} ───────────────────────────────────────
     // Written server-side only (no client writer exists in the app or
     // admin panel — the reviewListing callable moderates listings, it does

@@ -29,7 +29,11 @@ class _PromoSlide {
   final String title;
   final String subtitle;
   final String cta;
-  final String routeName;
+
+  /// Named route to open on tap. Null makes the card informational — tap
+  /// shows [infoBody] in a dialog instead.
+  final String? routeName;
+  final String? infoBody;
   final List<Color> gradient;
 
   const _PromoSlide({
@@ -37,12 +41,22 @@ class _PromoSlide {
     required this.title,
     required this.subtitle,
     required this.cta,
-    required this.routeName,
+    this.routeName,
+    this.infoBody,
     required this.gradient,
   });
 }
 
 const List<_PromoSlide> _slides = [
+  _PromoSlide(
+    icon: PhosphorIconsRegular.truck,
+    title: 'Trega Express is here',
+    subtitle: 'Order today, get it tomorrow — in select cities.',
+    cta: 'How it works',
+    infoBody:
+        'Look for the Express badge on listings. When you and the seller are in the same select city, order before 9 PM and the item arrives the next day.',
+    gradient: [Color(0xFFB7791F), Color(0xFF6E2E16)],
+  ),
   _PromoSlide(
     icon: PhosphorIconsRegular.camera,
     title: 'Turn gear into cash',
@@ -165,8 +179,7 @@ class _PromoCardState extends State<_PromoCard>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
-        onTap: () =>
-            Navigator.of(context).pushNamed(slide.routeName),
+        onTap: () => _onSlideTap(context, slide),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: AnimatedBuilder(
@@ -275,6 +288,31 @@ class _PromoCardState extends State<_PromoCard>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Tapping a slide either navigates (routeName set) or explains the
+  /// promo in a dialog (informational slide, e.g. Trega Express).
+  void _onSlideTap(BuildContext context, _PromoSlide slide) {
+    final route = slide.routeName;
+    if (route != null) {
+      Navigator.of(context).pushNamed(route);
+      return;
+    }
+    final info = slide.infoBody;
+    if (info == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(slide.title),
+        content: Text(info),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it'),
+          ),
+        ],
       ),
     );
   }

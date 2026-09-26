@@ -287,6 +287,7 @@ class FirestoreService {
     required double price,
     required String condition,
     bool negotiable = true,
+    String city = '',
   }) async {
     final ref = await _listings.add({
       'sellerId': sellerId,
@@ -294,6 +295,7 @@ class FirestoreService {
       'description': description,
       'categoryId': categoryId,
       'price': price,
+      'city': city,
       'condition': condition,
       'negotiable': negotiable,
       'photos': <String>[],
@@ -304,6 +306,17 @@ class FirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
     });
     return ref.id;
+  }
+
+  /// Streams the `config/delivery` doc (Trega Express: enabled flag,
+  /// expressCities, cutoffHour). Null when the doc doesn't exist — callers
+  /// fall back to [ExpressDeliveryConfig.defaults].
+  Stream<Map<String, dynamic>?> watchDeliveryConfig() {
+    return _db
+        .collection('config')
+        .doc('delivery')
+        .snapshots()
+        .map((doc) => doc.data());
   }
 
   /// Step 2 of the sell flow: attaches uploaded photo URLs to the draft.

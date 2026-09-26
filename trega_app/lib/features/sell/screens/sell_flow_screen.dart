@@ -361,6 +361,7 @@ static bool _isValidUpi(String upi) =>
         price: price,
         condition: _condition.wireValue,
         negotiable: _negotiable,
+        city: city,
       );
 
       // 2) Upload media to Storage, then attach URLs to the listing.

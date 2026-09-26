@@ -7,6 +7,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
+import '../../../core/delivery/express_delivery.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
@@ -15,6 +16,7 @@ import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
+import '../../../core/widgets/express_widgets.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -238,6 +240,9 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
   Widget _buildContent(BuildContext context, Listing listing) {
     final product = listing.product;
     final seller = listing.seller;
+    final expressConfig = ref.watch(expressConfigProvider).valueOrNull ??
+        ExpressDeliveryConfig.defaults;
+    final expressEligible = expressConfig.isCityEligible(listing.city);
 
     return Scaffold(
       body: CustomScrollView(
@@ -371,6 +376,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                           .bodySmall
                           ?.copyWith(color: AppColors.success),
                     ),
+                  if (expressEligible) ...[
+                    const SizedBox(height: 12),
+                    ExpressBanner(
+                      city: listing.city,
+                      config: expressConfig,
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   _SellerInfo(sellerId: seller.id),
                   const SizedBox(height: 16),

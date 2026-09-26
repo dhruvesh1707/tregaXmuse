@@ -56,6 +56,10 @@ class Listing {
   /// Set when the seller accepts a buyer's offer — the listing is reserved
   /// for that buyer until they pay (then it flips to `sold`).
   final String? acceptedBidId;
+  /// Denormalized from the seller's pickup address at publish time.
+  /// Drives Trega Express eligibility (badge on cards, banner on detail).
+  /// Empty for listings published before this field existed.
+  final String city;
   final DateTime createdAt;
   final int viewsCount;
   final int likesCount;
@@ -70,6 +74,7 @@ class Listing {
     this.biddingEnabled = false,
     this.status = ListingStatus.live,
     this.acceptedBidId,
+    this.city = '',
     required this.createdAt,
     this.viewsCount = 0,
     this.likesCount = 0,
@@ -85,6 +90,7 @@ class Listing {
       negotiable: json['negotiable'] as bool? ?? true,
       biddingEnabled: json['bidding_enabled'] as bool? ?? false,
       status: ListingStatusLabel.fromJson(json['status'] as String? ?? ''),
+      city: json['city'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
       viewsCount: json['views_count'] as int? ?? 0,
       likesCount: json['likes_count'] as int? ?? 0,
@@ -101,6 +107,7 @@ class Listing {
       'negotiable': negotiable,
       'bidding_enabled': biddingEnabled,
       'status': status.name,
+      'city': city,
       'created_at': createdAt.toIso8601String(),
       'views_count': viewsCount,
       'likes_count': likesCount,
@@ -112,7 +119,8 @@ class Listing {
       {bool? isLiked,
       int? likesCount,
       ListingStatus? status,
-      String? acceptedBidId,}) {
+      String? acceptedBidId,
+      String? city,}) {
     return Listing(
       id: id,
       product: product,
@@ -122,6 +130,7 @@ class Listing {
       biddingEnabled: biddingEnabled,
       status: status ?? this.status,
       acceptedBidId: acceptedBidId ?? this.acceptedBidId,
+      city: city ?? this.city,
       createdAt: createdAt,
       viewsCount: viewsCount,
       likesCount: likesCount ?? this.likesCount,
@@ -174,6 +183,7 @@ extension ListingFirestore on Listing {
       biddingEnabled: true,
       status: ListingStatusLabel.fromWire(data['status'] as String? ?? ''),
       acceptedBidId: data['acceptedBidId'] as String?,
+      city: data['city'] as String? ?? '',
       createdAt: firestoreDate(data['createdAt']),
       viewsCount: data['viewCount'] as int? ?? 0,
       likesCount: data['likesCount'] as int? ?? 0,

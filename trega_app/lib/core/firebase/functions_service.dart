@@ -24,7 +24,7 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// Callable names (exact, must match `trega_functions/src/index.ts`):
 /// - `requestAadhaarOtp` ({aadhaarNumber}) -> {success, refId, message}
 /// - `verifyAadhaarOtp`  ({refId, otp}) -> {success, verified, name?, dob?, ...}
-/// - `createCashfreeOrder` ({listingId?, bidId?, customerPhone, deliveryAddress?})
+/// - `createCashfreeOrder` ({listingId?, bidId?, customerPhone, deliveryAddress?, deliveryType?})
 ///   -> {success, paymentSessionId, cfOrderId, orderId}
 /// - `placeBid` ({listingId, amount}) -> {success, bidId}
 /// - `acceptBid` ({bidId}) -> {success}
@@ -74,6 +74,7 @@ class FunctionsService {
     String? bidId,
     required String customerPhone,
     Map<String, String>? deliveryAddress,
+    String deliveryType = 'standard',
   }) async {
     final result =
         await _functions.httpsCallable('createCashfreeOrder').call({
@@ -81,6 +82,7 @@ class FunctionsService {
       if (bidId != null) 'bidId': bidId,
       'customerPhone': customerPhone,
       if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
+      'deliveryType': deliveryType,
     });
     return Map<String, dynamic>.from(result.data as Map);
   }

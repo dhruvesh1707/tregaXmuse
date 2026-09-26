@@ -96,6 +96,7 @@ class LiveListingsNotifier extends AsyncNotifier<List<Listing>> {
         'viewCount': l.viewsCount,
         'likesCount': l.likesCount,
         'isLiked': l.isLiked,
+        'city': l.city,
       };
 
   Listing _listingFromCacheJson(Map<String, dynamic> j) {
@@ -127,6 +128,7 @@ class LiveListingsNotifier extends AsyncNotifier<List<Listing>> {
       viewsCount: j['viewCount'] as int? ?? 0,
       likesCount: j['likesCount'] as int? ?? 0,
       isLiked: j['isLiked'] as bool? ?? false,
+      city: j['city'] as String? ?? '',
     );
   }
 }

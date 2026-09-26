@@ -49,6 +49,18 @@ manages both.
 
 Seed: Gaming, Mobile, Laptops, Cameras, Music, Others.
 
+### `config/delivery`
+
+Single doc. Public read, console-only write (see `firestore.rules`).
+Overrides the app's bundled Trega Express defaults — add a city here and
+the app picks it up without a release.
+
+| Field | Type | Notes |
+|---|---|---|
+| enabled | bool | master kill-switch |
+| expressCities | string[] | city names, e.g. `["Mumbai", "Bengaluru"]` (matched case-insensitively) |
+| cutoffHour | number | 24h local hour; order before → delivery tomorrow, after → day after tomorrow |
+
 ### `listings/{id}`
 | Field | Type | Notes |
 |---|---|---|
@@ -66,6 +78,7 @@ Seed: Gaming, Mobile, Laptops, Cameras, Music, Others.
 | viewCount | number | |
 | liveAt / soldAt | timestamp? | lifecycle markers |
 | createdAt | timestamp | |
+| city | string | denormalized from the seller's pickup address at publish time; drives Trega Express eligibility |
 
 Write rule of thumb: clients create with `status: "draft"`; the
 `onListingCreate` trigger flips it to `live` immediately and notifies
@@ -108,6 +121,7 @@ Never on the public listing doc. Readable only by the seller and admins
 | cfOrderRef | string? | our `trega_<orderId>` reference |
 | paymentSessionId | string? | for the Cashfree SDK |
 | deliveryAddress | map? | buyer delivery address from checkout: `name`, `phone`, `line1`, `line2?`, `city`, `state`, `pincode` (required when the order came from an accepted bid) |
+| deliveryType | string | `standard` \| `express` — set server-side; `express` only when same-city express eligibility validates |
 | trackingNote | string? | latest fulfillment note |
 | paidAt | timestamp? | |
 | createdAt | timestamp | |

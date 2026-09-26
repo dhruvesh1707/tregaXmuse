@@ -4,6 +4,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/delivery/express_delivery.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
@@ -56,6 +57,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _placing = false;
   bool _confirmingPayment = false;
   bool _prefilled = false;
+  bool _expressSelected = true;
 
   @override
   void dispose() {
@@ -121,6 +123,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (_placing) return;
     final address = _validate();
     if (address == null) return;
+    // Re-check express eligibility server-side inputs: the listing's city
+    // against the buyer's typed delivery city. The callable validates again
+    // before honoring 'express' — the client can never force it.
+    final listing = await ref
+        .read(firestoreServiceProvider)
+        .watchListing(bid.listingId)
+        .first;
+    final expressConfig = ref.read(expressConfigProvider).valueOrNull ??
+        ExpressDeliveryConfig.defaults;
+    final express = listing != null &&
+        _expressSelected &&
+        expressConfig.isOrderEligible(
+          listingCity: listing.city,
+          buyerCity: address['city']!,
+        );
     setState(() {
       _placing = true;
       _error = null;
@@ -131,6 +148,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 bidId: bid.id,
                 customerPhone: address['phone']!,
                 deliveryAddress: address,
+                deliveryType: express ? 'express' : 'standard',
               );
       if (!mounted) return;
       final sessionId = result['paymentSessionId'] as String?;
@@ -392,6 +410,19 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 LengthLimitingTextInputFormatter(6),
               ],
             ),
+            const SizedBox(height: 24),
+            // Rebuilds as the buyer types their city, so the express
+            // option unlocks live.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _city,
+              builder: (context, value, _) => _buildDeliveryOptions(
+                context,
+                listing: listing,
+                buyerCity: value.text,
+                config: ref.watch(expressConfigProvider).valueOrNull ??
+                    ExpressDeliveryConfig.defaults,
+              ),
+            ),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -428,6 +459,67 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 }
+
+  /// Delivery-speed selector. Express is offered only when the listing's
+  /// city is express-eligible AND the buyer's typed city matches it —
+  /// anything else would be a promise we can't keep.
+  Widget _buildDeliveryOptions(
+    BuildContext context, {
+    required Listing? listing,
+    required String buyerCity,
+    required ExpressDeliveryConfig config,
+  }) {
+    if (listing == null) return const SizedBox.shrink();
+    final textTheme = Theme.of(context).textTheme;
+    final listingEligible = config.isCityEligible(listing.city);
+    final orderEligible = listingEligible &&
+        config.isOrderEligible(
+          listingCity: listing.city,
+          buyerCity: buyerCity,
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Delivery speed', style: textTheme.titleMedium),
+        const SizedBox(height: 12),
+        if (listingEligible) ...[
+          _DeliveryOptionTile(
+            selected: orderEligible && _expressSelected,
+            enabled: orderEligible,
+            icon: PhosphorIconsRegular.truck,
+            title: 'Express delivery',
+            subtitle: orderEligible
+                ? 'Arrives ${config.deliveryDayLabel(DateTime.now())}'
+                : buyerCity.trim().isEmpty
+                    ? 'Enter your city above to check eligibility'
+                    : 'Only available for deliveries within ${listing.city}',
+            onTap: orderEligible
+                ? () => setState(() => _expressSelected = true)
+                : null,
+          ),
+          const SizedBox(height: 8),
+        ],
+        _DeliveryOptionTile(
+          selected: !orderEligible || !_expressSelected,
+          enabled: true,
+          icon: PhosphorIconsRegular.package,
+          title: 'Standard delivery',
+          subtitle: 'The seller ships the item in 2-4 days',
+          onTap: () => setState(() => _expressSelected = false),
+        ),
+        if (!listingEligible)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Trega Express is coming to more cities soon.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
 /// "Payment successful" celebration shown after Cashfree verifies payment.
 ///
@@ -479,6 +571,108 @@ class _PaymentCelebrationState extends State<_PaymentCelebration> {
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One selectable delivery-speed row on the checkout screen.
+class _DeliveryOptionTile extends StatelessWidget {
+  final bool selected;
+  final bool enabled;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  const _DeliveryOptionTile({
+    required this.selected,
+    required this.enabled,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Opacity(
+      opacity: enabled ? 1 : 0.55,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.divider,
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (selected
+                          ? AppColors.primary
+                          : AppColors.textSecondary)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: selected
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                const Icon(
+                  PhosphorIconsRegular.checkCircle,
+                  color: AppColors.primary,
+                )
+              else
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.textSecondary,
+                      width: 1.6,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../delivery/express_delivery.dart';
 import '../firebase/firebase_providers.dart';
 import '../models/listing.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import 'condition_badge.dart';
+import 'express_widgets.dart';
 import 'motion.dart';
 
 /// Card used in home feed, search results, category and wishlist grids.
@@ -38,6 +40,9 @@ class ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final product = listing.product;
+    final expressConfig = ref.watch(expressConfigProvider).valueOrNull ??
+        ExpressDeliveryConfig.defaults;
+    final expressEligible = expressConfig.isCityEligible(listing.city);
     // Tactile press: the whole card dips slightly on touch-down, like an
     // iOS collection cell. Tap handling stays on the inner InkWell.
     return PressScale(
@@ -94,6 +99,12 @@ class ProductCard extends ConsumerWidget {
                       onTap: onLikeToggle ?? () => _toggleLike(ref),
                     ),
                   ),
+                  if (expressEligible)
+                    const Positioned(
+                      bottom: 8,
+                      left: 8,
+                      child: ExpressBadge(),
+                    ),
                 ],
               ),
             ),
