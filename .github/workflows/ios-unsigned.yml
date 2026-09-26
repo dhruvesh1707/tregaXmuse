@@ -77,7 +77,17 @@ jobs:
         # (codesign defaults to true), so --no-codesign must be passed too.
         run: |
           cd trega_app
-          flutter build ios --release --config-only --no-codesign
+          # Observability keys come from repo secrets (Settings -> Secrets and
+          # variables -> Actions). Unset/empty secrets expand to empty
+          # --dart-define values, which the app treats as "disabled".
+          # The defines land in ios/Flutter/Generated.xcconfig (DART_DEFINES)
+          # and are baked in by the xcodebuild step below.
+          flutter build ios --release --config-only --no-codesign \
+            --dart-define=SENTRY_DSN="${{ secrets.SENTRY_DSN }}" \
+            --dart-define=DD_CLIENT_TOKEN="${{ secrets.DD_CLIENT_TOKEN }}" \
+            --dart-define=DD_APPLICATION_ID="${{ secrets.DD_APPLICATION_ID }}" \
+            --dart-define=DD_SITE="${{ secrets.DD_SITE }}" \
+            --dart-define=DD_ENV=production
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
