@@ -458,8 +458,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       decoration: InputDecoration(labelText: label),
     );
   }
-}
-
   /// Delivery-speed selector. Express is offered only when the listing's
   /// city is express-eligible AND the buyer's typed city matches it —
   /// anything else would be a promise we can't keep.
@@ -520,6 +518,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       ],
     );
   }
+}
+
 
 /// "Payment successful" celebration shown after Cashfree verifies payment.
 ///
