@@ -1,8 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'core/observability/observability_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/onboarding_screen.dart';
 import 'features/auth/screens/phone_auth_screen.dart';
@@ -48,10 +46,6 @@ class TregaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTregaTheme(),
       navigatorKey: tregaNavigatorKey,
-      navigatorObservers: [
-        // No-op when no SENTRY_DSN was passed at build time.
-        if (ObservabilityConfig.sentryEnabled) SentryNavigatorObserver(),
-      ],
       initialRoute: SplashScreen.routeName,
       onGenerateRoute: _onGenerateRoute,
     );
