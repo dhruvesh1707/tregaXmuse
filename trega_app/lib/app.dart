@@ -151,9 +151,9 @@ class TregaApp extends StatelessWidget {
 /// swipe gesture is a no-op; the system back button still pops.
 class _TregaPageRoute<T> extends CupertinoPageRoute<T> {
   _TregaPageRoute({
-    required WidgetBuilder builder,
-    required RouteSettings settings,
-  }) : super(builder: builder, settings: settings);
+    required super.builder,
+    required super.settings,
+  });
 
   @override
   Duration get transitionDuration => const Duration(milliseconds: 300);
