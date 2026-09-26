@@ -172,11 +172,12 @@ service cloud.firestore {
     }
 
     // ── reviews/{reviewId} ───────────────────────────────────────
+    // Written server-side only (no client writer exists in the app or
+    // admin panel — the reviewListing callable moderates listings, it does
+    // not write here). Clients must not be able to forge seller reviews.
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if signedIn()
-        && request.resource.data.reviewerId == request.auth.uid;
-      allow update, delete: if false;
+      allow write: if false;
     }
   }
 }
