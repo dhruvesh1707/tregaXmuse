@@ -210,9 +210,11 @@ function cashfreeHeaders(): Record<string, string> {
 }
 
 /**
- * Creates a Cashfree order for a live listing (or an accepted bid).
- * The amount is ALWAYS read from Firestore — the client-supplied value,
- * if any, is ignored.
+ * Creates a Cashfree order for an accepted bid — the ONLY way to buy on
+ * Trega. There is no direct purchase: the buyer makes an offer, the seller
+ * accepts, and only the winning buyer can check out (at the accepted
+ * price). The amount is ALWAYS read from Firestore — the client-supplied
+ * value, if any, is ignored.
  */
 /** Delivery address collected at checkout (buyer-side). */
 export type DeliveryAddress = Record<string, string>;
@@ -258,7 +260,6 @@ function sanitizeDeliveryAddress(addr: unknown): DeliveryAddress {
 export async function createCashfreeOrderHandler(
   uid: string,
   input: {
-    listingId?: string;
     bidId?: string;
     customerPhone?: string;
     deliveryAddress?: Record<string, string>;
@@ -273,54 +274,31 @@ export async function createCashfreeOrderHandler(
   fees: FeeBreakdown;
 }> {
   const db = admin.firestore();
-  const { listingId, bidId } = input;
+  const { bidId } = input;
   const customerPhoneRaw = input.customerPhone;
   const customerPhone =
     typeof customerPhoneRaw === "string" && customerPhoneRaw.trim() !== ""
       ? assertPhone(customerPhoneRaw, "mobile number")
       : undefined;
-  if ((listingId ? 1 : 0) + (bidId ? 1 : 0) !== 1) {
-    throw new HttpsError(
-      "invalid-argument",
-      "Provide exactly one of listingId or bidId."
-    );
+  // Bid-only checkout: no direct purchase exists. The bid must belong
+  // to the caller and be accepted by the seller.
+  if (typeof bidId !== "string" || bidId === "") {
+    throw new HttpsError("invalid-argument", "bidId is required.");
   }
-  if (bidId) assertDocId(bidId, "bidId");
-  else assertDocId(listingId, "listingId");
+  assertDocId(bidId, "bidId");
 
-  let listingRef: admin.firestore.DocumentReference;
-  let amount: number;
-  let sellerId: string;
-
-  if (bidId) {
-    const bidSnap = await db.collection("bids").doc(bidId).get();
-    const bid = bidSnap.data();
-    if (!bidSnap.exists || !bid) throw new HttpsError("not-found", "Bid not found.");
-    if (bid.buyerId !== uid) {
-      throw new HttpsError("permission-denied", "This bid is not yours.");
-    }
-    if (bid.status !== "accepted") {
-      throw new HttpsError("failed-precondition", "Bid is not accepted yet.");
-    }
-    listingRef = db.collection("listings").doc(bid.listingId as string);
-    amount = bid.amount as number;
-    sellerId = bid.sellerId as string;
-  } else {
-    listingRef = db.collection("listings").doc(listingId as string);
-    const listingSnap = await listingRef.get();
-    const listing = listingSnap.data();
-    if (!listingSnap.exists || !listing) {
-      throw new HttpsError("not-found", "Listing not found.");
-    }
-    if (listing.status !== "live") {
-      throw new HttpsError("failed-precondition", "Listing is not available.");
-    }
-    if (listing.sellerId === uid) {
-      throw new HttpsError("failed-precondition", "You cannot buy your own listing.");
-    }
-    amount = listing.price as number;
-    sellerId = listing.sellerId as string;
+  const bidSnap = await db.collection("bids").doc(bidId).get();
+  const bid = bidSnap.data();
+  if (!bidSnap.exists || !bid) throw new HttpsError("not-found", "Bid not found.");
+  if (bid.buyerId !== uid) {
+    throw new HttpsError("permission-denied", "This bid is not yours.");
   }
+  if (bid.status !== "accepted") {
+    throw new HttpsError("failed-precondition", "Bid is not accepted yet.");
+  }
+  const listingRef = db.collection("listings").doc(bid.listingId as string);
+  const amount = bid.amount as number;
+  const sellerId = bid.sellerId as string;
 
   if (typeof amount !== "number" || amount <= 0) {
     throw new HttpsError("failed-precondition", "Invalid order amount.");

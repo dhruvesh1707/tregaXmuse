@@ -87,7 +87,6 @@ export const createCashfreeOrder = onCall({ secrets }, async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("payments", { uid, ip: ipOf(request) });
   return createCashfreeOrderHandler(uid, {
-    listingId: request.data?.listingId,
     bidId: request.data?.bidId,
     customerPhone: request.data?.customerPhone,
     deliveryAddress: request.data?.deliveryAddress,
@@ -276,3 +275,4 @@ export const validateUpload = onObjectFinalized(
     await checkUploadedImage(event.data.name, event.data.bucket);
   },
 );
+

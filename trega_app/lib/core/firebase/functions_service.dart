@@ -24,7 +24,7 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// Callable names (exact, must match `trega_functions/src/index.ts`):
 /// - `requestAadhaarOtp` ({aadhaarNumber}) -> {success, refId, message}
 /// - `verifyAadhaarOtp`  ({refId, otp}) -> {success, verified, name?, dob?, ...}
-/// - `createCashfreeOrder` ({listingId?, bidId?, customerPhone, deliveryAddress?, deliveryType?})
+/// - `createCashfreeOrder` ({bidId, customerPhone, deliveryAddress?, deliveryType?}) — bid-only: the buyer can check out only after the seller accepts their offer
 ///   -> {success, paymentSessionId, cfOrderId, orderId}
 /// - `placeBid` ({listingId, amount}) -> {success, bidId}
 /// - `acceptBid` ({bidId}) -> {success}
@@ -70,16 +70,14 @@ class FunctionsService {
   /// and creates the `orders/{orderId}` doc with `paymentStatus: 'PENDING'`.
   /// Returns `paymentSessionId` for the Cashfree SDK + the new `orderId`.
   Future<Map<String, dynamic>> createCashfreeOrder({
-    String? listingId,
-    String? bidId,
+    required String bidId,
     required String customerPhone,
     Map<String, String>? deliveryAddress,
     String deliveryType = 'standard',
   }) async {
     final result =
         await _functions.httpsCallable('createCashfreeOrder').call({
-      if (listingId != null) 'listingId': listingId,
-      if (bidId != null) 'bidId': bidId,
+      'bidId': bidId,
       'customerPhone': customerPhone,
       if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
       'deliveryType': deliveryType,
@@ -143,3 +141,4 @@ class FunctionsService {
     await _functions.httpsCallable('deleteAccount').call();
   }
 }
+
