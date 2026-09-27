@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
@@ -17,6 +18,7 @@ import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
+import '../../../core/widgets/blocking_progress.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/express_widgets.dart';
 import '../../../core/widgets/motion.dart';
@@ -114,11 +116,17 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       builder: (_) => _OfferSheet(price: listing.price),
     );
     if (amount == null || amount <= 0) return;
+    if (!context.mounted) return;
+    // Instant feedback: the sheet is gone and the server round-trip can
+    // take seconds on a cold start — show progress NOW, not after.
+    final dismissProgress =
+        showBlockingProgress(context, 'Sending your offer…');
     try {
       await ref.read(functionsServiceProvider).placeBid(
             listingId: listing.id,
             amount: amount,
           );
+      dismissProgress();
       if (!context.mounted) return;
       await showTregaToast(
         context,
@@ -127,6 +135,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
         kind: TregaToastKind.success,
       );
     } catch (e) {
+      dismissProgress();
       if (!context.mounted) return;
       await showTregaToast(
         context,
@@ -168,12 +177,15 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       builder: (_) => const _ReportSheet(),
     );
     if (reason == null || !mounted) return;
+    final dismissProgress =
+        showBlockingProgress(context, 'Submitting your report…');
     try {
       await ref.read(firestoreServiceProvider).reportListing(
             listingId: listing.id,
             reporterId: uid,
             reason: reason,
           );
+      dismissProgress();
       if (!context.mounted) return;
       await showTregaToast(
         context,
@@ -182,6 +194,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
         kind: TregaToastKind.success,
       );
     } catch (_) {
+      dismissProgress();
       if (!context.mounted) return;
       await showTregaToast(
         context,
@@ -329,9 +342,11 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                 unlikedColor: Colors.white,
                 onTap: () => _toggleLike(listing),
               ),
-              IconButton(
-                icon: const Icon(PhosphorIconsRegular.shareNetwork),
-                onPressed: () => _shareListing(listing),
+              Builder(
+                builder: (shareBtnContext) => IconButton(
+                  icon: const Icon(PhosphorIconsRegular.shareNetwork),
+                  onPressed: () => _shareListing(shareBtnContext, listing),
+                ),
               ),
               IconButton(
                 icon: const Icon(PhosphorIconsRegular.flag),
@@ -559,7 +574,8 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
   /// Shares the listing marketplace-style: title, price, condition and a
   /// link that opens the listing — in the app when Trega is installed
   /// (trega:// deep link), otherwise a web preview page.
-  Future<void> _shareListing(Listing listing) async {
+  Future<void> _shareListing(
+      BuildContext shareBtnContext, Listing listing) async {
     final expressConfig = ref.read(expressConfigProvider).valueOrNull ??
         ExpressDeliveryConfig.defaults;
     final express = expressConfig.isCityEligible(listing.city);
@@ -574,14 +590,24 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
           '${express ? ' · Trega Express (next-day delivery)' : ''}')
       ..write('View it here: $link');
     try {
-      // NOTE: never pass `subject` here — share_plus 10.1.4's iOS code
-      // does setValue:forKey:@"subject" on UIActivityViewController,
-      // which throws and kills the share sheet. The title is already
-      // the first line of the shared text, so nothing is lost.
-      await Share.share(text.toString());
+      // share_plus 10.x on iOS throws PlatformException
+      // ("sharePositionOrigin: argument must be set") unless the sheet is
+      // anchored to a non-zero rect inside the source view — anchor it to
+      // the share button itself.
+      // NOTE: never pass `subject` either — share_plus 10.1.4's iOS code
+      // does setValue:forKey:@"subject" on UIActivityViewController, which
+      // throws and kills the share sheet. The title is already the first
+      // line of the shared text, so nothing is lost.
+      final box = shareBtnContext.findRenderObject() as RenderBox?;
+      await Share.share(
+        text.toString(),
+        sharePositionOrigin:
+            box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      );
     } catch (e) {
-      // Surface the real error — the share sheet is failing on-device and
-      // the cause is still unknown; the message tells us what iOS said.
+      // Last-resort fallback — the sheet still failed: surface what iOS
+      // said, and copy the link so the user can paste it into any chat
+      // instead of hitting a dead end.
       debugPrint('Share failed: $e');
       if (!mounted) return;
       await showTregaToast(

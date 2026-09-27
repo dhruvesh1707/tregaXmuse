@@ -344,7 +344,7 @@ class _OffersReceivedTab extends ConsumerWidget {
   }
 }
 
-class _ListingOffersGroup extends ConsumerWidget {
+class _ListingOffersGroup extends ConsumerStatefulWidget {
   final String listingId;
   final List<Bid> bids;
 
@@ -352,6 +352,25 @@ class _ListingOffersGroup extends ConsumerWidget {
     required this.listingId,
     required this.bids,
   });
+
+  @override
+  ConsumerState<_ListingOffersGroup> createState() =>
+      _ListingOffersGroupState();
+}
+
+class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
+  /// Bid ids with a server call in flight. Their buttons flip to a spinner
+  /// and swallow taps — the tap visibly registers the instant it lands,
+  /// even when the function cold-starts and takes seconds.
+  final Set<String> _busyIds = {};
+
+  /// Bids the seller just accepted on this device. The bids stream takes a
+  /// few seconds to reflect the new status; this set bridges the gap so the
+  /// offer jumps to "Accepted" immediately instead of looking stuck.
+  /// Rolled back if the call fails.
+  final Set<String> _acceptedOptimistic = {};
+
+  String get listingId => widget.listingId;
 
   Future<void> _accept(
       BuildContext context, WidgetRef ref, Bid bid,) async {
@@ -377,8 +396,19 @@ class _ListingOffersGroup extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    if (_busyIds.contains(bid.id)) return;
+    // Instant feedback + optimistic accept: the buttons flip to a spinner
+    // and the offer moves to "Accepted" NOW; the stream converges in a few
+    // seconds. Both are rolled back below if the call fails.
+    setState(() {
+      _busyIds.add(bid.id);
+      _acceptedOptimistic.add(bid.id);
+    });
     try {
       await ref.read(functionsServiceProvider).acceptBid(bidId: bid.id);
+      if (!mounted) return;
+      setState(() => _busyIds.remove(bid.id));
+      // Keep _acceptedOptimistic until the stream reports status=accepted.
       if (context.mounted) {
         await showTregaToast(
           context,
@@ -388,6 +418,11 @@ class _ListingOffersGroup extends ConsumerWidget {
         );
       }
     } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busyIds.remove(bid.id);
+        _acceptedOptimistic.remove(bid.id);
+      });
       if (context.mounted) {
         await showTregaToast(
           context,
@@ -422,8 +457,12 @@ class _ListingOffersGroup extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    if (_busyIds.contains(bid.id)) return;
+    setState(() => _busyIds.add(bid.id));
     try {
       await ref.read(functionsServiceProvider).rejectBid(bidId: bid.id);
+      if (!mounted) return;
+      setState(() => _busyIds.remove(bid.id));
       if (context.mounted) {
         await showTregaToast(
           context,
@@ -433,6 +472,8 @@ class _ListingOffersGroup extends ConsumerWidget {
         );
       }
     } catch (e) {
+      if (!mounted) return;
+      setState(() => _busyIds.remove(bid.id));
       if (context.mounted) {
         await showTregaToast(
           context,
@@ -467,10 +508,18 @@ class _ListingOffersGroup extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    if (_busyIds.contains(bid.id)) return;
+    setState(() {
+      _busyIds.add(bid.id);
+      // The optimistic "Accepted" banner drops back to an open offer.
+      _acceptedOptimistic.remove(bid.id);
+    });
     try {
       await ref
           .read(functionsServiceProvider)
           .cancelAcceptance(bidId: bid.id);
+      if (!mounted) return;
+      setState(() => _busyIds.remove(bid.id));
       if (context.mounted) {
         await showTregaToast(
           context,
@@ -480,6 +529,8 @@ class _ListingOffersGroup extends ConsumerWidget {
         );
       }
     } catch (e) {
+      if (!mounted) return;
+      setState(() => _busyIds.remove(bid.id));
       if (context.mounted) {
         await showTregaToast(
           context,
@@ -493,14 +544,22 @@ class _ListingOffersGroup extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final title = bids.first.listingTitle ?? 'Listing';
-    final open = bids.where((b) => b.status == BidStatus.open).toList();
-    final accepted =
-        bids.where((b) => b.status == BidStatus.accepted).toList();
+    final title = widget.bids.first.listingTitle ?? 'Listing';
+    // Optimistic accept: a bid the seller just accepted renders as
+    // accepted immediately; the stream converges a few seconds later.
+    final open = widget.bids
+        .where((b) =>
+            b.status == BidStatus.open && !_acceptedOptimistic.contains(b.id))
+        .toList();
+    final accepted = widget.bids
+        .where((b) =>
+            b.status == BidStatus.accepted ||
+            _acceptedOptimistic.contains(b.id))
+        .toList();
     final past =
-        bids.where((b) => b.status == BidStatus.rejected).toList();
+        widget.bids.where((b) => b.status == BidStatus.rejected).toList();
 
     return Card(
       child: Padding(
@@ -550,7 +609,9 @@ class _ListingOffersGroup extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        _statusChip(bid.status),
+                        _statusChip(_acceptedOptimistic.contains(bid.id)
+                            ? BidStatus.accepted
+                            : bid.status),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -561,11 +622,25 @@ class _ListingOffersGroup extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () =>
-                          _cancelAcceptance(context, ref, bid),
-                      child: const Text('Cancel acceptance'),
-                    ),
+                    if (_busyIds.contains(bid.id))
+                      const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Confirming…'),
+                        ],
+                      )
+                    else
+                      TextButton(
+                        onPressed: () =>
+                            _cancelAcceptance(context, ref, bid),
+                        child: const Text('Cancel acceptance'),
+                      ),
                   ],
                 ),
               ),
@@ -576,6 +651,7 @@ class _ListingOffersGroup extends ConsumerWidget {
             for (var i = 0; i < open.length; i++) ...[
               _OfferRow(
                 bid: open[i],
+                busy: _busyIds.contains(open[i].id),
                 onAccept: () => _accept(context, ref, open[i]),
                 onReject: () => _reject(context, ref, open[i]),
               ),
@@ -629,11 +705,13 @@ class _ListingOffersGroup extends ConsumerWidget {
 
 class _OfferRow extends StatelessWidget {
   final Bid bid;
+  final bool busy;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
   const _OfferRow({
     required this.bid,
+    required this.busy,
     required this.onAccept,
     required this.onReject,
   });
@@ -705,7 +783,7 @@ class _OfferRow extends StatelessWidget {
               Expanded(
                 child: PressScale(
                   child: OutlinedButton(
-                    onPressed: onReject,
+                    onPressed: busy ? null : onReject,
                     child: const Text('Reject'),
                   ),
                 ),
@@ -714,8 +792,14 @@ class _OfferRow extends StatelessWidget {
               Expanded(
                 child: PressScale(
                   child: ElevatedButton(
-                    onPressed: onAccept,
-                    child: const Text('Accept'),
+                    onPressed: busy ? null : onAccept,
+                    child: busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Accept'),
                   ),
                 ),
               ),

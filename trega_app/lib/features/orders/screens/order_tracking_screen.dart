@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -81,10 +82,12 @@ class _TrackingContent extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Track order'),
         actions: [
-          IconButton(
-            icon: const Icon(PhosphorIconsRegular.shareNetwork),
-            tooltip: 'Share order',
-            onPressed: () => _shareOrder(context, ref, order),
+          Builder(
+            builder: (shareBtnContext) => IconButton(
+              icon: const Icon(PhosphorIconsRegular.shareNetwork),
+              tooltip: 'Share order',
+              onPressed: () => _shareOrder(shareBtnContext, ref, order),
+            ),
           ),
         ],
       ),
@@ -254,7 +257,7 @@ class _TrackingContent extends ConsumerWidget {
   /// sent to anyone (WhatsApp, SMS, …). Deep links resolve in-app later;
   /// text share works everywhere today.
   Future<void> _shareOrder(
-      BuildContext context, WidgetRef ref, Order order) async {
+      BuildContext shareBtnContext, WidgetRef ref, Order order) async {
     final title = ref
             .read(listingDetailProvider(order.listing.id))
             .valueOrNull
@@ -268,15 +271,22 @@ class _TrackingContent extends ConsumerWidget {
         '(order #$shortId, ${order.status.label}). '
         'Track it: https://trega.in/orders/${order.id}';
     try {
-      // NOTE: never pass `subject` — share_plus 10.1.4's iOS code does
-      // setValue:forKey:@"subject" on UIActivityViewController, which
-      // throws and kills the share sheet.
-      await Share.share(text);
+      // share_plus 10.x on iOS throws PlatformException
+      // ("sharePositionOrigin: argument must be set") unless the sheet is
+      // anchored to a non-zero rect inside the source view — anchor it to
+      // the share button itself. `subject` stays unset for the same reason
+      // as the listing share (setValue:forKey:@"subject" throws).
+      final box = shareBtnContext.findRenderObject() as RenderBox?;
+      await Share.share(
+        text,
+        sharePositionOrigin:
+            box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      );
     } catch (e) {
       debugPrint('Share order failed: $e');
-      if (!context.mounted) return;
+      if (!shareBtnContext.mounted) return;
       await showTregaToast(
-        context,
+        shareBtnContext,
         'Share failed: $e',
         title: 'Share sheet unavailable',
         kind: TregaToastKind.error,
