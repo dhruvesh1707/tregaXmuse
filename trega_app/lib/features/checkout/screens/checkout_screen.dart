@@ -265,6 +265,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           // Nested scaffold so the Pay bar stays pinned while the form
           // scrolls; it re-streams the bid, so a seller cancellation
           // disables Pay immediately.
+          // Up-front guard mirroring the server: with the flat delivery fee
+          // split 50-50, an item priced below the seller's delivery share
+          // can never be placed — disable Pay instead of letting the tap
+          // fail server-side with a cryptic error.
+          final quote = feeCfg.quote(bid.amount);
+          final placeable = quote.sellerPayout > 0;
           return Scaffold(
             body: _buildForm(context, bid),
             bottomSheet: Container(
@@ -281,9 +287,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ? 'Confirming payment...'
                       : _placing
                           ? 'Processing...'
-                          : 'Pay ${formatINR(feeCfg.quote(bid.amount).buyerTotal)}',
-                  onPressed:
-                      (_placing || _confirmingPayment) ? null : () => _pay(bid),
+                          : placeable
+                              ? 'Pay ${formatINR(quote.buyerTotal)}'
+                              : 'Not available',
+                  onPressed: (_placing || _confirmingPayment || !placeable)
+                      ? null
+                      : () => _pay(bid),
                 ),
               ),
             ),
@@ -542,6 +551,20 @@ _buildPriceBreakdown(context, bid),
     ];
 
     final children = <Widget>[
+      if (q.sellerPayout <= 0) ...[
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            "This order can't be placed — at ${formatINR(q.price)} the seller's ${formatINRPaise(q.deliverySellerShare)} delivery share is more than the sale price, so the seller would lose money on it.",
+            style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
       Text('Price breakdown', style: textTheme.titleMedium),
       const SizedBox(height: 12),
       Container(

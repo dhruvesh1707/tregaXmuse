@@ -329,9 +329,14 @@ export async function createCashfreeOrderHandler(
   // numbers, if any, are ignored.
   const fees = quoteFees(amount, await readFeeConfig(db));
   if (!(fees.buyerTotal > 0) || !(fees.sellerPayout > 0)) {
+    // Honest, specific message: with the flat delivery fee split 50-50,
+    // an item this cheap cannot cover the seller's delivery share — the
+    // seller would lose money on the order. The fee model is working as
+    // designed; the listing price is simply below the economic floor.
+    // The app surfaces this string verbatim via functionsErrorMessage.
     throw new HttpsError(
       "failed-precondition",
-      "This order can't be priced right now. Please try again later."
+      `This order can't be placed: at ₹${amount} the seller's ₹${fees.deliverySellerShare} delivery share is more than the sale price.`
     );
   }
 

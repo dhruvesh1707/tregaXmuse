@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -563,6 +564,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
         ExpressDeliveryConfig.defaults;
     final express = expressConfig.isCityEligible(listing.city);
     final city = listing.city.trim();
+    final link = 'https://tregaxmuse.web.app/l/${listing.id}';
     final text = StringBuffer()
       ..writeln(
         '${listing.product.title} — ${formatINR(listing.price)} on Trega',
@@ -570,7 +572,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       ..writeln('Condition: ${listing.product.condition.label}'
           '${city.isNotEmpty ? ' · $city' : ''}'
           '${express ? ' · Trega Express (next-day delivery)' : ''}')
-      ..write('View it here: https://tregaxmuse.web.app/l/${listing.id}');
+      ..write('View it here: $link');
     try {
       // NOTE: never pass `subject` here — share_plus 10.1.4's iOS code
       // does setValue:forKey:@"subject" on UIActivityViewController,
@@ -579,12 +581,16 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       await Share.share(text.toString());
     } catch (e) {
       debugPrint('Share failed: $e');
+      // Fallback: the listing link is still useful on its own — copy it
+      // so the user can paste it into any chat instead of hitting a dead
+      // end.
+      await Clipboard.setData(ClipboardData(text: link));
       if (!mounted) return;
       await showTregaToast(
         context,
-        'Could not open the share sheet. Please try again.',
-        title: 'Share failed',
-        kind: TregaToastKind.error,
+        'Link copied to clipboard — paste it anywhere to share this listing.',
+        title: 'Share sheet unavailable',
+        kind: TregaToastKind.info,
       );
     }
   }

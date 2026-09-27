@@ -61,13 +61,30 @@ class FeeConfig {
     // Any odd paise of the 50-50 split goes to the buyer.
     final deliveryBuyerShare = (deliveryFlat * 50).ceilToDouble() / 100;
     final total = price + buyerFee + buyerFeeGst + deliveryBuyerShare;
+    // Seller-side mirror of the server's quoteFees — lets checkout detect
+    // up front when an order can never be placed: with the flat delivery
+    // fee split 50-50, a price below the seller's delivery share (+TDS)
+    // would leave the seller with a negative payout.
+    final sellerCommission = (price * sellerPct / 100).roundToDouble();
+    final sellerCommissionGst =
+        (sellerCommission * gstPct / 100).roundToDouble();
+    final deliverySellerShare =
+        ((deliveryFlat - deliveryBuyerShare) * 100).roundToDouble() / 100;
+    final tds = (price / 100).roundToDouble();
+    final sellerPayout = price -
+        sellerCommission -
+        sellerCommissionGst -
+        deliverySellerShare -
+        tds;
     return FeeQuote(
       price: price,
       buyerFee: buyerFee,
       buyerFeeGst: buyerFeeGst,
       deliveryFlat: deliveryFlat,
       deliveryBuyerShare: deliveryBuyerShare,
+      deliverySellerShare: deliverySellerShare,
       buyerTotal: (total * 100).roundToDouble() / 100,
+      sellerPayout: sellerPayout,
     );
   }
 }
@@ -79,6 +96,16 @@ class FeeQuote {
   final double buyerFeeGst;
   final double deliveryFlat;
   final double deliveryBuyerShare;
+
+  /// The seller's half of the fixed delivery fee.
+  final double deliverySellerShare;
+
+  /// What the seller would receive after commission, GST, delivery share
+  /// and TDS. When this is <= 0 the order can never be placed — the item
+  /// price doesn't cover the delivery split.
+  final double sellerPayout;
+
+  /// What the buyer pays — the Cashfree order_amount.
   final double buyerTotal;
 
   const FeeQuote({
@@ -87,7 +114,9 @@ class FeeQuote {
     required this.buyerFeeGst,
     required this.deliveryFlat,
     required this.deliveryBuyerShare,
+    required this.deliverySellerShare,
     required this.buyerTotal,
+    required this.sellerPayout,
   });
 }
 
