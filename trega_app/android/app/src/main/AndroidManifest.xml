@@ -36,6 +36,18 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="trega" android:host="listing"/>
             </intent-filter>
+            <!-- App Links: shared listing URLs
+                 (https://tregaxmuse.web.app/l/<id>) open straight in the
+                 app instead of the browser. autoVerify checks
+                 /.well-known/assetlinks.json at install time. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"
+                      android:host="tregaxmuse.web.app"
+                      android:pathPrefix="/l/"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

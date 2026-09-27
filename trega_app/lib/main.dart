@@ -43,14 +43,25 @@ void _routePushMessage(RemoteMessage message) {
       ?.pushNamed(target.routeName, arguments: target.arguments);
 }
 
-/// Deep links from shared listings: trega://listing/<id>.
+/// Deep links from shared listings:
+///   - trega://listing/<id> (custom scheme), and
+///   - https://tregaxmuse.web.app/l/<id> (Android App Links — the manifest
+///     declares autoVerify for this host/path, and assetlinks.json proves
+///     ownership).
 /// Cold start: stashed for the splash screen (navigator isn't up yet) —
 /// same mechanism as a tapped push on a terminated app.
 /// Warm (app already running): routed immediately like a tapped push.
 void _handleDeepLink(Uri uri, {required bool cold}) {
-  if (uri.scheme != 'trega' || uri.host != 'listing') return;
-  final id = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
-  if (id.isEmpty) return;
+  String? id;
+  if (uri.scheme == 'trega' && uri.host == 'listing') {
+    id = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+  } else if (uri.scheme == 'https' &&
+      uri.host == 'tregaxmuse.web.app' &&
+      uri.pathSegments.length >= 2 &&
+      uri.pathSegments.first == 'l') {
+    id = uri.pathSegments[1];
+  }
+  if (id == null || id.isEmpty) return;
   const route = ListingDetailScreen.routeName;
   if (cold) {
     pendingNotificationTarget =
