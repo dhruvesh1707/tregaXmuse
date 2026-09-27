@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
 import { assertAmount, assertDocId, assertText } from "./validate";
+import { minListPrice, readFeeConfig } from "./payments";
 
 export type ListingStatus = "draft" | "pending" | "live" | "sold" | "rejected";
 export type BidStatus = "open" | "accepted" | "rejected" | "expired" | "countered";
@@ -140,20 +141,32 @@ export async function onListingCreateHandler(
   const batch = db.batch();
 
   const listingRef = db.collection("listings").doc(listingId);
-  if ((data.status as ListingStatus | undefined) === "draft") {
+  // Price floor: with the flat delivery fee split 50-50, a listing below
+  // the seller's delivery share can never be checked out (the seller would
+  // lose money). Reject it at creation instead of letting it go live —
+  // the app blocks this in the sell flow, this covers direct writes.
+  const minPrice = minListPrice(await readFeeConfig(db));
+  if (typeof data.price === "number" && data.price < minPrice) {
     batch.update(listingRef, {
-      status: "live" satisfies ListingStatus,
-      liveAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: "rejected" satisfies ListingStatus,
+      rejectionReason: `Below the minimum listing price of ₹${minPrice}.`,
+    });
+  } else {
+    if ((data.status as ListingStatus | undefined) === "draft") {
+      batch.update(listingRef, {
+        status: "live" satisfies ListingStatus,
+        liveAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+    batch.set(db.collection("adminNotifications").doc(), {
+      type: "listing_review",
+      listingId,
+      title: data.title ?? "New listing",
+      message: `New listing "${data.title ?? listingId}" is live — review and flag if suspicious.`,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
-  batch.set(db.collection("adminNotifications").doc(), {
-    type: "listing_review",
-    listingId,
-    title: data.title ?? "New listing",
-    message: `New listing "${data.title ?? listingId}" is live — review and flag if suspicious.`,
-    read: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
   await batch.commit();
 }
 

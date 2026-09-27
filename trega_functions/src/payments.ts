@@ -93,7 +93,7 @@ async function assertExpressEligible(
 // seller. Month 2+: sellerPct = 3, buyerPct = 5.
 // gstPct is GST on the platform fees (18%). TDS u/s 194O (1% of the gross
 // sale amount) always applies on the seller side.
-interface FeeConfig {
+export interface FeeConfig {
   promoActive: boolean;
   sellerPct: number;
   buyerPct: number;
@@ -113,7 +113,7 @@ const FEES_FALLBACK: FeeConfig = {
 const numOr = (v: unknown, fallback: number): number =>
   typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : fallback;
 
-async function readFeeConfig(
+export async function readFeeConfig(
   db: admin.firestore.Firestore
 ): Promise<FeeConfig> {
   const snap = await db.collection("config").doc("fees").get();
@@ -193,6 +193,17 @@ export function quoteFees(price: number, cfg: FeeConfig): FeeBreakdown {
     sellerPayout,
     buyerTotal,
   };
+}
+
+/**
+ * Smallest whole-rupee listing price with a positive seller payout.
+ * The app mirrors this in `FeeConfig.minListPrice` for the sell-flow
+ * price floor; the server enforces it in `onListingCreate`.
+ */
+export function minListPrice(cfg: FeeConfig): number {
+  let p = 1;
+  while (p < 1000000 && quoteFees(p, cfg).sellerPayout <= 0) p++;
+  return p;
 }
 
 function cashfreeHeaders(): Record<string, string> {

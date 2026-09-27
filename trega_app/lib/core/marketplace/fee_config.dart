@@ -87,6 +87,19 @@ class FeeConfig {
       sellerPayout: sellerPayout,
     );
   }
+
+  /// Smallest whole-rupee listing price at which the seller's payout stays
+  /// positive — i.e. the price covers the seller's delivery share,
+  /// commission and TDS. Computed from the live config so it stays correct
+  /// when the console flips pricing (Zero Fee Launch → standard fees).
+  /// Listings below this can never be checked out.
+  int get minListPrice {
+    var p = 1;
+    while (p < 1000000 && quote(p.toDouble()).sellerPayout <= 0) {
+      p++;
+    }
+    return p;
+  }
 }
 
 /// What the buyer sees on the checkout screen.

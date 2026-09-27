@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/marketplace/fee_config.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
 import '../../../core/models/saved_address.dart';
@@ -181,6 +182,14 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
           setState(() => _error = 'Enter a valid price to continue.');
           return false;
         }
+        final minPrice = (ref.read(feeConfigProvider).valueOrNull ??
+                FeeConfig.defaults)
+            .minListPrice;
+        if (price < minPrice) {
+          setState(() => _error =
+              'Minimum listing price is ${formatINR(minPrice)} — the shared delivery fee needs covering.',);
+          return false;
+        }
         return true;
       case 4:
         if (_addrLine1Controller.text.trim().length < 6) {
@@ -287,6 +296,14 @@ static bool _isValidUpi(String upi) =>
     final uid = ref.read(currentUidProvider);
     if (title.isEmpty || price == null || price <= 0) {
       setState(() => _error = 'Add a title and a valid price to continue.');
+      return;
+    }
+    final minPrice =
+        (ref.read(feeConfigProvider).valueOrNull ?? FeeConfig.defaults)
+            .minListPrice;
+    if (price < minPrice) {
+      setState(() => _error =
+          'Minimum listing price is ${formatINR(minPrice)} — the shared delivery fee needs covering.',);
       return;
     }
     if (_categoryId == null) {
@@ -428,6 +445,11 @@ static bool _isValidUpi(String upi) =>
         ref.watch(categoriesProvider).valueOrNull ?? const <Category>[];
     final selectedCategory = _selectedCategory(categories);
     final priceHint = _similarPriceHint(categories);
+    // Live price floor: with the flat delivery fee split 50-50, a listing
+    // below this can never be checked out (the seller would lose money).
+    final feeCfg =
+        ref.watch(feeConfigProvider).valueOrNull ?? FeeConfig.defaults;
+    final minPrice = feeCfg.minListPrice;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Sell an item')),
@@ -750,6 +772,13 @@ static bool _isValidUpi(String upi) =>
                           hintText: '35,000',
                         ),
                         onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Minimum ${formatINR(minPrice)} — the ${formatINR(feeCfg.deliveryFlat)} delivery fee is split with the buyer, so your price must cover your half.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                       ),
                       if (priceHint != null) ...[
                         const SizedBox(height: 8),
