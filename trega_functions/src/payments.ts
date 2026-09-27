@@ -372,7 +372,11 @@ export async function createCashfreeOrderHandler(
   });
 
   // 2. Create the Cashfree order.
-  const base = cashfreeBase(CASHFREE_ENV.value() || "sandbox");
+  // NOTE: when CASHFREE_ENV is unset this silently targets SANDBOX — a
+  // classic cause of "production keys don't work". The env is echoed in
+  // the client error below so a mismatch is visible without console access.
+  const cfEnv = CASHFREE_ENV.value() || "sandbox";
+  const base = cashfreeBase(cfEnv);
   const res = await fetch(`${base}/orders`, {
     method: "POST",
     headers: cashfreeHeaders(),
@@ -405,11 +409,13 @@ export async function createCashfreeOrderHandler(
     await orderRef.update({ paymentStatus: "FAILED" satisfies PaymentStatus });
     // Include the provider's HTTP status (not its body): 401 = wrong or
     // revoked key, 400 = malformed request, 403 = account not activated.
-    // The app shows this string verbatim, so a failed payment stays
-    // diagnosable without Firebase console access.
+    // The env is included too: if it says "sandbox" while you test with
+    // production keys, CASHFREE_ENV was never set. The app shows this
+    // string verbatim, so a failed payment stays diagnosable without
+    // Firebase console access.
     throw new HttpsError(
       "unavailable",
-      `Payment provider error (status ${res.status}). Please try again.`
+      `Payment provider error (status ${res.status}, env ${cfEnv}). Please try again.`
     );
   }
   const cf = (await res.json()) as CashfreeOrderResponse;
