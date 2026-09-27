@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:app_links/app_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'core/navigation/deep_link.dart';
 import 'core/notifications/notification_router.dart';
 import 'features/listing_detail/screens/listing_detail_screen.dart';
 import 'firebase_options.dart';
@@ -113,12 +113,18 @@ Future<void> main() async {
     );
   });
 
-  // Shared-listing deep links (trega://listing/<id>).
-  final appLinks = AppLinks();
-  appLinks.getInitialLink().then((uri) {
+  // Shared-listing deep links (trega://listing/<id>,
+  // https://tregaxmuse.web.app/l/<id>).
+  //
+  // The launch link is exposed for the splash screen: it awaits it (bounded)
+  // before consuming the stashed cold-start target, so a slow platform
+  // channel can't slip the link in after the splash already read the empty
+  // stash and silently drop it.
+  launchDeepLink = tregaAppLinks.getInitialLink().then((uri) {
     if (uri != null) _handleDeepLink(uri, cold: true);
-  }).catchError((_) {});
-  appLinks.uriLinkStream.listen(
+    return uri;
+  }).catchError((_) => null);
+  tregaAppLinks.uriLinkStream.listen(
     (uri) => _handleDeepLink(uri, cold: false),
     onError: (_) {},
   );

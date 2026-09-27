@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/navigation/deep_link.dart';
 import '../../../core/notifications/notification_router.dart';
 import '../../home/screens/home_screen.dart';
 import 'onboarding_screen.dart';
@@ -45,6 +46,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final results = await Future.wait([
       auth.authStateChanges().first,
       Future<void>.delayed(const Duration(seconds: 2)),
+      // A shared-listing link can resolve after routing has started — wait for
+      // the launch link (bounded) before reading the stash, or the link is
+      // silently lost and the app just lands on home.
+      launchDeepLink
+          .timeout(const Duration(seconds: 3))
+          .then<void>((_) {})
+          .catchError((_) {}),
     ]);
     if (!mounted) return;
     final user = results[0] as User?;
@@ -63,12 +71,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           : HomeScreen.routeName;
     }
 
-    Navigator.of(context).pushReplacementNamed(next);
-    // Cold start from a tapped push notification: open what it was about.
+    // Capture the cold-start target BEFORE replacing: pushReplacementNamed
+    // disposes this State synchronously, so everything after it must avoid
+    // `context` and `mounted` — the old code checked `mounted` here and
+    // silently dropped the target every single time.
     final pending = pendingNotificationTarget;
     pendingNotificationTarget = null;
-    if (pending != null && mounted) {
-      openNotificationTarget(context, pending);
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed(next);
+    if (pending != null) {
+      // The splash route is gone — its context is defunct. Route on the next
+      // frame through the root navigator key instead.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        tregaNavigatorKey.currentState
+            ?.pushNamed(pending.routeName, arguments: pending.arguments);
+      });
     }
   }
 

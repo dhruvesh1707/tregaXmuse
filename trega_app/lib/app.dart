@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'core/navigation/deep_link.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/onboarding_screen.dart';
 import 'features/auth/screens/phone_auth_screen.dart';
@@ -26,10 +27,6 @@ import 'features/sell/screens/sell_flow_screen.dart';
 import 'package:page_transition/page_transition.dart';
 
 import 'features/wishlist/screens/wishlist_screen.dart';
-
-/// Root navigator key — lets notification taps (FCM `onMessageOpenedApp` /
-/// `getInitialMessage`) route even when they fire outside a widget context.
-final tregaNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Root widget: theme + named-route table.
 ///
