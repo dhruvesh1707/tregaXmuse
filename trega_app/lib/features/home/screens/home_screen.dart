@@ -7,6 +7,7 @@ import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/floating_tab_bar.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
@@ -125,11 +126,10 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            error: (_, __) => const SliverToBoxAdapter(
-              child: EmptyState(
-                icon: PhosphorIconsRegular.cloudSlash,
+            error: (_, __) => SliverToBoxAdapter(
+              child: TregaErrorState(
                 title: 'Couldn\'t load listings',
-                subtitle: 'Check your connection and try again.',
+                onRetry: () => ref.invalidate(liveListingsProvider),
               ),
             ),
           ),

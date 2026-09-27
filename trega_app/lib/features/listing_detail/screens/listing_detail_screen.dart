@@ -16,6 +16,7 @@ import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/express_widgets.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -229,9 +230,12 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
           ? _buildContent(context, initial)
           : Scaffold(
               appBar: AppBar(),
-              body: const Center(
-                child:
-                    Text('Couldn\'t load this listing. Check your connection.'),
+              body: SafeArea(
+                child: TregaErrorState(
+                  title: 'Couldn\'t load this listing',
+                  onRetry: () =>
+                      ref.invalidate(listingDetailProvider(listingId)),
+                ),
               ),
             ),
     );

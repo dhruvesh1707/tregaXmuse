@@ -5,18 +5,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 
 /// Saved listings: Firestore `listings` where `likedBy` contains the uid.
-class WishlistScreen extends ConsumerWidget {
+class WishlistScreen extends ConsumerStatefulWidget {
   static const String routeName = '/wishlist';
 
   const WishlistScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WishlistScreen> createState() => _WishlistScreenState();
+}
+
+class _WishlistScreenState extends ConsumerState<WishlistScreen> {
+  /// Bumped on retry so the StreamBuilder resubscribes with a fresh stream.
+  int _streamNonce = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final uid = ref.watch(currentUidProvider);
     final stream =
         uid == null ? null : ref.watch(firestoreServiceProvider).watchWishlist(uid);
@@ -33,6 +42,7 @@ class WishlistScreen extends ConsumerWidget {
       );
     }
     return StreamBuilder<List<Listing>>(
+      key: ValueKey(_streamNonce),
       stream: stream,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -56,11 +66,10 @@ class WishlistScreen extends ConsumerWidget {
         if (snap.hasError) {
           return Scaffold(
             appBar: AppBar(title: const Text('Wishlist')),
-            body: const SafeArea(
-              child: EmptyState(
-                icon: PhosphorIconsRegular.cloudSlash,
+            body: SafeArea(
+              child: TregaErrorState(
                 title: 'Couldn\'t load wishlist',
-                subtitle: 'Check your connection and try again.',
+                onRetry: () => setState(() => _streamNonce++),
               ),
             ),
           );
