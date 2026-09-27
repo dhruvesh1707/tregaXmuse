@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../core/widgets/trega_toast.dart';
 import '../../home/providers/listing_providers.dart';
 
 /// Doorstep pickup + delivery tracking timeline for a single order.
@@ -83,7 +84,7 @@ class _TrackingContent extends ConsumerWidget {
           IconButton(
             icon: const Icon(PhosphorIconsRegular.shareNetwork),
             tooltip: 'Share order',
-            onPressed: () => _shareOrder(ref, order),
+            onPressed: () => _shareOrder(context, ref, order),
           ),
         ],
       ),
@@ -252,7 +253,8 @@ class _TrackingContent extends ConsumerWidget {
   /// Shares this specific order as text with a link to it, so it can be
   /// sent to anyone (WhatsApp, SMS, …). Deep links resolve in-app later;
   /// text share works everywhere today.
-  Future<void> _shareOrder(WidgetRef ref, Order order) async {
+  Future<void> _shareOrder(
+      BuildContext context, WidgetRef ref, Order order) async {
     final title = ref
             .read(listingDetailProvider(order.listing.id))
             .valueOrNull
@@ -265,6 +267,20 @@ class _TrackingContent extends ConsumerWidget {
     final text = '$title — ${formatINR(order.amount)} on Trega '
         '(order #$shortId, ${order.status.label}). '
         'Track it: https://trega.in/orders/${order.id}';
-    await Share.share(text, subject: 'Trega order #$shortId');
+    try {
+      // NOTE: never pass `subject` — share_plus 10.1.4's iOS code does
+      // setValue:forKey:@"subject" on UIActivityViewController, which
+      // throws and kills the share sheet.
+      await Share.share(text);
+    } catch (e) {
+      debugPrint('Share order failed: $e');
+      if (!context.mounted) return;
+      await showTregaToast(
+        context,
+        'Share failed: $e',
+        title: 'Share sheet unavailable',
+        kind: TregaToastKind.error,
+      );
+    }
   }
 }

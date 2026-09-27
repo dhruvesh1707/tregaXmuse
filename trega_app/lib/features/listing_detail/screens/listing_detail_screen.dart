@@ -580,18 +580,20 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       // the first line of the shared text, so nothing is lost.
       await Share.share(text.toString());
     } catch (e) {
+      // Surface the real error — the share sheet is failing on-device and
+      // the cause is still unknown; the message tells us what iOS said.
       debugPrint('Share failed: $e');
+      if (!mounted) return;
+      await showTregaToast(
+        context,
+        'Share failed: $e',
+        title: 'Share sheet unavailable',
+        kind: TregaToastKind.error,
+      );
       // Fallback: the listing link is still useful on its own — copy it
       // so the user can paste it into any chat instead of hitting a dead
       // end.
       await Clipboard.setData(ClipboardData(text: link));
-      if (!mounted) return;
-      await showTregaToast(
-        context,
-        'Link copied to clipboard — paste it anywhere to share this listing.',
-        title: 'Share sheet unavailable',
-        kind: TregaToastKind.info,
-      );
     }
   }
 }
