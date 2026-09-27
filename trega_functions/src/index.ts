@@ -265,6 +265,14 @@ export const deleteAccount = onCall(async (request) => {
 // `listingMedia/` or `avatars/` whose magic bytes aren't a real image.
 // (Storage rules enforce `image/*` content-type + 10 MB at upload time;
 // this closes the fake-content-type hole. See storageCheck.ts.)
-export const validateUpload = onObjectFinalized(async (event) => {
-  await checkUploadedImage(event.data.name, event.data.bucket);
-});
+export const validateUpload = onObjectFinalized(
+  {
+    // The Storage bucket lives in us-east1 — Eventarc requires the
+    // trigger in the same region as the bucket. (The global default
+    // stays asia-south1 for everything else.)
+    region: "us-east1",
+  },
+  async (event) => {
+    await checkUploadedImage(event.data.name, event.data.bucket);
+  },
+);
