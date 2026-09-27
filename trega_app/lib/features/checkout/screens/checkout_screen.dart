@@ -477,7 +477,7 @@ _buildPriceBreakdown(context, bid),
         v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
 
     Widget row(String label, String value,
-        {bool total = false, Color? valueColor}) {
+        {bool total = false, Color? valueColor,}) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
@@ -530,8 +530,10 @@ _buildPriceBreakdown(context, bid),
                 ),
               ],
             ),
-            Text(formatINRPaise(q.deliveryBuyerShare),
-                style: textTheme.bodyMedium),
+            Text(
+              formatINRPaise(q.deliveryBuyerShare),
+              style: textTheme.bodyMedium,
+            ),
           ],
         ),
       ),
