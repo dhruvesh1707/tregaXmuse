@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/delivery/express_delivery.dart';
+import '../../../core/marketplace/fee_config.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
@@ -226,6 +227,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(currentUidProvider);
+    // Live marketplace pricing (Zero Fee Launch → standard fees) — the
+    // server recomputes authoritatively; this is for display only.
+    final feeCfg =
+        ref.watch(feeConfigProvider).valueOrNull ?? FeeConfig.defaults;
     _prefill(uid);
 
     return Scaffold(
@@ -276,7 +281,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ? 'Confirming payment...'
                       : _placing
                           ? 'Processing...'
-                          : 'Pay ${formatINR(bid.amount)}',
+                          : 'Pay ${formatINR(feeCfg.quote(bid.amount).buyerTotal)}',
                   onPressed:
                       (_placing || _confirmingPayment) ? null : () => _pay(bid),
                 ),
@@ -360,6 +365,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             const SizedBox(height: 24),
 
             // ── Delivery address ───────────────────────────────────
+_buildPriceBreakdown(context, bid),
             Text('Delivery address', style: textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
@@ -458,6 +464,127 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       decoration: InputDecoration(labelText: label),
     );
   }
+  /// Buyer-side price breakdown: item price, protection fee (+GST),
+  /// delivery split, and the all-in total. Display only — the server
+  /// computes the authoritative numbers inside `createCashfreeOrder`.
+  Widget _buildPriceBreakdown(BuildContext context, Bid bid) {
+    final textTheme = Theme.of(context).textTheme;
+    final feeCfg =
+        ref.watch(feeConfigProvider).valueOrNull ?? FeeConfig.defaults;
+    final q = feeCfg.quote(bid.amount);
+
+    String pct(double v) =>
+        v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
+
+    Widget row(String label, String value,
+        {bool total = false, Color? valueColor}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: total
+                  ? textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)
+                  : textTheme.bodyMedium,
+            ),
+            Text(
+              value,
+              style: (total ? textTheme.titleMedium : textTheme.bodyMedium)
+                  ?.copyWith(
+                fontWeight: total ? FontWeight.bold : null,
+                color: valueColor ?? (total ? AppColors.primary : null),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final cardChildren = <Widget>[
+      row('Item price', formatINR(q.price)),
+      row(
+        feeCfg.buyerPct > 0
+            ? 'Buyer protection (${pct(feeCfg.buyerPct)}%)'
+            : 'Buyer protection',
+        q.buyerFee > 0 ? formatINR(q.buyerFee) : 'FREE',
+        valueColor: q.buyerFee > 0 ? null : AppColors.success,
+      ),
+      if (q.buyerFeeGst > 0)
+        row('GST on protection fee', formatINR(q.buyerFeeGst)),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Delivery', style: textTheme.bodyMedium),
+                Text(
+                  '${formatINR(q.deliveryFlat)} fixed, split 50-50 with seller',
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            Text(formatINRPaise(q.deliveryBuyerShare),
+                style: textTheme.bodyMedium),
+          ],
+        ),
+      ),
+      const Divider(height: 20),
+      row('Total', formatINR(q.buyerTotal), total: true),
+    ];
+
+    final children = <Widget>[
+      Text('Price breakdown', style: textTheme.titleMedium),
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: cardChildren,
+        ),
+      ),
+    ];
+    if (feeCfg.promoActive) {
+      // What the buyer would have paid in protection fee at standard
+      // pricing — the launch-month saving, shown as a nudge.
+      final stdFee = (q.price * 5 / 100).roundToDouble();
+      final stdGst = (stdFee * feeCfg.gstPct / 100).roundToDouble();
+      children.addAll([
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Zero Fee Launch — you save ${formatINR(stdFee + stdGst)} in fees.',
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ]);
+    }
+    children.add(const SizedBox(height: 24));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+  }
+
   /// Delivery-speed selector. Express is offered only when the listing's
   /// city is express-eligible AND the buyer's typed city matches it —
   /// anything else would be a promise we can't keep.
@@ -678,3 +805,4 @@ class _DeliveryOptionTile extends StatelessWidget {
     );
   }
 }
+

@@ -319,6 +319,17 @@ class FirestoreService {
         .map((doc) => doc.data());
   }
 
+  /// Console-owned `config/fees` doc (public read): marketplace pricing —
+  /// seller/buyer fee percents, fixed delivery fee, GST. Null when the doc
+  /// doesn't exist — callers fall back to [FeeConfig.defaults].
+  Stream<Map<String, dynamic>?> watchFeeConfig() {
+    return _db
+        .collection('config')
+        .doc('fees')
+        .snapshots()
+        .map((doc) => doc.data());
+  }
+
   /// Step 2 of the sell flow: attaches uploaded photo URLs to the draft.
   Future<void> updateListingMedia(
       String listingId, List<String> photoUrls,) async {
@@ -578,3 +589,4 @@ class FirestoreService {
     });
   }
 }
+

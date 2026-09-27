@@ -5,6 +5,14 @@ String formatINR(num amount) {
   return '₹${amount.toStringAsFixed(0)}';
 }
 
+/// Like [formatINR] but keeps paise — for split amounts like the ₹49.50
+/// delivery share. Trailing zero paise are trimmed (₹50, not ₹50.00).
+String formatINRPaise(num amount) {
+  final s = amount.toStringAsFixed(2);
+  final trimmed = s.endsWith('00') ? s.substring(0, s.length - 3) : s;
+  return '₹$trimmed';
+}
+
 String timeAgo(DateTime dateTime) {
   final diff = DateTime.now().difference(dateTime);
   if (diff.inDays >= 30) return '${diff.inDays ~/ 30}mo ago';
@@ -13,3 +21,4 @@ String timeAgo(DateTime dateTime) {
   if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
   return 'Just now';
 }
+

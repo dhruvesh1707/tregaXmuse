@@ -84,6 +84,117 @@ async function assertExpressEligible(
   if (listingCity !== buyer) throw fail();
 }
 
+// ── Fee engine ──────────────────────────────────────────────────────────
+// The console-owned `config/fees` doc (public read, like `config/delivery`)
+// is the single source of truth for marketplace pricing:
+//   { promoActive, sellerPct, buyerPct, deliveryFlat, gstPct }
+// Launch month ("Zero Fee Launch"): sellerPct = 0, buyerPct = 0 — the only
+// thing charged is the fixed delivery fee, split 50-50 between buyer and
+// seller. Month 2+: sellerPct = 3, buyerPct = 5.
+// gstPct is GST on the platform fees (18%). TDS u/s 194O (1% of the gross
+// sale amount) always applies on the seller side.
+interface FeeConfig {
+  promoActive: boolean;
+  sellerPct: number;
+  buyerPct: number;
+  /** Fixed delivery fee in INR — split 50-50 buyer/seller. */
+  deliveryFlat: number;
+  gstPct: number;
+}
+
+const FEES_FALLBACK: FeeConfig = {
+  promoActive: true,
+  sellerPct: 0,
+  buyerPct: 0,
+  deliveryFlat: 99,
+  gstPct: 18,
+};
+
+const numOr = (v: unknown, fallback: number): number =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : fallback;
+
+async function readFeeConfig(
+  db: admin.firestore.Firestore
+): Promise<FeeConfig> {
+  const snap = await db.collection("config").doc("fees").get();
+  const d = snap.data();
+  if (!d) return FEES_FALLBACK;
+  return {
+    promoActive: d.promoActive === true,
+    sellerPct: numOr(d.sellerPct, FEES_FALLBACK.sellerPct),
+    buyerPct: numOr(d.buyerPct, FEES_FALLBACK.buyerPct),
+    deliveryFlat: numOr(d.deliveryFlat, FEES_FALLBACK.deliveryFlat),
+    gstPct: numOr(d.gstPct, FEES_FALLBACK.gstPct),
+  };
+}
+
+export interface FeeBreakdown {
+  promoActive: boolean;
+  sellerPct: number;
+  buyerPct: number;
+  gstPct: number;
+  sellerCommission: number;
+  sellerCommissionGst: number;
+  buyerFee: number;
+  buyerFeeGst: number;
+  deliveryFlat: number;
+  deliveryBuyerShare: number;
+  deliverySellerShare: number;
+  /** 1% TDS u/s 194O on the gross sale amount. */
+  tds: number;
+  /** What the seller receives. */
+  sellerPayout: number;
+  /** What the buyer pays — the Cashfree order_amount. */
+  buyerTotal: number;
+}
+
+/**
+ * Pure fee math. The app mirrors this for display only; the server is the
+ * authority — the client can never set or alter a fee.
+ */
+export function quoteFees(price: number, cfg: FeeConfig): FeeBreakdown {
+  const sellerCommission = Math.round((price * cfg.sellerPct) / 100);
+  const sellerCommissionGst = Math.round(
+    (sellerCommission * cfg.gstPct) / 100
+  );
+  const buyerFee = Math.round((price * cfg.buyerPct) / 100);
+  const buyerFeeGst = Math.round((buyerFee * cfg.gstPct) / 100);
+  const deliveryFlat = cfg.deliveryFlat;
+  // Split the flat delivery fee 50-50; any odd paise goes to the buyer.
+  const deliveryBuyerShare = Math.ceil(deliveryFlat * 50) / 100;
+  const deliverySellerShare =
+    Math.round((deliveryFlat - deliveryBuyerShare) * 100) / 100;
+  const tds = Math.round(price / 100);
+  const buyerTotal =
+    Math.round((price + buyerFee + buyerFeeGst + deliveryBuyerShare) * 100) /
+    100;
+  const sellerPayout =
+    Math.round(
+      (price -
+        sellerCommission -
+        sellerCommissionGst -
+        deliverySellerShare -
+        tds) *
+        100
+    ) / 100;
+  return {
+    promoActive: cfg.promoActive,
+    sellerPct: cfg.sellerPct,
+    buyerPct: cfg.buyerPct,
+    gstPct: cfg.gstPct,
+    sellerCommission,
+    sellerCommissionGst,
+    buyerFee,
+    buyerFeeGst,
+    deliveryFlat,
+    deliveryBuyerShare,
+    deliverySellerShare,
+    tds,
+    sellerPayout,
+    buyerTotal,
+  };
+}
+
 function cashfreeHeaders(): Record<string, string> {
   const appId = CASHFREE_APP_ID.value();
   const secret = CASHFREE_SECRET_KEY.value();
@@ -153,7 +264,14 @@ export async function createCashfreeOrderHandler(
     deliveryAddress?: Record<string, string>;
     deliveryType?: string;
   }
-): Promise<{ paymentSessionId: string; orderId: string; cfOrderId: number; cfOrderRef: string }> {
+): Promise<{
+  paymentSessionId: string;
+  orderId: string;
+  cfOrderId: number;
+  cfOrderRef: string;
+  buyerTotal: number;
+  fees: FeeBreakdown;
+}> {
   const db = admin.firestore();
   const { listingId, bidId } = input;
   const customerPhoneRaw = input.customerPhone;
@@ -227,6 +345,18 @@ export async function createCashfreeOrderHandler(
     deliveryType = "express";
   }
 
+  // ── Fee engine: the buyer pays price + protection fee (+GST) + half the
+  // fixed delivery fee; the seller nets price − commission (−GST) − half the
+  // delivery fee − 1% TDS. All of it is computed here — the client-supplied
+  // numbers, if any, are ignored.
+  const fees = quoteFees(amount, await readFeeConfig(db));
+  if (!(fees.buyerTotal > 0) || !(fees.sellerPayout > 0)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "This order can't be priced right now. Please try again later."
+    );
+  }
+
   // 1. Create the order doc first (payment PENDING).
   const orderRef = db.collection("orders").doc();
   const orderId = orderRef.id;
@@ -238,6 +368,8 @@ export async function createCashfreeOrderHandler(
     buyerId: uid,
     sellerId,
     amount,
+    buyerTotal: fees.buyerTotal,
+    fees: { ...fees },
     currency: "INR",
     deliveryType,
     paymentStatus: "PENDING" satisfies PaymentStatus,
@@ -252,7 +384,7 @@ export async function createCashfreeOrderHandler(
     headers: cashfreeHeaders(),
     body: JSON.stringify({
       order_id: cfOrderIdStr,
-      order_amount: amount,
+      order_amount: fees.buyerTotal,
       order_currency: "INR",
       customer_details: {
         customer_id: uid,
@@ -297,6 +429,9 @@ export async function createCashfreeOrderHandler(
     // Merchant order id the SDK needs (echoed so the app never hardcodes
     // the `trega_` prefix itself).
     cfOrderRef: cfOrderIdStr,
+    // Authoritative totals — the app displays these, never its own math.
+    buyerTotal: fees.buyerTotal,
+    fees,
   };
 }
 
@@ -485,3 +620,4 @@ export async function verifyPaymentHandler(
   // the webhook may still deliver, or the buyer can retry.
   return { paymentStatus: "PENDING", orderId };
 }
+

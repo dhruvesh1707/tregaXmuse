@@ -61,6 +61,27 @@ the app picks it up without a release.
 | expressCities | string[] | city names, e.g. `["Mumbai", "Bengaluru"]` (matched case-insensitively) |
 | cutoffHour | number | 24h local hour; order before → delivery tomorrow, after → day after tomorrow |
 
+### `config/fees`
+
+Single doc. Public read, console-only write (see `firestore.rules`).
+The single source of truth for marketplace pricing — the server
+(`createCashfreeOrder`) recomputes every fee from this; the app mirrors it
+for display only via `FeeConfig`.
+
+| Field | Type | Notes |
+|---|---|---|
+| promoActive | bool | `true` during the Zero Fee Launch — marketing flag for banners |
+| sellerPct | number | seller commission % — `0` launch month, `3` standard |
+| buyerPct | number | buyer protection fee % — `0` launch month, `5` standard |
+| deliveryFlat | number | fixed delivery fee in INR — `99`, split 50-50 buyer/seller |
+| gstPct | number | GST % on the platform fees — `18` |
+
+Launch month: `promoActive: true, sellerPct: 0, buyerPct: 0` — only the
+fixed delivery fee is charged. Month 2: flip to `sellerPct: 3`,
+`buyerPct: 5` (keep `promoActive: false`) from the console — no app
+update, no function deploy. TDS u/s 194O (1% of the gross sale amount)
+always applies on the seller side regardless of these values.
+
 ### `config/rateLimits`
 
 Single doc. **Server-only** (clients cannot read it — excluded from the
@@ -145,6 +166,8 @@ Never on the public listing doc. Readable only by the seller and admins
 | bidId | string? | set when the order came from an accepted bid |
 | buyerId / sellerId | string | |
 | amount | number | INR — always set server-side |
+| buyerTotal | number | INR — what the buyer pays (item price + buyer fee + GST + delivery buyer-share); the Cashfree `order_amount` |
+| fees | map | full breakdown, all INR, computed server-side by `quoteFees`: `promoActive`, `sellerPct`, `buyerPct`, `gstPct`, `sellerCommission`, `sellerCommissionGst`, `buyerFee`, `buyerFeeGst`, `deliveryFlat`, `deliveryBuyerShare`, `deliverySellerShare`, `tds` (1% of gross), `sellerPayout` (what the seller receives), `buyerTotal` |
 | currency | string | `INR` |
 | paymentStatus | string | `PENDING` \| `SUCCESS` \| `FAILED` \| `USER_DROPPED` |
 | status | string | `placed` → `pickup_scheduled` → `picked_up` → `in_transit` → `delivered`, plus `cancelled`, `returned` |
@@ -326,3 +349,4 @@ Account (`trega_functions/src/account.ts`):
 - `orders`: `buyerId` ASC + `createdAt` DESC (my purchases)
 - `orders`: `sellerId` ASC + `createdAt` DESC (my sales)
 - `categories`: `active` ASC + `sortOrder` ASC
+
