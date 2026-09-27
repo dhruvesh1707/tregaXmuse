@@ -403,9 +403,13 @@ export async function createCashfreeOrderHandler(
       body: text.slice(0, 500),
     });
     await orderRef.update({ paymentStatus: "FAILED" satisfies PaymentStatus });
+    // Include the provider's HTTP status (not its body): 401 = wrong or
+    // revoked key, 400 = malformed request, 403 = account not activated.
+    // The app shows this string verbatim, so a failed payment stays
+    // diagnosable without Firebase console access.
     throw new HttpsError(
       "unavailable",
-      "Payment provider error. Please try again."
+      `Payment provider error (status ${res.status}). Please try again.`
     );
   }
   const cf = (await res.json()) as CashfreeOrderResponse;
