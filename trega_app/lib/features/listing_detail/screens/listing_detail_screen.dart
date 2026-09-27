@@ -572,8 +572,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
           '${express ? ' · Trega Express (next-day delivery)' : ''}')
       ..write('View it here: https://tregaxmuse.web.app/l/${listing.id}');
     try {
-      await Share.share(text.toString(), subject: listing.product.title);
-    } catch (_) {
+      // NOTE: never pass `subject` here — share_plus 10.1.4's iOS code
+      // does setValue:forKey:@"subject" on UIActivityViewController,
+      // which throws and kills the share sheet. The title is already
+      // the first line of the shared text, so nothing is lost.
+      await Share.share(text.toString());
+    } catch (e) {
+      debugPrint('Share failed: $e');
       if (!mounted) return;
       await showTregaToast(
         context,

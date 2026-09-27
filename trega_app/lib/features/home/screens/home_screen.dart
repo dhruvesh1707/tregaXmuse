@@ -60,6 +60,9 @@ class HomeScreen extends ConsumerWidget {
             child: CustomScrollView(
         slivers: [
           SliverAppBar(
+            // Pinned: the header (logo, search, notifications) stays
+            // visible while the feed scrolls underneath it.
+            pinned: true,
             floating: true,
             title: Image.asset('assets/logo/trega_logo.png', height: 28),
             actions: [
