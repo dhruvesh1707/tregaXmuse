@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
+import { assertDocId, assertText } from "./validate";
 
 /**
  * Admin-only operations for the Trega admin panel.
@@ -74,7 +75,7 @@ export async function setUserKycStatusHandler(
     throw new HttpsError("permission-denied", "Admin access required.");
   }
   const { uid, status, note } = input;
-  if (!uid) throw new HttpsError("invalid-argument", "uid is required.");
+  assertDocId(uid, "uid");
   if (status !== "verified" && status !== "rejected") {
     throw new HttpsError(
       "invalid-argument",
@@ -87,7 +88,12 @@ export async function setUserKycStatusHandler(
   const snap = await userRef.get();
   if (!snap.exists) throw new HttpsError("not-found", "User not found.");
 
-  const cleanNote = note?.trim() || null;
+  const cleanNote =
+    note === undefined ||
+    note === null ||
+    (typeof note === "string" && note.trim() === "")
+      ? null
+      : assertText(note, "note", 1, 1000);
   const batch = db.batch();
   batch.update(userRef, {
     kycStatus: status,
@@ -134,7 +140,7 @@ export async function updateOrderFulfillmentHandler(
     throw new HttpsError("permission-denied", "Admin access required.");
   }
   const { orderId, status, trackingNote } = input;
-  if (!orderId) throw new HttpsError("invalid-argument", "orderId is required.");
+  assertDocId(orderId, "orderId");
   if (
     status !== undefined &&
     !(ORDER_STATUSES as readonly string[]).includes(status)
@@ -148,7 +154,19 @@ export async function updateOrderFulfillmentHandler(
 
   const update: Record<string, unknown> = {};
   if (status !== undefined) update.status = status;
-  if (trackingNote !== undefined) update.trackingNote = trackingNote.trim();
+  if (trackingNote !== undefined) {
+    if (typeof trackingNote !== "string") {
+      throw new HttpsError("invalid-argument", "Invalid tracking note.");
+    }
+    const trimmedNote = trackingNote.trim();
+    if (trimmedNote.length > 500) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Tracking note must be under 500 characters."
+      );
+    }
+    update.trackingNote = trimmedNote;
+  }
   if (Object.keys(update).length === 0) {
     throw new HttpsError("invalid-argument", "Nothing to update.");
   }

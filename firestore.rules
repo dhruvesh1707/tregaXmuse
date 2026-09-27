@@ -176,9 +176,20 @@ service cloud.firestore {
     // + cutoff hour + enabled flag). Written only via the Firebase
     // console by the team; the app falls back to bundled defaults when
     // the doc is missing.
+    // `config/rateLimits` is EXCLUDED from public reads — rate-limit
+    // thresholds are server-only (functions read them via the Admin SDK,
+    // which bypasses rules, so clients can never game the exact limits).
     match /config/{docId} {
-      allow read: if true;
+      allow read: if docId != 'rateLimits';
       allow write: if false;
+    }
+
+    // ── rateLimits/{key} ─────────────────────────────────────────
+    // Server-side rate-limit counters (`<tier>:uid:<uid>` /
+    // `<tier>:ip:<ip>`). Functions-only; clients must never read or
+    // write these.
+    match /rateLimits/{key} {
+      allow read, write: if false;
     }
 
     // ── reviews/{reviewId} ───────────────────────────────────────

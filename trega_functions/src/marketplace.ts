@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
+import { assertAmount, assertDocId, assertText } from "./validate";
 
 export type ListingStatus = "draft" | "pending" | "live" | "sold" | "rejected";
 export type BidStatus = "open" | "accepted" | "rejected" | "expired" | "countered";
@@ -170,13 +171,14 @@ export async function reviewListingHandler(
     throw new HttpsError("permission-denied", "Admin access required.");
   }
   const { listingId, decision, reason } = input;
-  if (!listingId) throw new HttpsError("invalid-argument", "listingId is required.");
+  assertDocId(listingId, "listingId");
   if (decision !== "approve" && decision !== "reject") {
     throw new HttpsError("invalid-argument", "decision must be approve or reject.");
   }
-  if (decision === "reject" && !reason?.trim()) {
-    throw new HttpsError("invalid-argument", "A rejection reason is required.");
-  }
+  const reasonText =
+    decision === "reject"
+      ? assertText(reason, "rejection reason", 1, 500)
+      : undefined;
 
   const db = admin.firestore();
   const ref = db.collection("listings").doc(listingId);
@@ -194,7 +196,7 @@ export async function reviewListingHandler(
     status,
     ...(decision === "approve"
       ? { liveAt: admin.firestore.FieldValue.serverTimestamp() }
-      : { rejectionReason: reason!.trim() }),
+      : { rejectionReason: reasonText! }),
   });
   if (decision === "reject") {
     const sellerId = snap.data()?.sellerId as string | undefined;
@@ -279,10 +281,8 @@ export async function placeBidHandler(
   input: { listingId?: string; amount?: number }
 ): Promise<{ bidId: string }> {
   const { listingId, amount } = input;
-  if (!listingId) throw new HttpsError("invalid-argument", "listingId is required.");
-  if (typeof amount !== "number" || amount <= 0) {
-    throw new HttpsError("invalid-argument", "Enter a valid offer amount.");
-  }
+  assertDocId(listingId, "listingId");
+  assertAmount(amount, "offer amount");
 
   const db = admin.firestore();
   const listingSnap = await db.collection("listings").doc(listingId).get();
@@ -342,7 +342,7 @@ export async function acceptBidHandler(
   input: { bidId?: string }
 ): Promise<{ accepted: true }> {
   const { bidId } = input;
-  if (!bidId) throw new HttpsError("invalid-argument", "bidId is required.");
+  assertDocId(bidId, "bidId");
 
   const db = admin.firestore();
   // Collected inside the transaction, written after it commits.
@@ -434,7 +434,7 @@ export async function rejectBidHandler(
   input: { bidId?: string }
 ): Promise<{ rejected: true }> {
   const { bidId } = input;
-  if (!bidId) throw new HttpsError("invalid-argument", "bidId is required.");
+  assertDocId(bidId, "bidId");
 
   const db = admin.firestore();
   const bidRef = db.collection("bids").doc(bidId);
@@ -483,7 +483,7 @@ export async function cancelAcceptanceHandler(
   input: { bidId?: string }
 ): Promise<{ cancelled: true }> {
   const { bidId } = input;
-  if (!bidId) throw new HttpsError("invalid-argument", "bidId is required.");
+  assertDocId(bidId, "bidId");
 
   const db = admin.firestore();
   let buyerId = "";

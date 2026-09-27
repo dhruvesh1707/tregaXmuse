@@ -61,6 +61,37 @@ the app picks it up without a release.
 | expressCities | string[] | city names, e.g. `["Mumbai", "Bengaluru"]` (matched case-insensitively) |
 | cutoffHour | number | 24h local hour; order before → delivery tomorrow, after → day after tomorrow |
 
+### `config/rateLimits`
+
+Single doc. **Server-only** (clients cannot read it — excluded from the
+public `config/{docId}` read in `firestore.rules`; functions read it via
+the Admin SDK). Live-overridable rate-limit thresholds per tier; any
+missing/invalid tier falls back to the bundled defaults in
+`trega_functions/src/rateLimit.ts`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `<tier>` | map | `{ limit, windowSec, blockBaseSec, blockMaxSec }` per tier |
+
+Tiers: `kycOtp` (5/hr per account+IP), `kycVerify` (10/10min),
+`bootstrap` (5/hr), `webhook` (120/hr per IP), `adminOps` (120/hr),
+`bids` (60/hr), `payments` (30/hr), `deleteAccount` (3/day).
+Exceeding a limit blocks with exponential backoff
+(`blockBaseSec * 2^(violations-1)`, capped at `blockMaxSec`); a clean
+window resets the violation count, so backoff never becomes a lockout.
+
+### `rateLimits/{tier:uid:uid | tier:ip:ip}`
+
+Server-side rate-limit counters. Functions-only (`allow read, write: if
+false` for clients).
+
+| Field | Type | Notes |
+|---|---|---|
+| count | number | requests in the current window |
+| windowStart | number | window start (ms epoch) |
+| violations | number | consecutive over-limit hits (drives backoff) |
+| blockedUntil | number | ms epoch until which requests are rejected |
+
 ### `listings/{id}`
 | Field | Type | Notes |
 |---|---|---|

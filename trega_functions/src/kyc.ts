@@ -3,6 +3,7 @@ import { createHash, createHmac } from "crypto";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { BULKPE_API_TOKEN, BULKPE_BASE, KYC_SALT } from "./config";
+import { assertText } from "./validate";
 
 export type KycStatus = "unverified" | "pending" | "verified" | "rejected";
 
@@ -153,15 +154,13 @@ export async function verifyAadhaarOtpHandler(
   refId: string,
   otp: string
 ): Promise<{ verified: boolean; name: string }> {
-  if (typeof refId !== "string" || !refId) {
-    throw new HttpsError("invalid-argument", "Missing verification reference.");
-  }
+  const refIdText = assertText(refId, "verification reference", 1, 128);
   if (typeof otp !== "string" || !/^\d{4,8}$/.test(otp.trim())) {
     throw new HttpsError("invalid-argument", "Enter the OTP you received.");
   }
 
   const out = await bulkpePost("/client/verifyAadharOtp", {
-    ref_id: refId,
+    ref_id: refIdText,
     otp: otp.trim(),
   });
 
@@ -228,7 +227,7 @@ export async function verifyAadhaarOtpHandler(
       kycRef,
       {
         status: "verified",
-        refId,
+        refId: refIdText,
         name: data?.name ?? null,
         dob: data?.dob ?? null,
         gender: data?.gender ?? null,

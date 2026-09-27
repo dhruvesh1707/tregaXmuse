@@ -5,12 +5,22 @@
  * - Payments: Cashfree PG (CASHFREE_APP_ID / CASHFREE_SECRET_KEY / CASHFREE_ENV).
  * - Marketplace: listing review queue, structured bids/offers, orders.
  * - No buyer-seller chat anywhere by design.
+ *
+ * Security layers (see SECURITY.md notes in each module):
+ * - `rateLimit.ts`: per-IP + per-account rate limiting with exponential
+ *   backoff on every callable + the webhook; thresholds configurable via
+ *   the console-only `config/rateLimits` doc (clients can't read it).
+ * - `validate.ts`: strict schema validation on every external input.
+ * - `storageCheck.ts`: magic-byte content check on uploads (Storage rules
+ *   enforce content-type + size at upload time; this closes the
+ *   fake-content-type hole).
  */
 import * as admin from "firebase-admin";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onObjectFinalized } from "firebase-functions/v2/storage";
 import * as logger from "firebase-functions/logger";
 
 import {
@@ -21,6 +31,7 @@ import {
   KYC_SALT,
   ADMIN_BOOTSTRAP_PHONE,
 } from "./config";
+import { clientIp, rateLimit } from "./rateLimit";
 import { requestAadhaarOtpHandler, verifyAadhaarOtpHandler } from "./kyc";
 import {
   createCashfreeOrderHandler,
@@ -42,6 +53,7 @@ import {
   updateOrderFulfillmentHandler,
 } from "./admin";
 import { deleteAccountHandler } from "./account";
+import { checkUploadedImage } from "./storageCheck";
 
 admin.initializeApp();
 setGlobalOptions({ region: "asia-south1", maxInstances: 10 });
@@ -55,25 +67,31 @@ function requireAuthUid(req: { auth?: { uid: string } | null }): string {
   return req.auth.uid;
 }
 
+const ipOf = (request: { rawRequest?: unknown }) => clientIp(request.rawRequest);
+
 // ---------------------------------------------------------------- KYC ------
 export const requestAadhaarOtp = onCall({ secrets }, async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("kycOtp", { uid, ip: ipOf(request) });
   return requestAadhaarOtpHandler(uid, request.data?.aadhaarNumber);
 });
 
 export const verifyAadhaarOtp = onCall({ secrets }, async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("kycVerify", { uid, ip: ipOf(request) });
   return verifyAadhaarOtpHandler(uid, request.data?.refId, request.data?.otp);
 });
 
 // --------------------------------------------------------- Payments ---------
 export const createCashfreeOrder = onCall({ secrets }, async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("payments", { uid, ip: ipOf(request) });
   return createCashfreeOrderHandler(uid, {
     listingId: request.data?.listingId,
     bidId: request.data?.bidId,
     customerPhone: request.data?.customerPhone,
     deliveryAddress: request.data?.deliveryAddress,
+    deliveryType: request.data?.deliveryType,
   });
 });
 
@@ -85,6 +103,7 @@ export const createCashfreeOrder = onCall({ secrets }, async (request) => {
  */
 export const verifyPayment = onCall({ secrets }, async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("payments", { uid, ip: ipOf(request) });
   return verifyPaymentHandler(uid, request.data?.orderId);
 });
 
@@ -98,6 +117,15 @@ export const cashfreeWebhook = onRequest(
     if (req.method !== "POST") {
       res.status(405).send("Method not allowed");
       return;
+    }
+    try {
+      await rateLimit("webhook", { ip: clientIp(req) });
+    } catch (e) {
+      if (e instanceof HttpsError && e.code === "resource-exhausted") {
+        res.status(429).send("Too many requests");
+        return;
+      }
+      throw e;
     }
     // Use the raw body for signature verification (available on the
     // Express request that firebase-functions v2 provides).
@@ -126,6 +154,7 @@ export const onListingCreate = onDocumentCreated(
 );
 
 export const reviewListing = onCall(async (request) => {
+  await rateLimit("adminOps", { uid: request.auth?.uid, ip: ipOf(request) });
   const isAdmin = request.auth?.token?.admin === true;
   return reviewListingHandler(isAdmin, {
     listingId: request.data?.listingId,
@@ -136,6 +165,7 @@ export const reviewListing = onCall(async (request) => {
 
 export const placeBid = onCall(async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("bids", { uid, ip: ipOf(request) });
   return placeBidHandler(uid, {
     listingId: request.data?.listingId,
     amount: request.data?.amount,
@@ -155,16 +185,19 @@ export const onBidCreate = onDocumentCreated(
 
 export const acceptBid = onCall(async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("bids", { uid, ip: ipOf(request) });
   return acceptBidHandler(uid, { bidId: request.data?.bidId });
 });
 
 export const rejectBid = onCall(async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("bids", { uid, ip: ipOf(request) });
   return rejectBidHandler(uid, { bidId: request.data?.bidId });
 });
 
 export const cancelAcceptance = onCall(async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("bids", { uid, ip: ipOf(request) });
   return cancelAcceptanceHandler(uid, { bidId: request.data?.bidId });
 });
 
@@ -183,6 +216,7 @@ export const bootstrapAdmin = onCall(
   { secrets: [ADMIN_BOOTSTRAP_PHONE] },
   async (request) => {
     const uid = requireAuthUid(request);
+    await rateLimit("bootstrap", { uid, ip: ipOf(request) });
     return bootstrapAdminHandler(
       uid,
       request.auth?.token?.phone_number,
@@ -192,8 +226,10 @@ export const bootstrapAdmin = onCall(
 );
 
 export const setUserKycStatus = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("adminOps", { uid, ip: ipOf(request) });
   const isAdmin = request.auth?.token?.admin === true;
-  return setUserKycStatusHandler(isAdmin, requireAuthUid(request), {
+  return setUserKycStatusHandler(isAdmin, uid, {
     uid: request.data?.uid,
     status: request.data?.status,
     note: request.data?.note,
@@ -201,6 +237,8 @@ export const setUserKycStatus = onCall(async (request) => {
 });
 
 export const updateOrderFulfillment = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("adminOps", { uid, ip: ipOf(request) });
   const isAdmin = request.auth?.token?.admin === true;
   return updateOrderFulfillmentHandler(isAdmin, {
     orderId: request.data?.orderId,
@@ -218,5 +256,15 @@ export const updateOrderFulfillment = onCall(async (request) => {
  */
 export const deleteAccount = onCall(async (request) => {
   const uid = requireAuthUid(request);
+  await rateLimit("deleteAccount", { uid, ip: ipOf(request) });
   return deleteAccountHandler(uid);
+});
+
+// ------------------------------------------------------------ Uploads ------
+// Content-level upload validation: deletes any new object under
+// `listingMedia/` or `avatars/` whose magic bytes aren't a real image.
+// (Storage rules enforce `image/*` content-type + 10 MB at upload time;
+// this closes the fake-content-type hole. See storageCheck.ts.)
+export const validateUpload = onObjectFinalized(async (event) => {
+  await checkUploadedImage(event.data.name, event.data.bucket);
 });

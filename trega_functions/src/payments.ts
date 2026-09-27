@@ -1,6 +1,8 @@
 import * as admin from "firebase-admin";
 import { createHmac, timingSafeEqual } from "crypto";
 import { HttpsError } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
+import { assertDocId, assertPhone } from "./validate";
 import {
   CASHFREE_API_VERSION,
   CASHFREE_APP_ID,
@@ -104,23 +106,42 @@ function cashfreeHeaders(): Record<string, string> {
 /** Delivery address collected at checkout (buyer-side). */
 export type DeliveryAddress = Record<string, string>;
 
-function assertValidDeliveryAddress(addr: unknown): asserts addr is DeliveryAddress {
+/**
+ * Strict delivery-address schema: every field type/length/format checked,
+ * and the result is reduced to the KNOWN fields only — stray client keys
+ * are dropped, never stored on the order.
+ */
+function sanitizeDeliveryAddress(addr: unknown): DeliveryAddress {
   const a = (addr ?? {}) as Record<string, unknown>;
-  const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-  if (s(a.name).length < 2) {
+  const s = (v: unknown, max: number, field: string) => {
+    const t = typeof v === "string" ? v.trim() : "";
+    if (t.length > max) {
+      throw new HttpsError("invalid-argument", `${field} is too long.`);
+    }
+    return t;
+  };
+  const name = s(a.name, 100, "Name");
+  if (name.length < 2) {
     throw new HttpsError("invalid-argument", "Enter the receiver's name.");
   }
-  if (!/^[6-9]\d{9}$/.test(s(a.phone))) {
+  const phone = s(a.phone, 20, "Phone");
+  if (!/^[6-9]\d{9}$/.test(phone)) {
     throw new HttpsError("invalid-argument", "Enter a valid 10-digit mobile number.");
   }
-  if (s(a.line1).length < 6) {
+  const line1 = s(a.line1, 200, "Address");
+  if (line1.length < 6) {
     throw new HttpsError("invalid-argument", "Enter your house/flat and street.");
   }
-  if (!s(a.city)) throw new HttpsError("invalid-argument", "Enter your city.");
-  if (!s(a.state)) throw new HttpsError("invalid-argument", "Enter your state.");
-  if (!/^[1-9][0-9]{5}$/.test(s(a.pincode))) {
+  const line2 = s(a.line2, 200, "Address");
+  const city = s(a.city, 100, "City");
+  if (!city) throw new HttpsError("invalid-argument", "Enter your city.");
+  const state = s(a.state, 100, "State");
+  if (!state) throw new HttpsError("invalid-argument", "Enter your state.");
+  const pincode = s(a.pincode, 10, "PIN code");
+  if (!/^[1-9][0-9]{5}$/.test(pincode)) {
     throw new HttpsError("invalid-argument", "Enter a valid 6-digit PIN code.");
   }
+  return { name, phone, line1, ...(line2 ? { line2 } : {}), city, state, pincode };
 }
 
 export async function createCashfreeOrderHandler(
@@ -135,12 +156,19 @@ export async function createCashfreeOrderHandler(
 ): Promise<{ paymentSessionId: string; orderId: string; cfOrderId: number; cfOrderRef: string }> {
   const db = admin.firestore();
   const { listingId, bidId } = input;
+  const customerPhoneRaw = input.customerPhone;
+  const customerPhone =
+    typeof customerPhoneRaw === "string" && customerPhoneRaw.trim() !== ""
+      ? assertPhone(customerPhoneRaw, "mobile number")
+      : undefined;
   if ((listingId ? 1 : 0) + (bidId ? 1 : 0) !== 1) {
     throw new HttpsError(
       "invalid-argument",
       "Provide exactly one of listingId or bidId."
     );
   }
+  if (bidId) assertDocId(bidId, "bidId");
+  else assertDocId(listingId, "listingId");
 
   let listingRef: admin.firestore.DocumentReference;
   let amount: number;
@@ -182,8 +210,12 @@ export async function createCashfreeOrderHandler(
 
   // Delivery address is required for accepted-offer checkout (the buyer
   // pays the accepted price and the item ships to this address).
-  if (bidId) {
-    assertValidDeliveryAddress(input.deliveryAddress);
+  const deliveryAddress =
+    input.deliveryAddress !== undefined
+      ? sanitizeDeliveryAddress(input.deliveryAddress)
+      : undefined;
+  if (bidId && !deliveryAddress) {
+    throw new HttpsError("invalid-argument", "Delivery address is required.");
   }
 
   // Delivery speed. `express` is only honored when the courier network can
@@ -191,7 +223,7 @@ export async function createCashfreeOrderHandler(
   // missing/invalid value) falls back to `standard`.
   let deliveryType: "standard" | "express" = "standard";
   if (input.deliveryType === "express") {
-    await assertExpressEligible(db, listingRef, input.deliveryAddress?.city);
+    await assertExpressEligible(db, listingRef, deliveryAddress?.city);
     deliveryType = "express";
   }
 
@@ -202,7 +234,7 @@ export async function createCashfreeOrderHandler(
   await orderRef.set({
     listingId: listingRef.id,
     ...(bidId ? { bidId } : {}),
-    ...(input.deliveryAddress ? { deliveryAddress: input.deliveryAddress } : {}),
+    ...(deliveryAddress ? { deliveryAddress } : {}),
     buyerId: uid,
     sellerId,
     amount,
@@ -226,7 +258,7 @@ export async function createCashfreeOrderHandler(
         customer_id: uid,
         // Cashfree requires a phone; fall back to the user's stored phone.
         customer_phone:
-          input.customerPhone ??
+          customerPhone ??
           (await db.collection("users").doc(uid).get()).data()?.phone ??
           "9999999999",
       },
@@ -237,8 +269,18 @@ export async function createCashfreeOrderHandler(
   });
   if (!res.ok) {
     const text = await res.text();
+    // The raw provider response is logged server-side; the client gets a
+    // generic message — never raw provider internals.
+    logger.error("createCashfreeOrder: Cashfree order creation failed", {
+      orderId,
+      status: res.status,
+      body: text.slice(0, 500),
+    });
     await orderRef.update({ paymentStatus: "FAILED" satisfies PaymentStatus });
-    throw new HttpsError("unavailable", `Payment provider error (${res.status}): ${text}`);
+    throw new HttpsError(
+      "unavailable",
+      "Payment provider error. Please try again."
+    );
   }
   const cf = (await res.json()) as CashfreeOrderResponse;
 
