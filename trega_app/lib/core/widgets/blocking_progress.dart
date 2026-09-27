@@ -37,7 +37,7 @@ Future<void> Function() showBlockingProgress(
       ),
     ),
   );
-  return () {
+  return () async {
     if (dismissed) return;
     dismissed = true;
     try {
