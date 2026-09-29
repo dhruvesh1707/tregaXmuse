@@ -246,9 +246,10 @@ class _CategoryRail extends StatelessWidget {
               child: Container(
                 width: 84,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   borderRadius: BorderRadius.all(Radius.circular(18)),
                   gradient: AppGradients.card,
+                  // NOTE: not const — Border.all has no const constructor.
                   border: Border.all(color: AppColors.divider),
                   boxShadow: AppShadows.card,
                 ),
