@@ -8,6 +8,10 @@ import 'app_colors.dart';
 /// Modern pass: warm paper stays, but surfaces now lift with soft,
 /// warm-tinted shadows (soft-3D) instead of sitting flat. Buttons carry
 /// a gentle colored lift; cards float a few dp off the page wash.
+///
+/// Element pass: text fields, dialogs, bottom sheets, snackbars and
+/// progress indicators are themed here, so EVERY screen gets the modern
+/// look automatically — no per-screen work needed for these elements.
 ThemeData buildTregaTheme() {
   final baseScheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
@@ -152,7 +156,8 @@ ThemeData buildTregaTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.surface,
+      // Frosted-glass field: translucent white over the page wash.
+      fillColor: Colors.white.withValues(alpha: 0.6),
       // Extra headroom above the field: the floating label sits ~8px above
       // the border, and tight parents (Stepper content, dense columns)
       // otherwise clip its top edge.
@@ -170,16 +175,24 @@ ThemeData buildTregaTheme() {
         fontWeight: FontWeight.w600,
       ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.divider),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.divider),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
       ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -224,9 +237,11 @@ ThemeData buildTregaTheme() {
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: AppColors.surface,
-      elevation: 0,
+      // Soft-3D: dialogs lift off the page with a warm diffused shadow.
+      elevation: 8,
+      shadowColor: const Color(0x403A2417),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
       ),
       titleTextStyle: textTheme.titleLarge,
       contentTextStyle: textTheme.bodyMedium,
@@ -236,18 +251,24 @@ ThemeData buildTregaTheme() {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       showDragHandle: true,
+      dragHandleColor: AppColors.divider,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: AppColors.textPrimary,
+      // Dark-glass toast: espresso at near-opacity, floating with margin.
+      backgroundColor: AppColors.espresso.withValues(alpha: 0.94),
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
       behavior: SnackBarBehavior.floating,
       elevation: 0,
+      margin: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: AppColors.primary,
     ),
   );
 }
