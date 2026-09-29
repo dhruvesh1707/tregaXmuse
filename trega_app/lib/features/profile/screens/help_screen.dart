@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_toast.dart';
 
@@ -37,7 +41,7 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Help & Support')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -47,8 +51,12 @@ class HelpScreen extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 20),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.primarySoft,
+              // NOTE: not const — BoxShadow list + gradient are fine, but
+              // this stays non-const to match the card recipe.
               borderRadius: BorderRadius.circular(20),
+              gradient: AppGradients.card,
+              border: Border.all(color: AppColors.divider),
+              boxShadow: AppShadows.card,
             ),
             child: Row(
               children: [
@@ -135,12 +143,8 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           // ── Contact card ────────────────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.divider),
-            ),
+          GlassCard(
+            padding: EdgeInsets.zero,
             child: ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -227,9 +231,11 @@ class _FaqTile extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          // NOTE: not const — Border.all has no const constructor.
           borderRadius: BorderRadius.circular(16),
+          gradient: AppGradients.card,
           border: Border.all(color: AppColors.divider),
+          boxShadow: AppShadows.soft,
         ),
         // ExpansionTile draws hairline dividers above/below its children —
         // hide them so they don't double up with the container border.

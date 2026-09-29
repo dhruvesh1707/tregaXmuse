@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/glass_dialog.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_toast.dart';
 import '../../auth/screens/phone_auth_screen.dart';
 import 'help_screen.dart';
@@ -31,7 +34,7 @@ class SettingsScreen extends ConsumerWidget {
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+        builder: (ctx, setDialogState) => GlassDialog(
           title: const Text('Edit profile'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -140,7 +143,7 @@ class SettingsScreen extends ConsumerWidget {
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+        builder: (ctx, setDialogState) => GlassDialog(
           title: const Text('Payout UPI ID'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -266,159 +269,124 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: uid == null
           ? const Center(child: Text('You are not signed in.'))
           : ListView(
+              padding: const EdgeInsets.only(bottom: 24),
               children: [
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8,),
-                  child: Text(
-                    'Notifications',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(
+                _settingsGroup(
+                  context,
+                  title: 'Notifications',
+                  child: StreamBuilder<bool>(
+                    stream:
+                        service.watchNotificationSetting(uid),
+                    builder: (context, snap) {
+                      final enabled = snap.data ?? true;
+                      return SwitchListTile(
+                        title:
+                            const Text('Push notifications'),
+                        subtitle: const Text(
+                            'Bids, offers, orders and listing updates',),
+                        value: enabled,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (v) => service
+                            .updateNotificationSetting(uid, v),
+                      );
+                    },
+                  ),
+                ),
+                _settingsGroup(
+                  context,
+                  title: 'Account',
+                  child: ListTile(
+                    leading: const Icon(
+                        PhosphorIconsRegular.user,
+                        color: AppColors.primary,),
+                    title: const Text('Edit profile'),
+                    subtitle:
+                        const Text('Name and email address'),
+                    trailing: const Icon(PhosphorIconsRegular.caretRight,
+                        color: AppColors.textSecondary,),
+                    onTap: () =>
+                        _editProfile(context, ref, uid),
+                  ),
+                ),
+                _settingsGroup(
+                  context,
+                  title: 'Selling',
+                  child: Column(
+                    children: [
+                      StreamBuilder<String?>(
+                        stream: service.watchPayoutUpi(uid),
+                        builder: (context, snap) {
+                          final upi = snap.data;
+                          return ListTile(
+                            leading: const Icon(PhosphorIconsRegular.wallet,
+                                color: AppColors.primary,),
+                            title: const Text('Payout UPI ID'),
+                            subtitle: Text(
+                              upi ?? 'Not set — add it to receive payouts',),
+                            trailing: const Icon(PhosphorIconsRegular.caretRight,
+                                color: AppColors.textSecondary,),
+                            onTap: () =>
+                                _editPayoutUpi(context, ref, uid),
+                          );
+                        },
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(PhosphorIconsRegular.mapPin,
+                            color: AppColors.primary,),
+                        title: const Text('Saved pickup addresses'),
+                        subtitle:
+                            const Text('Reuse them across listings'),
+                        trailing: const Icon(PhosphorIconsRegular.caretRight,
                             color: AppColors.textSecondary,),
+                        onTap: () => Navigator.of(context).pushNamed(
+                            SavedAddressesScreen.routeName,),
+                      ),
+                    ],
                   ),
                 ),
-                StreamBuilder<bool>(
-                  stream:
-                      service.watchNotificationSetting(uid),
-                  builder: (context, snap) {
-                    final enabled = snap.data ?? true;
-                    return SwitchListTile(
-                      title:
-                          const Text('Push notifications'),
-                      subtitle: const Text(
-                          'Bids, offers, orders and listing updates',),
-                      value: enabled,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (v) => service
-                          .updateNotificationSetting(uid, v),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8,),
-                  child: Text(
-                    'Account',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(
-                            color: AppColors.textSecondary,),
+                _settingsGroup(
+                  context,
+                  child: ListTile(
+                    leading: const Icon(PhosphorIconsRegular.question,
+                        color: AppColors.primary,),
+                    title: const Text('Help & Support'),
+                    trailing: const Icon(PhosphorIconsRegular.caretRight,
+                        color: AppColors.textSecondary,),
+                    onTap: () => Navigator.of(context)
+                        .pushNamed(HelpScreen.routeName),
                   ),
                 ),
-                ListTile(
-                  leading: const Icon(
-                      PhosphorIconsRegular.user,
-                      color: AppColors.primary,),
-                  title: const Text('Edit profile'),
-                  subtitle:
-                      const Text('Name and email address'),
-                  trailing: const Icon(PhosphorIconsRegular.caretRight,
-                      color: AppColors.textSecondary,),
-                  onTap: () =>
-                      _editProfile(context, ref, uid),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8,),
-                  child: Text(
-                    'Selling',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(
-                            color: AppColors.textSecondary,),
+                _settingsGroup(
+                  context,
+                  title: 'About',
+                  child: const ListTile(
+                    leading: Icon(PhosphorIconsRegular.info,
+                        color: AppColors.primary,),
+                    title: Text('Trega'),
+                    subtitle: Text(
+                        'Version 1.0.0 • India’s marketplace for pre-owned gear',),
                   ),
                 ),
-                StreamBuilder<String?>(
-                  stream: service.watchPayoutUpi(uid),
-                  builder: (context, snap) {
-                    final upi = snap.data;
-                    return ListTile(
-                      leading: const Icon(PhosphorIconsRegular.wallet,
-                          color: AppColors.primary,),
-                      title: const Text('Payout UPI ID'),
-                      subtitle: Text(
-                        upi ?? 'Not set — add it to receive payouts',),
-                      trailing: const Icon(PhosphorIconsRegular.caretRight,
-                          color: AppColors.textSecondary,),
-                      onTap: () =>
-                          _editPayoutUpi(context, ref, uid),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(PhosphorIconsRegular.mapPin,
-                      color: AppColors.primary,),
-                  title: const Text('Saved pickup addresses'),
-                  subtitle:
-                      const Text('Reuse them across listings'),
-                  trailing: const Icon(PhosphorIconsRegular.caretRight,
-                      color: AppColors.textSecondary,),
-                  onTap: () => Navigator.of(context).pushNamed(
-                      SavedAddressesScreen.routeName,),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(PhosphorIconsRegular.question,
-                      color: AppColors.primary,),
-                  title: const Text('Help & Support'),
-                  trailing: const Icon(PhosphorIconsRegular.caretRight,
-                      color: AppColors.textSecondary,),
-                  onTap: () => Navigator.of(context)
-                      .pushNamed(HelpScreen.routeName),
-                ),
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8,),
-                  child: Text(
-                    'About',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(
-                            color: AppColors.textSecondary,),
+                _settingsGroup(
+                  context,
+                  title: 'Danger zone',
+                  danger: true,
+                  child: ListTile(
+                    leading: const Icon(
+                        PhosphorIconsRegular.trash,
+                        color: AppColors.error,),
+                    title: const Text('Delete account',
+                        style: TextStyle(color: AppColors.error),),
+                    subtitle: const Text(
+                        'Permanently delete your account and all data',),
+                    onTap: () => deleteAccount(context, ref),
                   ),
-                ),
-                const ListTile(
-                  leading: Icon(PhosphorIconsRegular.info,
-                      color: AppColors.primary,),
-                  title: Text('Trega'),
-                  subtitle: Text(
-                      'Version 1.0.0 • India’s marketplace for pre-owned gear',),
-                ),
-                const Divider(height: 1),
-                const Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8,),
-                  child: Text(
-                    'Danger zone',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.error,
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(
-                      PhosphorIconsRegular.trash,
-                      color: AppColors.error,),
-                  title: const Text('Delete account',
-                      style: TextStyle(color: AppColors.error),),
-                  subtitle: const Text(
-                      'Permanently delete your account and all data',),
-                  onTap: () => deleteAccount(context, ref),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(24),
@@ -436,6 +404,46 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 
+/// A settings section: small header label over a frosted card of rows.
+Widget _settingsGroup(
+  BuildContext context, {
+  String? title,
+  bool danger = false,
+  required Widget child,
+}) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+            child: Text(
+              title,
+              style: danger
+                  ? const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.error,
+                    )
+                  : Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+        GlassCard(
+          padding: EdgeInsets.zero,
+          child: child,
+        ),
+      ],
+    ),
+  );
+}
+
+
+
 /// Confirmation for account deletion: spells out exactly what disappears
 /// and requires an explicit acknowledgment before the destructive action
 /// is enabled.
@@ -451,7 +459,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return GlassDialog(
       title: const Text('Delete account?'),
       content: Column(
         mainAxisSize: MainAxisSize.min,

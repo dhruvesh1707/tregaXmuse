@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/saved_address.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/glass_dialog.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 
 /// The seller's saved pickup addresses (owner-only, never shown to buyers).
 /// Managed here; reused with one tap in the sell flow.
@@ -29,7 +32,7 @@ class SavedAddressesScreen extends ConsumerWidget {
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+        builder: (ctx, setDialogState) => GlassDialog(
           title: const Text('Add pickup address'),
           content: SingleChildScrollView(
             child: Column(
@@ -185,7 +188,7 @@ class SavedAddressesScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, String uid, SavedAddress a,) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: const Text('Remove address?'),
         content: Text(a.fullAddress),
         actions: [
@@ -211,7 +214,7 @@ class SavedAddressesScreen extends ConsumerWidget {
     final uid = ref.watch(currentUidProvider);
     final service = ref.watch(firestoreServiceProvider);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Saved pickup addresses')),
       body: uid == null
           ? const Center(child: Text('You are not signed in.'))
@@ -251,7 +254,8 @@ class SavedAddressesScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                   itemBuilder: (context, i) {
                     final a = addresses[i];
-                    return Card(
+                    return GlassCard(
+                      padding: EdgeInsets.zero,
                       child: ListTile(
                         leading: const Icon(PhosphorIconsRegular.mapPin,
                             color: AppColors.primary,),

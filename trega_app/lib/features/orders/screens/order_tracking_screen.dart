@@ -7,7 +7,12 @@ import 'package:timelines_plus/timelines_plus.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/trega_button.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/status_chip.dart';
@@ -37,7 +42,7 @@ class OrderTrackingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final id = orderId;
     if (id == null) {
-      return Scaffold(
+      return TregaScaffold(
         appBar: AppBar(title: const Text('Track order')),
         body: const Center(child: Text('Order not found.')),
       );
@@ -47,14 +52,14 @@ class OrderTrackingScreen extends ConsumerWidget {
       stream: orderAsync,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return Scaffold(
+          return TregaScaffold(
             appBar: AppBar(title: const Text('Track order')),
             body: const Center(child: CircularProgressIndicator()),
           );
         }
         final order = snap.data;
         if (order == null || snap.hasError) {
-          return Scaffold(
+          return TregaScaffold(
             appBar: AppBar(title: const Text('Track order')),
             body: const Center(
               child:
@@ -78,7 +83,7 @@ class _TrackingContent extends ConsumerWidget {
     final currentIndex = OrderTrackingScreen._timeline
         .indexWhere((e) => e.$1 == order.status);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(
         title: const Text('Track order'),
         actions: [
@@ -94,10 +99,9 @@ class _TrackingContent extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ref
@@ -140,7 +144,6 @@ class _TrackingContent extends ConsumerWidget {
                 ],
               ),
             ),
-          ),
           const SizedBox(height: 16),
           Text('Timeline', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
@@ -199,9 +202,13 @@ class _TrackingContent extends ConsumerWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primarySoft,
+                                // NOTE: not const — gradient recipe.
                                 borderRadius:
                                     BorderRadius.circular(8),
+                                gradient: AppGradients.card,
+                                border: Border.all(
+                                    color: AppColors.divider),
+                                boxShadow: AppShadows.soft,
                               ),
                               child: Text(
                                 'Current status',
@@ -243,10 +250,11 @@ class _TrackingContent extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          OutlinedButton.icon(
+          TregaButton(
+            label: 'Need help with this order?',
+            secondary: true,
+            expanded: false,
             onPressed: () {},
-            icon: const Icon(PhosphorIconsRegular.headset),
-            label: const Text('Need help with this order?'),
           ),
         ],
       ),

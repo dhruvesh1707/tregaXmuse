@@ -8,7 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/kyc_verification.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -184,7 +188,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     final kycStream =
         uid == null ? null : ref.watch(firestoreServiceProvider).watchKyc(uid);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Verify identity')),
       body: kycStream == null
           ? const Center(child: Text('Sign in to verify your identity.'))
@@ -210,9 +214,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             fontWeight: FontWeight.w700,
           ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        // NOTE: not const — Border.all has no const constructor.
         borderRadius: BorderRadius.circular(16),
+        gradient: AppGradients.card,
         border: Border.all(color: border, width: 1.5),
+        boxShadow: AppShadows.soft,
       ),
     );
   }
@@ -221,8 +227,22 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Icon(PhosphorIconsRegular.fingerprint,
-            size: 64, color: AppColors.primary,),
+        Center(
+          child: Container(
+            width: 112,
+            height: 112,
+            decoration: const BoxDecoration(
+              gradient: AppGradients.heroBrown,
+              shape: BoxShape.circle,
+              boxShadow: AppShadows.button,
+            ),
+            child: const Icon(
+              PhosphorIconsRegular.fingerprint,
+              size: 56,
+              color: Colors.white,
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
         Text(
           'Verify your identity',
@@ -331,13 +351,9 @@ class _ConsentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor),
-      ),
+      borderRadius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -6,7 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/widgets/glass_dialog.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -64,7 +68,7 @@ class MyListingsScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, Listing listing,) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: const Text('Delete listing?'),
         content: Text(
             '“${listing.product.title}” will be permanently removed. This can’t be undone.',),
@@ -107,7 +111,7 @@ class MyListingsScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, String listingId,) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: const Text('Pickup address'),
         content: StreamBuilder<Map<String, dynamic>?>(
           stream: ref
@@ -165,7 +169,7 @@ class MyListingsScreen extends ConsumerWidget {
     final uid = ref.watch(currentUidProvider);
     final service = ref.watch(firestoreServiceProvider);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('My Listings')),
       body: uid == null
           ? const EmptyState(
@@ -243,9 +247,9 @@ class MyListingsScreen extends ConsumerWidget {
                             ),
                         ],
                       ),
-                      child: Card(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(12),
+                        borderRadius: 16,
                         onTap: () => Navigator.of(context).pushNamed(
                           ListingDetailScreen.routeName,
                           arguments: ListingDetailArgs(
@@ -253,9 +257,7 @@ class MyListingsScreen extends ConsumerWidget {
                             initial: listing,
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
+                        child: Row(
                             crossAxisAlignment:
                                 CrossAxisAlignment.start,
                             children: [
@@ -317,8 +319,6 @@ class MyListingsScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      ),
-                      ),
                     );
                   },
                 );
@@ -331,7 +331,10 @@ class MyListingsScreen extends ConsumerWidget {
     return Container(
       width: 72,
       height: 72,
-      color: AppColors.primarySoft,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: AppGradients.card,
+      ),
       child:
           const Icon(PhosphorIconsRegular.image, color: AppColors.primary),
     );

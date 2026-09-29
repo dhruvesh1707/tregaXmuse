@@ -6,7 +6,9 @@ import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/app_notification.dart';
 import '../../../core/notifications/notification_router.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -150,10 +152,10 @@ class _NotificationsScreenState
                 }
                 return RefreshIndicator(
                   onRefresh: () async => _refresh(),
-                  child: ListView.separated(
+                  child: ListView.builder(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8),
                     itemCount: items.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1),
                     itemBuilder: (context, i) {
                       final n = items[i];
                       final time = n.createdAt == null
@@ -161,36 +163,49 @@ class _NotificationsScreenState
                           : timeAgo(n.createdAt!);
                       return Entrance(
                         index: i % 8,
-                        child: ListTile(
-                        tileColor: n.read
-                            ? null
-                            : AppColors.primarySoft
-                                .withValues(alpha: 0.5),
-                        leading: Container(
-                          width: 44,
-                          height: 44,
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(
+                              16, 6, 16, 6),
                           decoration: BoxDecoration(
-                            color: AppColors.primarySoft,
+                            // NOTE: not const — Border.all has no const constructor.
                             borderRadius:
-                                BorderRadius.circular(12),
+                                BorderRadius.circular(16),
+                            gradient: AppGradients.card,
+                            border: Border.all(
+                              color: n.read
+                                  ? AppColors.divider
+                                  : AppColors.primary,
+                              width: n.read ? 1 : 1.5,
+                            ),
+                            boxShadow: AppShadows.soft,
                           ),
-                          child: Icon(
-                              _iconForType(n.type),
-                              color: AppColors.primary,),
-                        ),
-                        title: Text(
-                          n.title,
-                          style: TextStyle(
-                            fontWeight: n.read
-                                ? FontWeight.w400
-                                : FontWeight.w700,
+                          child: ListTile(
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySoft,
+                                borderRadius:
+                                    BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                  _iconForType(n.type),
+                                  color: AppColors.primary,),
+                            ),
+                            title: Text(
+                              n.title,
+                              style: TextStyle(
+                                fontWeight: n.read
+                                    ? FontWeight.w400
+                                    : FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: Text(
+                                '${n.body}${time.isEmpty ? '' : '\n$time'}',),
+                            isThreeLine: true,
+                            onTap: () => _onTapNotification(n),
                           ),
                         ),
-                        subtitle: Text(
-                            '${n.body}${time.isEmpty ? '' : '\n$time'}',),
-                        isThreeLine: true,
-                        onTap: () => _onTapNotification(n),
-                      ),
                       );
                     },
                   ),
