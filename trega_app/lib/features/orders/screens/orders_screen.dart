@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_theme.dart';
@@ -27,7 +28,7 @@ class OrdersScreen extends ConsumerWidget {
     final ordersAsync = uid == null ? null : service.watchMyOrders(uid);
 
     if (ordersAsync == null) {
-      return const Scaffold(
+      return const TregaScaffold(
         body: SafeArea(
           child: EmptyState(
             icon: PhosphorIconsRegular.signIn,
@@ -41,7 +42,7 @@ class OrdersScreen extends ConsumerWidget {
       stream: ordersAsync,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return Scaffold(
+          return TregaScaffold(
             appBar: AppBar(title: const Text('My Orders')),
             body: ListView.separated(
               padding: const EdgeInsets.all(16),
@@ -53,7 +54,7 @@ class OrdersScreen extends ConsumerWidget {
           );
         }
         if (snap.hasError) {
-          return Scaffold(
+          return TregaScaffold(
             appBar: AppBar(title: const Text('My Orders')),
             body: const EmptyState(
               icon: PhosphorIconsRegular.cloudSlash,
@@ -75,7 +76,7 @@ class _OrdersList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('My Orders')),
       body: orders.isEmpty
           ? const EmptyState(

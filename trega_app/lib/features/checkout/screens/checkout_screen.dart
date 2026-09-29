@@ -4,6 +4,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/delivery/express_delivery.dart';
 import '../../../core/marketplace/fee_config.dart';
 import '../../../core/firebase/firebase_providers.dart';
@@ -233,7 +234,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ref.watch(feeConfigProvider).valueOrNull ?? FeeConfig.defaults;
     _prefill(uid);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Checkout')),
       body: StreamBuilder<Bid?>(
         stream: ref.read(firestoreServiceProvider).watchBid(widget.bidId),
@@ -271,7 +272,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           // fail server-side with a cryptic error.
           final quote = feeCfg.quote(bid.amount);
           final placeable = quote.sellerPayout > 0;
-          return Scaffold(
+          return TregaScaffold(
             body: _buildForm(context, bid),
             bottomSheet: Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),

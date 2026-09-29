@@ -7,6 +7,8 @@ import '../delivery/express_delivery.dart';
 import '../firebase/firebase_providers.dart';
 import '../models/listing.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_gradients.dart';
+import '../theme/app_shadows.dart';
 import '../utils/format.dart';
 import 'condition_badge.dart';
 import 'express_widgets.dart';
@@ -17,6 +19,9 @@ import 'motion.dart';
 /// The product photo is a [Hero] into the listing detail gallery
 /// (tag `listing-photo-<id>`), and the heart toggles the wishlist via
 /// Firestore with a springy pop + haptic.
+///
+/// Modern pass: soft-3D surface — a barely-there diagonal light gradient
+/// and a warm diffused shadow replace the old flat bordered card.
 class ProductCard extends ConsumerWidget {
   final Listing listing;
   final VoidCallback? onTap;
@@ -46,9 +51,19 @@ class ProductCard extends ConsumerWidget {
     // Tactile press: the whole card dips slightly on touch-down, like an
     // iOS collection cell. Tap handling stays on the inner InkWell.
     return PressScale(
-      child: Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(18)),
+          gradient: AppGradients.card,
+          border: Border.all(color: AppColors.divider),
+          boxShadow: AppShadows.card,
+        ),
+        // InkWell needs a Material ancestor for its splash; the old
+        // Card provided one, the Container does not.
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
         onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +153,8 @@ class ProductCard extends ConsumerWidget {
             ),
           ],
         ),
-      ),
+          ),
+        ),
       ),
     );
   }

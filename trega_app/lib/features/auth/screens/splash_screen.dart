@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/navigation/deep_link.dart';
 import '../../../core/notifications/notification_router.dart';
@@ -95,7 +96,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // Pure white, no logo — the native launch screen already showed it.
     // Showing the logo again here at a different size is what produced the
     // "double splash" (native logo -> Flutter logo jump).
-    return const Scaffold(
+    return const TregaScaffold(
       backgroundColor: Color(0xFFFFFFFF),
     );
   }

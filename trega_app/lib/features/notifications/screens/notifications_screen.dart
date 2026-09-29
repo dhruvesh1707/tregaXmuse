@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/app_notification.dart';
 import '../../../core/notifications/notification_router.dart';
@@ -101,7 +102,7 @@ class _NotificationsScreenState
     final uid = ref.watch(currentUidProvider);
     final service = ref.watch(firestoreServiceProvider);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [

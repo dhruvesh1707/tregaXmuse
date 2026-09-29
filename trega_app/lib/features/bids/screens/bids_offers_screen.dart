@@ -3,6 +3,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
@@ -74,7 +75,7 @@ class _BidsOffersScreenState extends ConsumerState<BidsOffersScreen>
     final uid = ref.watch(currentUidProvider);
     final service = ref.watch(firestoreServiceProvider);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(
         title: const Text('Bids & Offers'),
         bottom: TabBar(

@@ -1,13 +1,18 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../icons/phosphor_icons.dart';
-import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_gradients.dart';
+import '../theme/app_shadows.dart';
+import 'liquid_glass.dart';
 import 'motion.dart';
 
-/// iOS-style floating tab bar: a rounded, blurred pill hovering above the
+/// iOS-style floating tab bar: a liquid-glass pill hovering above the
 /// content instead of docking to the screen edge.
+///
+/// Frosted blur, gradient hairline border and specular top-light come
+/// from [LiquidGlass]; the selected destination gets a soft-3D gradient
+/// pill with a warm glow.
 ///
 /// Destinations and tap behaviour are unchanged from the old
 /// [BottomNavigationBar] — only the presentation is new.
@@ -31,45 +36,27 @@ class FloatingTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-        child: Container(
-          decoration: BoxDecoration(
-            color: scheme.surface.withValues(alpha: 0.78),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.55),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.14),
-                blurRadius: 28,
-                offset: const Offset(0, 10),
+    return LiquidGlass(
+      borderRadius: 30,
+      blur: 24,
+      shadows: AppShadows.floating,
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Row(
+        children: [
+          for (var i = 0; i < _items.length; i++)
+            Expanded(
+              child: _TabButton(
+                icon: _items[i].icon,
+                label: _items[i].label,
+                selected: i == currentIndex,
+                onTap: () {
+                  TregaHaptics.tap();
+                  onTap(i);
+                },
               ),
-            ],
-          ),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            children: [
-              for (var i = 0; i < _items.length; i++)
-                Expanded(
-                  child: _TabButton(
-                    icon: _items[i].icon,
-                    label: _items[i].label,
-                    selected: i == currentIndex,
-                    onTap: () {
-                      TregaHaptics.tap();
-                      onTap(i);
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -91,8 +78,6 @@ class _TabButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final iconColor =
-        selected ? AppColors.primary : scheme.onSurfaceVariant;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -104,13 +89,18 @@ class _TabButton extends StatelessWidget {
             curve: Curves.easeOutCubic,
             padding:
                 const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.primary.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
+            decoration: selected
+                ? const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    gradient: AppGradients.primaryButton,
+                    boxShadow: AppShadows.tabSelected,
+                  )
+                : null,
+            child: Icon(
+              icon,
+              size: 24,
+              color: selected ? Colors.white : scheme.onSurfaceVariant,
             ),
-            child: Icon(icon, size: 24, color: iconColor),
           ),
           const SizedBox(height: 3),
           Text(

@@ -3,6 +3,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_theme.dart';
@@ -58,7 +59,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       error: (_, __) => const <Listing>[],
     );
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Search')),
       body: Column(
         children: [

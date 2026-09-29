@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:easy_refresh/easy_refresh.dart';
@@ -6,12 +8,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/floating_tab_bar.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../bids/screens/bids_offers_screen.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 import '../../notifications/screens/notifications_screen.dart';
@@ -24,6 +29,9 @@ import '../widgets/promo_banner_carousel.dart';
 
 /// Main marketplace feed: search entry, "Explore by Passion" categories,
 /// and the live listing feed.
+///
+/// Modern pass: the page sits on the warm gradient wash ([TregaScaffold]),
+/// the pinned header is liquid glass, and category tiles are soft-3D.
 ///
 /// Data comes from Firestore (`listings` where `status == live`,
 /// `categories` where `active == true`). Errors surface an inline error
@@ -39,7 +47,7 @@ class HomeScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoriesProvider);
     final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
 
-    return Scaffold(
+    return TregaScaffold(
       body: Stack(
         children: [
           EasyRefresh(
@@ -64,6 +72,32 @@ class HomeScreen extends ConsumerWidget {
             // visible while the feed scrolls underneath it.
             pinned: true,
             floating: true,
+            // Liquid-glass header: the bar itself is transparent and a
+            // frosted wash blurs the feed scrolling beneath it.
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.72),
+                        Colors.white.withValues(alpha: 0.42),
+                      ],
+                    ),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             title: Image.asset('assets/logo/trega_logo.png', height: 28),
             actions: [
               IconButton(
@@ -201,7 +235,7 @@ class _CategoryRail extends StatelessWidget {
           return Entrance(
             index: i,
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               onTap: () => Navigator.of(context).pushNamed(
                 CategoryScreen.routeName,
                 arguments: CategoryArgs(
@@ -212,10 +246,11 @@ class _CategoryRail extends StatelessWidget {
               child: Container(
                 width: 84,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  gradient: AppGradients.card,
                   border: Border.all(color: AppColors.divider),
+                  boxShadow: AppShadows.card,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

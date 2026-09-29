@@ -6,6 +6,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/models/user.dart';
@@ -47,7 +48,7 @@ class ProfileScreen extends ConsumerWidget {
     final uid = ref.watch(currentUidProvider);
     final service = ref.watch(firestoreServiceProvider);
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: uid == null
           ? Center(

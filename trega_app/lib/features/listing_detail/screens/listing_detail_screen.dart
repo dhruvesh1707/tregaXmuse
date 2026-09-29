@@ -9,6 +9,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/delivery/express_delivery.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
@@ -217,7 +218,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
   Widget build(BuildContext context) {
     final listingId = widget.listingId;
     if (listingId == null) {
-      return Scaffold(
+      return TregaScaffold(
         appBar: AppBar(),
         body: const Center(child: Text('Listing not found.')),
       );
@@ -227,7 +228,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     return listingAsync.when(
       data: (listing) => listing == null
           ? (initial == null
-              ? Scaffold(
+              ? TregaScaffold(
                   appBar: AppBar(),
                   body: const Center(child: Text('Listing not found.')),
                 )
@@ -236,13 +237,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       // Paint the known listing instantly; the stream fills in behind it.
       loading: () => initial != null
           ? _buildContent(context, initial)
-          : Scaffold(
+          : TregaScaffold(
               appBar: AppBar(),
               body: const Center(child: CircularProgressIndicator()),
             ),
       error: (_, __) => initial != null
           ? _buildContent(context, initial)
-          : Scaffold(
+          : TregaScaffold(
               appBar: AppBar(),
               body: SafeArea(
                 child: TregaErrorState(
@@ -262,7 +263,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
         ExpressDeliveryConfig.defaults;
     final expressEligible = expressConfig.isCityEligible(listing.city);
 
-    return Scaffold(
+    return TregaScaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(

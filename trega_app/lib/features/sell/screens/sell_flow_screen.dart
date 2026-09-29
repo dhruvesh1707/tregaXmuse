@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/marketplace/fee_config.dart';
 import '../../../core/models/category.dart';
@@ -451,7 +452,7 @@ static bool _isValidUpi(String upi) =>
         ref.watch(feeConfigProvider).valueOrNull ?? FeeConfig.defaults;
     final minPrice = feeCfg.minListPrice;
 
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: const Text('Sell an item')),
       body: Column(
         children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/trega_button.dart';
 import 'phone_auth_screen.dart';
@@ -53,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return TregaScaffold(
       body: SafeArea(
         child: Column(
           children: [

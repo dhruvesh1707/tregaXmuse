@@ -1,33 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Trega brand palette, derived from the official logo.
-///
-/// - Primary brown  `#8B3A1C` — logo wordmark
-/// - Dark brown     `#6E2E16` — pressed / emphasis states
-/// - Accent yellow  `#F7B600` — logo dot, CTAs highlights, badges
-/// - Background     `#FFFBF7` — warm paper
-/// - Surface        `#FFFFFF` — cards, sheets
-abstract final class AppColors {
-  static const Color primary = Color(0xFF8B3A1C);
-  static const Color primaryDark = Color(0xFF6E2E16);
-  static const Color primarySoft = Color(0xFFF6E7DA);
-  static const Color accent = Color(0xFFF7B600);
-  static const Color accentSoft = Color(0xFFFFF3D1);
-  static const Color background = Color(0xFFFFFBF7);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color onPrimary = Color(0xFFFFFFFF);
-
-  static const Color textPrimary = Color(0xFF2B1A12);
-  static const Color textSecondary = Color(0xFF8A6A5B);
-  static const Color divider = Color(0xFFF0E4D6);
-
-  static const Color success = Color(0xFF2E7D32);
-  static const Color warning = Color(0xFFE65100);
-  static const Color error = Color(0xFFC62828);
-  static const Color info = Color(0xFF1565C0);
-}
+export 'app_colors.dart';
+import 'app_colors.dart';
 
 /// Builds the app-wide [ThemeData] for Trega.
+///
+/// Modern pass: warm paper stays, but surfaces now lift with soft,
+/// warm-tinted shadows (soft-3D) instead of sitting flat. Buttons carry
+/// a gentle colored lift; cards float a few dp off the page wash.
 ThemeData buildTregaTheme() {
   final baseScheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
@@ -121,6 +101,7 @@ ThemeData buildTregaTheme() {
     textTheme: textTheme,
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.background,
+      surfaceTintColor: Colors.transparent,
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       scrolledUnderElevation: 1,
@@ -134,8 +115,9 @@ ThemeData buildTregaTheme() {
         disabledBackgroundColor: AppColors.divider,
         disabledForegroundColor: AppColors.textSecondary,
         minimumSize: const Size(48, 54),
-        elevation: 0,
-        shadowColor: Colors.transparent,
+        // Soft-3D: a gentle colored lift instead of flat paint.
+        elevation: 3,
+        shadowColor: AppColors.primary.withValues(alpha: 0.4),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -229,9 +211,13 @@ ThemeData buildTregaTheme() {
     ),
     cardTheme: CardThemeData(
       color: AppColors.surface,
-      elevation: 0,
+      // Soft-3D: cards float with a warm diffused shadow. The M3
+      // surface-tint overlay is disabled so the warm white stays clean.
+      elevation: 4,
+      shadowColor: const Color(0x263A2417),
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         side: const BorderSide(color: AppColors.divider),
       ),
       margin: EdgeInsets.zero,
@@ -247,6 +233,7 @@ ThemeData buildTregaTheme() {
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       showDragHandle: true,
       shape: RoundedRectangleBorder(
