@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_gradients.dart';
+import '../theme/app_shadows.dart';
 import 'motion.dart';
+import 'trega_button.dart';
 
 /// Friendly placeholder for empty lists (wishlist, bids, orders, …).
 class EmptyState extends StatelessWidget {
@@ -33,10 +36,11 @@ class EmptyState extends StatelessWidget {
                 width: 88,
                 height: 88,
                 decoration: const BoxDecoration(
-                  color: AppColors.primarySoft,
+                  gradient: AppGradients.heroBrown,
                   shape: BoxShape.circle,
+                  boxShadow: AppShadows.button,
                 ),
-                child: Icon(icon, size: 40, color: AppColors.primary),
+                child: Icon(icon, size: 40, color: Colors.white),
               ),
               const SizedBox(height: 16),
               Text(title, style: Theme.of(context).textTheme.titleMedium),
@@ -50,9 +54,11 @@ class EmptyState extends StatelessWidget {
               ),
               if (actionLabel != null) ...[
                 const SizedBox(height: 16),
-                OutlinedButton(
+                TregaButton(
+                  label: actionLabel!,
+                  secondary: true,
+                  expanded: false,
                   onPressed: onAction,
-                  child: Text(actionLabel!),
                 ),
               ],
             ],

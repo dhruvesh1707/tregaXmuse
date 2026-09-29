@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_shadows.dart';
 
 /// Generic status pill for bids, orders and listings.
 class StatusChip extends StatelessWidget {
@@ -31,8 +32,17 @@ class StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: background,
+        // NOTE: not const — background is a runtime color.
         borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            background,
+            background.withValues(alpha: 0.82),
+          ],
+        ),
+        boxShadow: AppShadows.soft,
       ),
       child: Text(
         label,

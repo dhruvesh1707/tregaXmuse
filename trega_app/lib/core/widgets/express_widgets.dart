@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../delivery/express_delivery.dart';
 import '../icons/phosphor_icons.dart';
+import '../theme/app_shadows.dart';
+import 'liquid_glass.dart';
 
 /// Small "Express" pill overlaid on listing photos in the feed cards.
 class ExpressBadge extends StatelessWidget {
@@ -11,32 +13,11 @@ class ExpressBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            PhosphorIconsRegular.lightning,
-            size: 12,
-            color: Color(0xFFFFC53D),
-          ),
-          SizedBox(width: 4),
-          Text(
-            'Express',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
+    // Frosted pill over the listing photo, iOS-style.
+    return const GlassChip(
+      label: 'Express',
+      icon: PhosphorIconsRegular.lightning,
+      foreground: Color(0xFFFFC53D),
     );
   }
 }
@@ -89,13 +70,14 @@ class _ExpressBannerState extends State<ExpressBanner> {
         : 'Order now';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFFB7791F), Color(0xFF7A3A12)],
         ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: AppShadows.card,
       ),
       child: Row(
         children: [

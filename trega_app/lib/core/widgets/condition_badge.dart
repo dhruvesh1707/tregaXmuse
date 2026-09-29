@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
-import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_shadows.dart';
 
 /// Small pill showing the condition grade of a listing.
 class ConditionBadge extends StatelessWidget {
@@ -28,8 +29,14 @@ class ConditionBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: bg,
+        // NOTE: not const — bg is a runtime color.
         borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [bg, bg.withValues(alpha: 0.82)],
+        ),
+        boxShadow: AppShadows.soft,
       ),
       child: Text(
         condition.label,

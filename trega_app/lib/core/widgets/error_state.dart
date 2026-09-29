@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../icons/phosphor_icons.dart';
-import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_gradients.dart';
+import '../theme/app_shadows.dart';
 import 'motion.dart';
 import 'trega_button.dart';
 
@@ -40,10 +42,11 @@ class TregaErrorState extends StatelessWidget {
                 width: 88,
                 height: 88,
                 decoration: const BoxDecoration(
-                  color: AppColors.primarySoft,
+                  gradient: AppGradients.heroBrown,
                   shape: BoxShape.circle,
+                  boxShadow: AppShadows.button,
                 ),
-                child: Icon(icon, size: 40, color: AppColors.primary),
+                child: Icon(icon, size: 40, color: Colors.white),
               ),
               const SizedBox(height: 16),
               Text(
