@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/screens/home_screen.dart';
 import 'phone_auth_screen.dart';
@@ -97,7 +98,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(),
       body: SafeArea(
         child: Padding(

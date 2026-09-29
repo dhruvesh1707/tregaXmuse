@@ -6,7 +6,11 @@ import 'package:pinput/pinput.dart';
 
 import '../../../core/firebase/auth_service.dart';
 import '../../../core/firebase/firebase_providers.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/screens/home_screen.dart';
 import 'profile_setup_screen.dart';
@@ -211,16 +215,18 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 fontWeight: FontWeight.w700,
               ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        // NOTE: not const — Border.all has no const constructor.
         borderRadius: BorderRadius.circular(16),
+        gradient: AppGradients.card,
         border: Border.all(color: border, width: 1.5),
+        boxShadow: AppShadows.soft,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(),
       body: SafeArea(
         child: Padding(
@@ -287,12 +293,8 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 ),
               if (_interrupted && !_otpSent) ...[
                 const SizedBox(height: 12),
-                Container(
+                GlassCard(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   child: Text(
                     'Your last verification was interrupted. Tap Send OTP to try again.',
                     style: Theme.of(context).textTheme.bodyMedium,

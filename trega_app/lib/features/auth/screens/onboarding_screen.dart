@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/trega_button.dart';
 import 'phone_auth_screen.dart';
 
@@ -78,13 +80,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           width: 120,
                           height: 120,
                           decoration: const BoxDecoration(
-                            color: AppColors.primarySoft,
+                            gradient: AppGradients.heroBrown,
                             shape: BoxShape.circle,
+                            boxShadow: AppShadows.button,
                           ),
                           child: Icon(
                             slide.icon,
                             size: 56,
-                            color: AppColors.primary,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 32),
