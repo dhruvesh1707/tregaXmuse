@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -111,16 +112,14 @@ class _OrderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listingId = order.listing.id;
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context).pushNamed(
-          OrderTrackingScreen.routeName,
-          arguments: order.id,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 16,
+      onTap: () => Navigator.of(context).pushNamed(
+        OrderTrackingScreen.routeName,
+        arguments: order.id,
+      ),
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -181,8 +180,6 @@ class _OrderCard extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }

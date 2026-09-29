@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../home/providers/listing_providers.dart';
@@ -189,14 +191,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   ) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        selectedColor: AppColors.primary,
-        labelStyle: TextStyle(
-          color: selected ? Colors.white : AppColors.primaryDark,
-          fontWeight: FontWeight.w600,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            // NOTE: not const — Border.all has no const constructor.
+            borderRadius: BorderRadius.circular(20),
+            gradient:
+                selected ? AppGradients.primaryButton : AppGradients.card,
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.divider,
+            ),
+            boxShadow:
+                selected ? AppShadows.button : AppShadows.soft,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : AppColors.primaryDark,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );

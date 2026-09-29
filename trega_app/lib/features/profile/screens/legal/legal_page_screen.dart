@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/trega_scaffold.dart';
 import 'legal_content.dart';
 
 /// Arguments for [LegalPageScreen.routeName].
@@ -23,13 +24,13 @@ class LegalPageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final page = legalPages[pageId];
     if (page == null) {
-      return Scaffold(
+      return TregaScaffold(
         appBar: AppBar(),
         body: const Center(child: Text('Page not found.')),
       );
     }
     final textTheme = Theme.of(context).textTheme;
-    return Scaffold(
+    return TregaScaffold(
       appBar: AppBar(title: Text(page.title)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),

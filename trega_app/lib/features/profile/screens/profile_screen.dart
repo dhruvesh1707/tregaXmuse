@@ -10,7 +10,11 @@ import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/models/user.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/glass_sheet.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/photo_viewer.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -94,10 +98,9 @@ class ProfileScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(16),
                           child: Skeletonizer(
                             enabled: profileLoading,
-                            child: Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
+                            child: GlassCard(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
                                   children: [
                                     _AvatarEditor(
                                       uid: uid,
@@ -158,7 +161,6 @@ class ProfileScreen extends ConsumerWidget {
                                     ),
                                   ],
                                 ),
-                              ),
                             ),
                           ),
                         ),
@@ -326,21 +328,31 @@ class _MenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Entrance(
       index: index,
-      child: ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         decoration: BoxDecoration(
-          color: AppColors.primarySoft,
-          borderRadius: BorderRadius.circular(12),
+          // NOTE: not const — Border.all has no const constructor.
+          borderRadius: BorderRadius.circular(16),
+          gradient: AppGradients.card,
+          border: Border.all(color: AppColors.divider),
+          boxShadow: AppShadows.soft,
         ),
-        child: Icon(icon, color: AppColors.primary),
-      ),
-      title: Text(title),
-      subtitle: subtitle == null ? null : Text(subtitle!),
-      trailing: const Icon(PhosphorIconsRegular.caretRight,
-          color: AppColors.textSecondary,),
-      onTap: onTap,
+        child: ListTile(
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.primary),
+          ),
+          title: Text(title),
+          subtitle: subtitle == null ? null : Text(subtitle!),
+          trailing: const Icon(PhosphorIconsRegular.caretRight,
+              color: AppColors.textSecondary,),
+          onTap: onTap,
+        ),
       ),
     );
   }
@@ -370,28 +382,22 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
     // Material sheet (not the Cupertino one): the Cupertino sheet resolves
     // its background from CupertinoTheme, which paints grey inside our
     // MaterialApp and left users staring at a blank grey panel.
-    final source = await showModalBottomSheet<ImageSource>(
+    final source = await showGlassSheet<ImageSource>(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(PhosphorIconsRegular.camera),
-              title: const Text('Take a photo'),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(PhosphorIconsRegular.images),
-              title: const Text('Choose from gallery'),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
-            ),
-          ],
-        ),
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(PhosphorIconsRegular.camera),
+            title: const Text('Take a photo'),
+            onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+          ),
+          ListTile(
+            leading: const Icon(PhosphorIconsRegular.images),
+            title: const Text('Choose from gallery'),
+            onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+          ),
+        ],
       ),
     );
     if (source == null || !mounted) return;

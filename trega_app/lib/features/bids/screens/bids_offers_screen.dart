@@ -7,7 +7,11 @@ import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/glass_dialog.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -204,10 +208,9 @@ class _MyOfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -268,7 +271,6 @@ class _MyOfferCard extends StatelessWidget {
             },
           ],
         ),
-      ),
     );
   }
 }
@@ -376,9 +378,9 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
   Future<void> _accept(
       BuildContext context, WidgetRef ref, Bid bid,) async {
     final buyerLabel = bid.buyerName ?? 'the buyer';
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => GlassDialog(
         title: const Text('Accept this offer?'),
         content: Text(
           "Accept $buyerLabel's offer of ${formatINR(bid.amount)}? "
@@ -438,9 +440,9 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
 
   Future<void> _reject(
       BuildContext context, WidgetRef ref, Bid bid,) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => GlassDialog(
         title: const Text('Reject this offer?'),
         content: const Text(
           'The buyer will be notified and can send a new offer.',
@@ -489,9 +491,9 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
 
   Future<void> _cancelAcceptance(
       BuildContext context, WidgetRef ref, Bid bid,) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => GlassDialog(
         title: const Text('Cancel the accepted offer?'),
         content: const Text(
           'The listing opens up for offers again and the buyer is notified.',
@@ -562,10 +564,9 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
     final past =
         widget.bids.where((b) => b.status == BidStatus.rejected).toList();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Listing header.
@@ -590,12 +591,9 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
 
             // Accepted offer banner (exclusive reservation).
             for (final bid in accepted) ...[
-              Container(
+              GlassCard(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                borderRadius: 12,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -699,7 +697,6 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
             ],
           ],
         ),
-      ),
     );
   }
 }
@@ -755,8 +752,11 @@ class _OfferRow extends StatelessWidget {
       child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        // NOTE: not const — Border.all has no const constructor.
+        gradient: AppGradients.card,
         border: Border.all(color: AppColors.divider),
         borderRadius: BorderRadius.circular(12),
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
