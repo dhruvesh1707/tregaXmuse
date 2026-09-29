@@ -13,7 +13,11 @@ import '../../../core/marketplace/fee_config.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
 import '../../../core/models/saved_address.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/glass_dialog.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -457,16 +461,12 @@ static bool _isValidUpi(String upi) =>
       body: Column(
         children: [
           if (_error != null)
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: GlassCard(
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 12,),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppColors.error.withValues(alpha: 0.35),),
-              ),
+              borderRadius: 12,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -483,6 +483,7 @@ static bool _isValidUpi(String upi) =>
                     ),
                   ),
                 ],
+              ),
               ),
             ),
           Expanded(
@@ -654,12 +655,15 @@ static bool _isValidUpi(String upi) =>
                               width: 96,
                               height: 96,
                               decoration: BoxDecoration(
+                                // NOTE: not const — Border.all has no const constructor.
                                 borderRadius: BorderRadius.circular(12),
+                                gradient: AppGradients.card,
                                 border: Border.all(
                                   color: AppColors.primary,
                                   style: BorderStyle.solid,
                                   width: 1.5,
                                 ),
+                                boxShadow: AppShadows.soft,
                               ),
                               child: const Column(
                                 mainAxisAlignment:
@@ -1001,12 +1005,14 @@ class _CategoryTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: selected ? AppColors.primarySoft : AppColors.surface,
+        // NOTE: not const — Border.all has no const constructor.
         borderRadius: BorderRadius.circular(14),
+        gradient: AppGradients.card,
         border: Border.all(
           color: selected ? AppColors.primary : AppColors.divider,
           width: selected ? 1.5 : 1,
         ),
+        boxShadow: AppShadows.soft,
       ),
       child: ListTile(
         title: Text(
@@ -1085,13 +1091,9 @@ class _ReviewSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
+        GlassCard(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.divider),
-          ),
+          borderRadius: 16,
           child: Column(
             children: [
               row('Photos', '$photoCount captured'),
@@ -1203,34 +1205,28 @@ class _PublishedCelebrationState extends State<_PublishedCelebration> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(32, 36, 32, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SuccessCheck(size: 96),
-            const SizedBox(height: 20),
-            Text(
-              'Your listing is live!',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
+    return GlassDialog(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SuccessCheck(size: 96),
+          const SizedBox(height: 20),
+          Text(
+            'Your listing is live!',
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Buyers can discover it right now. We\u2019ll notify you the moment an offer lands.',
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Buyers can discover it right now. We\u2019ll notify you the moment an offer lands.',
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

@@ -16,7 +16,11 @@ import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/glass_sheet.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
 import '../../../core/widgets/blocking_progress.dart';
@@ -111,10 +115,11 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     }
 
     if (!context.mounted) return;
-    final amount = await showModalBottomSheet<double>(
+    final amount = await showGlassSheet<double>(
       context: context,
-      isScrollControlled: true,
-      builder: (_) => _OfferSheet(price: listing.price),
+      builder: (_) => SingleChildScrollView(
+        child: _OfferSheet(price: listing.price),
+      ),
     );
     if (amount == null || amount <= 0) return;
     if (!context.mounted) return;
@@ -309,9 +314,9 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                     const Positioned(
                       bottom: 16,
                       right: 16,
-                      child: CircleAvatar(
-                        backgroundColor: Colors.black54,
-                        child: Icon(PhosphorIconsRegular.play, color: Colors.white),
+                      child: GlassIconButton(
+                        icon: PhosphorIconsRegular.play,
+                        onPressed: null,
                       ),
                     ),
                   if (product.imageUrls.length > 1)
@@ -477,12 +482,12 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     final isSeller = uid != null && uid == listing.seller.id;
 
     Widget bar(Widget child) {
-      return Container(
+      // Frosted iOS-style action bar: blurs the content scrolling beneath
+      // it instead of sitting as a flat white slab.
+      return LiquidGlass(
+        borderRadius: 0,
+        shadows: AppShadows.soft,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.divider)),
-        ),
         child: SafeArea(top: false, child: child),
       );
     }
@@ -630,27 +635,10 @@ class _VerifiedPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(PhosphorIconsRegular.sealCheck, size: 14, color: AppColors.primary),
-          SizedBox(width: 4),
-          Text(
-            'Verified seller',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primaryDark,
-            ),
-          ),
-        ],
-      ),
+    return const GlassChip(
+      label: 'Verified seller',
+      icon: PhosphorIconsRegular.sealCheck,
+      foreground: AppColors.primaryDark,
     );
   }
 }
@@ -672,10 +660,9 @@ class _SellerInfo extends ConsumerWidget {
         final name =
             (seller?.name.isNotEmpty ?? false) ? seller!.name : 'Seller';
         final verified = seller?.isVerifiedSeller ?? false;
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
+        return GlassCard(
+          padding: const EdgeInsets.all(12),
+          child: Row(
               children: [
                 const CircleAvatar(
                   radius: 24,
@@ -710,7 +697,6 @@ class _SellerInfo extends ConsumerWidget {
 
               ],
             ),
-          ),
         );
       },
     );
@@ -739,54 +725,46 @@ class _OfferSheetState extends State<_OfferSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+    // Content for showGlassSheet — the sheet provides the drag pill,
+    // outer padding and keyboard inset handling.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Make an offer',
+            style: Theme.of(context).textTheme.titleLarge,),
+        const SizedBox(height: 4),
+        Text(
+          'Asking price: ${formatINR(widget.price)}. The seller can '
+          'accept or reject — no chat needed.',
+          style: Theme.of(context).textTheme.bodySmall,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Make an offer',
-                style: Theme.of(context).textTheme.titleLarge,),
-            const SizedBox(height: 4),
-            Text(
-              'Asking price: ${formatINR(widget.price)}. The seller can '
-              'accept or reject — no chat needed.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'Your offer',
-                prefixText: '₹ ',
-                hintText: '${(widget.price * 0.9).round()}',
-                errorText: _error,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TregaButton(
-              label: 'Send offer',
-              onPressed: () {
-                final amount =
-                    double.tryParse(_amountController.text.trim());
-                if (amount == null || amount <= 0) {
-                  setState(() => _error = 'Enter a valid amount.');
-                  return;
-                }
-                Navigator.of(context).pop(amount);
-              },
-            ),
-          ],
+        const SizedBox(height: 16),
+        TextField(
+          controller: _amountController,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'Your offer',
+            prefixText: '₹ ',
+            hintText: '${(widget.price * 0.9).round()}',
+            errorText: _error,
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        TregaButton(
+          label: 'Send offer',
+          onPressed: () {
+            final amount =
+                double.tryParse(_amountController.text.trim());
+            if (amount == null || amount <= 0) {
+              setState(() => _error = 'Enter a valid amount.');
+              return;
+            }
+            Navigator.of(context).pop(amount);
+          },
+        ),
+      ],
     );
   }
 }

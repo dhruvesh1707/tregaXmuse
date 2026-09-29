@@ -12,7 +12,11 @@ import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/payments/cashfree_service.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/glass_dialog.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -274,13 +278,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           final placeable = quote.sellerPayout > 0;
           return TregaScaffold(
             body: _buildForm(context, bid),
-            bottomSheet: Container(
+            bottomSheet: LiquidGlass(
+              borderRadius: 0,
+              shadows: AppShadows.soft,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border:
-                    Border(top: BorderSide(color: AppColors.divider)),
-              ),
               child: SafeArea(
                 top: false,
                 child: TregaButton(
@@ -315,13 +316,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             // ── Order summary ──────────────────────────────────────
             Text('Order summary', style: textTheme.titleMedium),
             const SizedBox(height: 12),
-            Container(
+            GlassCard(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
+              borderRadius: 16,
               child: Row(
                 children: [
                   if (listing != null &&
@@ -441,12 +438,9 @@ _buildPriceBreakdown(context, bid),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Container(
+              GlassCard(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                borderRadius: 12,
                 child: Text(
                   _error!,
                   style: textTheme.bodyMedium?.copyWith(
@@ -553,12 +547,9 @@ _buildPriceBreakdown(context, bid),
 
     final children = <Widget>[
       if (q.sellerPayout <= 0) ...[
-        Container(
+        GlassCard(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.error.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          borderRadius: 12,
           child: Text(
             "This order can't be placed — at ${formatINR(q.price)} the seller's ${formatINRPaise(q.deliverySellerShare)} delivery share is more than the sale price, so the seller would lose money on it.",
             style: textTheme.bodySmall?.copyWith(color: AppColors.error),
@@ -568,13 +559,9 @@ _buildPriceBreakdown(context, bid),
       ],
       Text('Price breakdown', style: textTheme.titleMedium),
       const SizedBox(height: 12),
-      Container(
+      GlassCard(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider),
-        ),
+        borderRadius: 16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: cardChildren,
@@ -588,12 +575,9 @@ _buildPriceBreakdown(context, bid),
       final stdGst = (stdFee * feeCfg.gstPct / 100).roundToDouble();
       children.addAll([
         const SizedBox(height: 8),
-        Container(
+        GlassCard(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.primarySoft,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          borderRadius: 12,
           child: Text(
             'Zero Fee Launch — you save ${formatINR(stdFee + stdGst)} in fees.',
             style: textTheme.bodySmall?.copyWith(
@@ -697,34 +681,28 @@ class _PaymentCelebrationState extends State<_PaymentCelebration> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(32, 36, 32, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SuccessCheck(size: 96),
-            const SizedBox(height: 20),
-            Text(
-              'Payment successful!',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
+    return GlassDialog(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SuccessCheck(size: 96),
+          const SizedBox(height: 20),
+          Text(
+            'Payment successful!',
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Your order is confirmed. The seller has been notified to hand over the item for pickup.',
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your order is confirmed. The seller has been notified to hand over the item for pickup.',
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -759,12 +737,14 @@ class _DeliveryOptionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            // NOTE: not const — Border.all has no const constructor.
             borderRadius: BorderRadius.circular(16),
+            gradient: AppGradients.card,
             border: Border.all(
               color: selected ? AppColors.primary : AppColors.divider,
               width: selected ? 1.6 : 1,
             ),
+            boxShadow: AppShadows.soft,
           ),
           child: Row(
             children: [
