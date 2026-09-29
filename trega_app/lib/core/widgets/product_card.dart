@@ -54,7 +54,7 @@ class ProductCard extends ConsumerWidget {
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(18)),
+          borderRadius: const BorderRadius.all(Radius.circular(18)),
           gradient: AppGradients.card,
           // NOTE: not const — Border.all has no const constructor.
           border: Border.all(color: AppColors.divider),

@@ -70,7 +70,8 @@ class _ExpressBannerState extends State<ExpressBanner> {
         : 'Order now';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
+        // NOTE: not const — this SDK rejects a const BoxDecoration here.
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

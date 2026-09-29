@@ -65,20 +65,26 @@ class GlassDialog extends StatelessWidget {
 
 /// Shows a [GlassDialog]. Drop-in replacement for `showDialog` + AlertDialog
 /// at call sites that want the modern look.
+///
+/// If [builder] is given, it builds the dialog route's content directly
+/// (e.g. return a [GlassDialog] from it); [title], [content] and [actions]
+/// are ignored in that case.
 Future<T?> showGlassDialog<T>({
   required BuildContext context,
   Widget? title,
   Widget? content,
   List<Widget>? actions,
+  WidgetBuilder? builder,
   bool barrierDismissible = true,
 }) {
   return showDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    builder: (_) => GlassDialog(
-      title: title,
-      content: content,
-      actions: actions,
-    ),
+    builder: builder ??
+        (_) => GlassDialog(
+              title: title,
+              content: content,
+              actions: actions,
+            ),
   );
 }

@@ -89,7 +89,7 @@ class TregaButton extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     vertical: 15, horizontal: 20,),
                 child: Center(
-                    child: _labelRow(baseStyle.copyWith(color: fg), fg,)),
+                    child: _labelRow(baseStyle.copyWith(color: fg), fg,),),
               ),
             ),
           ),

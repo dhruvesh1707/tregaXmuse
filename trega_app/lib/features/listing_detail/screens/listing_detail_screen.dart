@@ -17,7 +17,6 @@ import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_sheet.dart';
 import '../../../core/widgets/liquid_glass.dart';

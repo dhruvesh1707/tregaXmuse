@@ -258,11 +258,12 @@ ThemeData buildTregaTheme() {
     ),
     snackBarTheme: SnackBarThemeData(
       // Dark-glass toast: espresso at near-opacity, floating with margin.
+      // NOTE: no `margin` here — this SDK's SnackBarThemeData has no such
+      // named parameter; the floating behavior still offsets from edges.
       backgroundColor: AppColors.espresso.withValues(alpha: 0.94),
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
       behavior: SnackBarBehavior.floating,
       elevation: 0,
-      margin: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),

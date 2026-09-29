@@ -134,7 +134,8 @@ class HomeScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: SectionHeader(
               title: 'Fresh listings',
-              onSeeAll: () =>
+              actionLabel: 'See all',
+              onAction: () =>
                   Navigator.of(context).pushNamed(SearchScreen.routeName),
             ),
           ),
@@ -247,7 +248,7 @@ class _CategoryRail extends StatelessWidget {
                 width: 84,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  borderRadius: const BorderRadius.all(Radius.circular(18)),
                   gradient: AppGradients.card,
                   // NOTE: not const — Border.all has no const constructor.
                   border: Border.all(color: AppColors.divider),
