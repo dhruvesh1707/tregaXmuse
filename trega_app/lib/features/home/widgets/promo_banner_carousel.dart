@@ -119,6 +119,8 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
           height: 156,
           child: PageView.builder(
             controller: _controller,
+            // No manual swiping — banners auto-advance on a timer only.
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: _slides.length,
             onPageChanged: (i) => setState(() => _index = i),
             itemBuilder: (context, i) =>
