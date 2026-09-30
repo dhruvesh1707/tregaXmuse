@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "159020518470",
+    "project_id": "tregaxmuse",
+    "storage_bucket": "tregaxmuse.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:159020518470:android:5c1b6242d93b03100fce47",
+        "android_client_info": {
+          "package_name": "com.trega.trega"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQbhshdJB4LAjdLtb4i-qdyuybZkDmAjk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
