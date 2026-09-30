@@ -25,6 +25,9 @@ dependencies:
   # All new code must use Firebase via lib/core/firebase/. Do not add new Dio calls.)
   dio: ^5.7.0
 
+  # Device connectivity (offline detection for no-internet states)
+  connectivity_plus: ^7.3.1
+
   # Media
   image_picker: ^1.1.2
   image_cropper: ^12.2.1 # profile photo crop only — gallery stays out of the sell flow

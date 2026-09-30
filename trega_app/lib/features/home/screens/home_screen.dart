@@ -11,7 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_state.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/floating_tab_bar.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
@@ -164,8 +164,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            error: (_, __) => SliverToBoxAdapter(
-              child: TregaErrorState(
+            error: (e, __) => SliverToBoxAdapter(
+              child: errorStateFor(
+                e,
                 title: 'Couldn\'t load listings',
                 onRetry: () => ref.invalidate(liveListingsProvider),
               ),

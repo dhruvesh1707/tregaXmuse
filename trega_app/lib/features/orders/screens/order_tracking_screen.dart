@@ -15,6 +15,7 @@ import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../core/widgets/trega_toast.dart';
 import '../../home/providers/listing_providers.dart';
@@ -22,12 +23,19 @@ import '../../home/providers/listing_providers.dart';
 /// Doorstep pickup + delivery tracking timeline for a single order.
 ///
 /// Streams `orders/{orderId}` from Firestore.
-class OrderTrackingScreen extends ConsumerWidget {
+class OrderTrackingScreen extends ConsumerStatefulWidget {
   static const String routeName = '/orders/tracking';
 
   final String? orderId;
 
   const OrderTrackingScreen({super.key, this.orderId});
+
+  @override
+  ConsumerState<OrderTrackingScreen> createState() =>
+      _OrderTrackingScreenState();
+}
+
+class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   static const List<(OrderStatus, String)> _timeline = [
     (OrderStatus.confirmed, 'Order confirmed'),
@@ -38,9 +46,13 @@ class OrderTrackingScreen extends ConsumerWidget {
     (OrderStatus.delivered, 'Delivered'),
   ];
 
+  /// Bumped on retry so the [StreamBuilder] below gets a new key and
+  /// resubscribes to a fresh order stream.
+  int _nonce = 0;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final id = orderId;
+  Widget build(BuildContext context) {
+    final id = widget.orderId;
     if (id == null) {
       return TregaScaffold(
         appBar: AppBar(title: const Text('Track order')),
@@ -49,6 +61,7 @@ class OrderTrackingScreen extends ConsumerWidget {
     }
     final orderAsync = ref.watch(firestoreServiceProvider).watchOrder(id);
     return StreamBuilder<Order?>(
+      key: ValueKey(_nonce),
       stream: orderAsync,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -58,7 +71,17 @@ class OrderTrackingScreen extends ConsumerWidget {
           );
         }
         final order = snap.data;
-        if (order == null || snap.hasError) {
+        if (snap.hasError) {
+          return TregaScaffold(
+            appBar: AppBar(title: const Text('Track order')),
+            body: errorStateFor(
+              snap.error!,
+              title: 'Couldn\'t load this order',
+              onRetry: () => setState(() => _nonce++),
+            ),
+          );
+        }
+        if (order == null) {
           return TregaScaffold(
             appBar: AppBar(title: const Text('Track order')),
             body: const Center(

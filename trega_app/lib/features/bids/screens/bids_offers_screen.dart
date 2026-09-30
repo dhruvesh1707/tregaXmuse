@@ -15,6 +15,7 @@ import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -58,6 +59,10 @@ class _BidsOffersScreenState extends ConsumerState<BidsOffersScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
 
+  /// Bumped on retry so each tab's StreamBuilder resubscribes with a fresh
+  /// stream (passed down as a nonce that keys the StreamBuilders).
+  int _nonce = 0;
+
   @override
   void initState() {
     super.initState();
@@ -98,9 +103,13 @@ class _BidsOffersScreenState extends ConsumerState<BidsOffersScreen>
         children: [
           _MyOffersTab(
             stream: uid == null ? null : service.watchMyBids(uid),
+            nonce: _nonce,
+            onRetry: () => setState(() => _nonce++),
           ),
           _OffersReceivedTab(
             stream: uid == null ? null : service.watchOffersReceived(uid),
+            nonce: _nonce,
+            onRetry: () => setState(() => _nonce++),
           ),
         ],
       ),
@@ -145,7 +154,16 @@ void _openListing(BuildContext context, String listingId) {
 class _MyOffersTab extends ConsumerWidget {
   final Stream<List<Bid>>? stream;
 
-  const _MyOffersTab({required this.stream});
+  /// Bumped by the parent on retry; keys the StreamBuilder so it
+  /// resubscribes with a fresh stream.
+  final int nonce;
+  final VoidCallback onRetry;
+
+  const _MyOffersTab({
+    required this.stream,
+    required this.nonce,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -157,6 +175,7 @@ class _MyOffersTab extends ConsumerWidget {
       );
     }
     return StreamBuilder<List<Bid>>(
+      key: ValueKey(nonce),
       stream: stream,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -169,10 +188,10 @@ class _MyOffersTab extends ConsumerWidget {
           );
         }
         if (snap.hasError) {
-          return const EmptyState(
-            icon: PhosphorIconsRegular.cloudSlash,
+          return errorStateFor(
+            snap.error!,
             title: "Couldn't load offers",
-            subtitle: 'Check your connection and try again.',
+            onRetry: onRetry,
           );
         }
         final bids = snap.data ?? const <Bid>[];
@@ -282,7 +301,16 @@ class _MyOfferCard extends StatelessWidget {
 class _OffersReceivedTab extends ConsumerWidget {
   final Stream<List<Bid>>? stream;
 
-  const _OffersReceivedTab({required this.stream});
+  /// Bumped by the parent on retry; keys the StreamBuilder so it
+  /// resubscribes with a fresh stream.
+  final int nonce;
+  final VoidCallback onRetry;
+
+  const _OffersReceivedTab({
+    required this.stream,
+    required this.nonce,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -294,6 +322,7 @@ class _OffersReceivedTab extends ConsumerWidget {
       );
     }
     return StreamBuilder<List<Bid>>(
+      key: ValueKey(nonce),
       stream: stream,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -306,10 +335,10 @@ class _OffersReceivedTab extends ConsumerWidget {
           );
         }
         if (snap.hasError) {
-          return const EmptyState(
-            icon: PhosphorIconsRegular.cloudSlash,
+          return errorStateFor(
+            snap.error!,
             title: "Couldn't load offers",
-            subtitle: 'Check your connection and try again.',
+            onRetry: onRetry,
           );
         }
         final bids = snap.data ?? const <Bid>[];

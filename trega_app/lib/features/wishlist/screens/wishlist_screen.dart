@@ -6,8 +6,8 @@ import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 
@@ -68,7 +68,8 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
           return TregaScaffold(
             appBar: AppBar(title: const Text('Wishlist')),
             body: SafeArea(
-              child: TregaErrorState(
+              child: errorStateFor(
+                snap.error!,
                 title: 'Couldn\'t load wishlist',
                 onRetry: () => setState(() => _streamNonce++),
               ),

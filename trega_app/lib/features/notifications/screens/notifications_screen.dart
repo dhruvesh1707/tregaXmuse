@@ -12,6 +12,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/trega_toast.dart';
 
 /// Push + in-app notification inbox.
@@ -130,14 +131,10 @@ class _NotificationsScreenState
                       child: CircularProgressIndicator(),);
                 }
                 if (snap.hasError) {
-                  return EmptyState(
-                    icon:
-                        PhosphorIconsRegular.bellSlash,
+                  return errorStateFor(
+                    snap.error!,
                     title: 'Couldn’t load notifications',
-                    subtitle:
-                        'Check your connection and pull to try again.',
-                    actionLabel: 'Retry',
-                    onAction: _refresh,
+                    onRetry: _refresh,
                   );
                 }
                 final items = snap.data ?? [];

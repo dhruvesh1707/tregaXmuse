@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../home/providers/listing_providers.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
@@ -124,11 +125,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         const ProductCardSkeleton(),
                   )
                 : liveAsync.hasError
-                    ? Center(
-                        child: Text(
-                          'Couldn\'t load listings. Check your connection.',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
+                    ? errorStateFor(
+                        liveAsync.error!,
+                        title: "Couldn't load listings",
+                        onRetry: () =>
+                            ref.invalidate(liveListingsProvider),
                       )
                     : results.isEmpty
                         ? Center(

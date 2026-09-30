@@ -23,7 +23,7 @@ import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
 import '../../../core/widgets/blocking_progress.dart';
-import '../../../core/widgets/error_state.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/express_widgets.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -245,12 +245,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
               appBar: AppBar(),
               body: const Center(child: CircularProgressIndicator()),
             ),
-      error: (_, __) => initial != null
+      error: (e, __) => initial != null
           ? _buildContent(context, initial)
           : TregaScaffold(
               appBar: AppBar(),
               body: SafeArea(
-                child: TregaErrorState(
+                child: errorStateFor(
+                  e,
                   title: 'Couldn\'t load this listing',
                   onRetry: () =>
                       ref.invalidate(listingDetailProvider(listingId)),

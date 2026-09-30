@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/navigation/deep_link.dart';
+import 'core/network/connectivity_service.dart';
 import 'core/notifications/notification_router.dart';
 import 'features/listing_detail/screens/listing_detail_screen.dart';
 import 'firebase_options.dart';
@@ -136,6 +137,10 @@ Future<void> main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
+
+  // Connectivity: start monitoring before the first screen builds, so the
+  // offline pill and no-internet error states read the correct state.
+  await ConnectivityService.instance.init();
 
   runApp(const ProviderScope(child: TregaApp()));
 }

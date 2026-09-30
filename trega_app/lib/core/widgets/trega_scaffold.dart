@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../icons/phosphor_icons.dart';
+import '../network/connectivity_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_gradients.dart';
+import '../theme/app_shadows.dart';
 
 /// Scaffold with the modern Trega backdrop: a soft warm gradient wash
 /// with two barely-there ambient glows (amber top-right, brown
@@ -78,6 +81,27 @@ class TregaScaffold extends StatelessWidget {
             endDrawer: endDrawer,
             bottomSheet: bottomSheet,
           ),
+          // Floating offline pill — overlays every screen while the
+          // device has no connectivity, vanishes when back online.
+          // Pure overlay: it never shifts the screen's layout.
+          // NOTE: Row, not Center — Center would expand to the Stack's
+          // full height here (finite-loose constraints).
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 0,
+            right: 0,
+            child: ValueListenableBuilder<bool>(
+              valueListenable:
+                  ConnectivityService.instance.isOnline,
+              builder: (context, online, _) {
+                if (online) return const SizedBox.shrink();
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [_OfflinePill()],
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -97,6 +121,52 @@ class TregaScaffold extends StatelessWidget {
               color.withValues(alpha: 0),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Slim floating "you're offline" pill, shown over every [TregaScaffold]
+/// screen while the device has no connectivity.
+///
+/// Driven by [ConnectivityService]; appears and vanishes automatically.
+/// [IgnorePointer] so it never swallows taps meant for the screen below.
+class _OfflinePill extends StatelessWidget {
+  const _OfflinePill();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A1A12).withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.14),
+          ),
+          boxShadow: AppShadows.button,
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIconsRegular.cloudSlash,
+              size: 14,
+              color: Colors.white,
+            ),
+            SizedBox(width: 8),
+            Text(
+              "You're offline",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -10,6 +10,7 @@ import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../home/providers/listing_providers.dart';
 import 'order_tracking_screen.dart';
@@ -17,13 +18,22 @@ import 'order_tracking_screen.dart';
 /// Buyer's order history, streamed from Firestore (`orders` where
 /// `buyerId` == uid). Orders are created server-side by the
 /// `createCashfreeOrder` callable — the app never writes order docs.
-class OrdersScreen extends ConsumerWidget {
+class OrdersScreen extends ConsumerStatefulWidget {
   static const String routeName = '/orders';
 
   const OrdersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends ConsumerState<OrdersScreen> {
+  /// Bumped on retry so the [StreamBuilder] below gets a new key and
+  /// resubscribes to a fresh order stream.
+  int _nonce = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final uid = ref.watch(currentUidProvider);
     final service = ref.watch(firestoreServiceProvider);
     final ordersAsync = uid == null ? null : service.watchMyOrders(uid);
@@ -40,6 +50,7 @@ class OrdersScreen extends ConsumerWidget {
       );
     }
     return StreamBuilder<List<Order>>(
+      key: ValueKey(_nonce),
       stream: ordersAsync,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -57,10 +68,10 @@ class OrdersScreen extends ConsumerWidget {
         if (snap.hasError) {
           return TregaScaffold(
             appBar: AppBar(title: const Text('My Orders')),
-            body: const EmptyState(
-              icon: PhosphorIconsRegular.cloudSlash,
+            body: errorStateFor(
+              snap.error!,
               title: 'Couldn\'t load orders',
-              subtitle: 'Check your connection and try again.',
+              onRetry: () => setState(() => _nonce++),
             ),
           );
         }

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_state.dart';
+import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/product_card.dart';
 import '../../home/providers/listing_providers.dart';
@@ -88,7 +88,8 @@ class CategoryScreen extends ConsumerWidget {
                 itemCount: 6,
                 itemBuilder: (context, i) => const ProductCardSkeleton(),
               ),
-              error: (_, __) => TregaErrorState(
+              error: (e, __) => errorStateFor(
+                e,
                 title: 'Couldn\'t load listings',
                 onRetry: () =>
                     ref.invalidate(categoryListingsProvider(categoryId)),
