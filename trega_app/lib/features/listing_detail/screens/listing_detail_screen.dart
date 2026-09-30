@@ -323,19 +323,24 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                       bottom: 16,
                       left: 0,
                       right: 0,
-                      child: Center(
-                        child: AnimatedSmoothIndicator(
-                          activeIndex: _page,
-                          count: product.imageUrls.length,
-                          effect: const ExpandingDotsEffect(
-                            dotWidth: 8,
-                            dotHeight: 8,
-                            spacing: 5,
-                            expansionFactor: 2.2,
-                            activeDotColor: Colors.white,
-                            dotColor: Colors.white54,
+                      // Row, not Center: Center expands to the Stack's full
+                      // height here and would float the dots mid-photo.
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedSmoothIndicator(
+                            activeIndex: _page,
+                            count: product.imageUrls.length,
+                            effect: const ExpandingDotsEffect(
+                              dotWidth: 8,
+                              dotHeight: 8,
+                              spacing: 5,
+                              expansionFactor: 2.2,
+                              activeDotColor: Colors.white,
+                              dotColor: Colors.white54,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                 ],

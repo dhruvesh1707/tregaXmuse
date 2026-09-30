@@ -52,7 +52,10 @@ class TregaButton extends StatelessWidget {
         onTap: onPressed,
         padding:
             const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        child: Center(child: _labelRow(baseStyle.copyWith(color: fg), fg)),
+        // NOTE: no Center/Align here — under finite-loose constraints
+        // (Scaffold.bottomSheet, dialogs) they expand to max height and
+        // the button fills the screen. The Row centers itself instead.
+        child: _labelRow(baseStyle.copyWith(color: fg), fg),
       );
     } else {
       final gradient = !enabled
@@ -88,8 +91,11 @@ class TregaButton extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                     vertical: 15, horizontal: 20,),
-                child: Center(
-                    child: _labelRow(baseStyle.copyWith(color: fg), fg,),),
+                // NOTE: no Center/Align here — under finite-loose
+                // constraints (Scaffold.bottomSheet, dialogs) they expand
+                // to max height and the button fills the screen. The Row
+                // centers itself instead.
+                child: _labelRow(baseStyle.copyWith(color: fg), fg,),
               ),
             ),
           ),
@@ -103,8 +109,12 @@ class TregaButton extends StatelessWidget {
   }
 
   Widget _labelRow(TextStyle style, Color iconColor) {
+    // MainAxisSize.max + center: the label centers itself horizontally
+    // without a Center/Align widget (those expand to max height under
+    // finite-loose constraints and would blow the button up full-screen).
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (icon != null) ...[
           Icon(icon, size: 18, color: iconColor),

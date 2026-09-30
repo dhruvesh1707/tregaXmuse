@@ -77,19 +77,24 @@ class _GalleryViewerState extends State<GalleryViewer> {
             bottom: 36,
             left: 0,
             right: 0,
-            child: Center(
-              child: AnimatedSmoothIndicator(
-                activeIndex: _index,
-                count: widget.imageUrls.length,
-                effect: const ExpandingDotsEffect(
-                  dotWidth: 6,
-                  dotHeight: 6,
-                  spacing: 6,
-                  expansionFactor: 2.4,
-                  activeDotColor: Colors.white,
-                  dotColor: Colors.white38,
+            // Row, not Center: Center expands to the Stack's full height
+            // and would float the dots mid-screen.
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedSmoothIndicator(
+                  activeIndex: _index,
+                  count: widget.imageUrls.length,
+                  effect: const ExpandingDotsEffect(
+                    dotWidth: 6,
+                    dotHeight: 6,
+                    spacing: 6,
+                    expansionFactor: 2.4,
+                    activeDotColor: Colors.white,
+                    dotColor: Colors.white38,
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],

@@ -161,7 +161,7 @@ class ProductCardSkeleton extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShimmerBox(height: 14),
+                ShimmerBox(width: double.infinity, height: 14),
                 SizedBox(height: 8),
                 ShimmerBox(width: 90, height: 16),
               ],
@@ -185,7 +185,7 @@ class RowSkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ShimmerBox(height: 16),
+            ShimmerBox(width: double.infinity, height: 16),
             SizedBox(height: 10),
             ShimmerBox(width: 140, height: 12),
           ],

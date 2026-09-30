@@ -13,7 +13,9 @@ import 'liquid_glass.dart';
 /// column below the pill — return a Column with mainAxisSize.min (or a
 /// scrollable with a bounded height) from the builder. If the sheet holds
 /// text fields, wrap the content in a SingleChildScrollView at the call
-/// site so the keyboard never covers it.
+/// site so the keyboard never covers it. Never return a vertical
+/// Expanded/Flexible from the builder — the sheet hands its content
+/// unbounded height.
 Future<T?> showGlassSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,

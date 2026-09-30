@@ -7,6 +7,9 @@ import 'liquid_glass.dart';
 /// Keeps [AlertDialog]'s layout contract (title / content / actions) but
 /// renders it as a [LiquidGlass] panel, so every confirmation and prompt
 /// in the app matches the modern theme.
+///
+/// Content gets unbounded height — never put a vertical
+/// Expanded/Flexible inside it.
 class GlassDialog extends StatelessWidget {
   final Widget? title;
   final Widget? content;
