@@ -26,6 +26,15 @@ import '../../home/providers/listing_providers.dart';
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   static const String routeName = '/orders/tracking';
 
+  static const List<(OrderStatus, String)> _timeline = [
+    (OrderStatus.confirmed, 'Order confirmed'),
+    (OrderStatus.pickupScheduled, 'Pickup scheduled with seller'),
+    (OrderStatus.pickedUp, 'Picked up from seller'),
+    (OrderStatus.inTransit, 'In transit to your city'),
+    (OrderStatus.outForDelivery, 'Out for delivery'),
+    (OrderStatus.delivered, 'Delivered'),
+  ];
+
   final String? orderId;
 
   const OrderTrackingScreen({super.key, this.orderId});
@@ -36,15 +45,6 @@ class OrderTrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
-
-  static const List<(OrderStatus, String)> _timeline = [
-    (OrderStatus.confirmed, 'Order confirmed'),
-    (OrderStatus.pickupScheduled, 'Pickup scheduled with seller'),
-    (OrderStatus.pickedUp, 'Picked up from seller'),
-    (OrderStatus.inTransit, 'In transit to your city'),
-    (OrderStatus.outForDelivery, 'Out for delivery'),
-    (OrderStatus.delivered, 'Delivered'),
-  ];
 
   /// Bumped on retry so the [StreamBuilder] below gets a new key and
   /// resubscribes to a fresh order stream.
