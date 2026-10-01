@@ -1,0 +1,230 @@
+import 'package:flutter/material.dart';
+import 'package:trega/core/icons/phosphor_icons.dart';
+import 'package:easy_refresh/easy_refresh.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/models/listing.dart';
+import '../../../core/models/product.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
+import '../../../core/widgets/product_card.dart';
+import '../../home/providers/listing_providers.dart';
+import '../../listing_detail/screens/listing_detail_screen.dart';
+
+/// Search over live listings with condition filters.
+///
+/// Firestore has no full-text search; v1 filters the live feed client-side
+/// by title/description match. (If the catalog grows, swap this for an
+/// Algolia/Typesense integration behind the same UI.)
+class SearchScreen extends ConsumerStatefulWidget {
+  static const String routeName = '/search';
+
+  const SearchScreen({super.key});
+
+  @override
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  final _controller = TextEditingController();
+  Condition? _conditionFilter;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<Listing> _applyFilters(List<Listing> listings) {
+    final q = _controller.text.trim().toLowerCase();
+    return listings.where((l) {
+      if (_conditionFilter != null &&
+          l.product.condition != _conditionFilter) {
+        return false;
+      }
+      if (q.isEmpty) return true;
+      final haystack =
+          '${l.product.title} ${l.product.description}'.toLowerCase();
+      return haystack.contains(q);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final liveAsync = ref.watch(liveListingsProvider);
+    final results = liveAsync.when(
+      data: (listings) => _applyFilters(listings),
+      loading: () => const <Listing>[],
+      error: (_, __) => const <Listing>[],
+    );
+
+    return TregaScaffold(
+      appBar: AppBar(title: const Text('Search')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: TextField(
+              controller: _controller,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Search PS5, iPhone, DSLR…',
+                prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass),
+                suffixIcon: _controller.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(PhosphorIconsRegular.x),
+                        onPressed: () =>
+                            setState(() => _controller.clear()),
+                      ),
+              ),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) {
+                // TODO: trigger search request.
+              },
+            ),
+          ),
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              // Vertical padding 6 -> children get a tight height of 36,
+              // enough for the chip's vertical padding + text line height
+              // so labels sit optically centered instead of cramped.
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              children: [
+                _filterChip(context, 'All', _conditionFilter == null, () {
+                  setState(() => _conditionFilter = null);
+                }),
+                ...Condition.values.map(
+                  (c) => _filterChip(
+                    context,
+                    c.label,
+                    _conditionFilter == c,
+                    () => setState(() => _conditionFilter = c),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: liveAsync.isLoading
+                ? GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.68,
+                    ),
+                    itemCount: 6,
+                    itemBuilder: (context, i) =>
+                        const ProductCardSkeleton(),
+                  )
+                : liveAsync.hasError
+                    ? errorStateFor(
+                        liveAsync.error!,
+                        title: "Couldn't load listings",
+                        onRetry: () =>
+                            ref.invalidate(liveListingsProvider),
+                      )
+                    : results.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No matches. Try another search.',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          )
+                        : EasyRefresh(
+                            header: const ClassicHeader(
+                              textStyle: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,),
+                              iconTheme:
+                                  IconThemeData(color: AppColors.primary),
+                              processedText: 'All caught up',
+                            ),
+                            onRefresh: () =>
+                                ref.refresh(liveListingsProvider.future),
+                            child: GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 0.68,
+                              ),
+                              itemCount: results.length,
+                              itemBuilder: (context, i) {
+                                final listing = results[i];
+                                return Entrance(
+                                  index: i % 8,
+                                  child: ProductCard(
+                                    listing: listing,
+                                    onTap: () =>
+                                        Navigator.of(context).pushNamed(
+                                      ListingDetailScreen.routeName,
+                                      arguments: ListingDetailArgs(
+                                        listingId: listing.id,
+                                        initial: listing,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip(
+    BuildContext context,
+    String label,
+    bool selected,
+    VoidCallback onTap,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          // NOTE: alignment center — the horizontal ListView hands this
+          // container a tight height, and without an explicit alignment
+          // the label sits high instead of centered.
+          alignment: Alignment.center,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            // NOTE: not const — Border.all has no const constructor.
+            borderRadius: BorderRadius.circular(20),
+            gradient:
+                selected ? AppGradients.primaryButton : AppGradients.card,
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.divider,
+            ),
+            boxShadow:
+                selected ? AppShadows.button : AppShadows.soft,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : AppColors.primaryDark,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
