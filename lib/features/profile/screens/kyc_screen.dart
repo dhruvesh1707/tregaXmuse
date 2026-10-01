@@ -9,10 +9,10 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -189,7 +189,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         uid == null ? null : ref.watch(firestoreServiceProvider).watchKyc(uid);
 
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Verify identity')),
+      appBar: TregaAppBar(title: const Text('Verify identity')),
       body: kycStream == null
           ? const Center(child: Text('Sign in to verify your identity.'))
           : StreamBuilder<KycVerification>(
@@ -216,7 +216,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       decoration: BoxDecoration(
         // NOTE: not const — Border.all has no const constructor.
         borderRadius: BorderRadius.circular(16),
-        gradient: AppGradients.card,
+        color: AppColors.surface,
         border: Border.all(color: border, width: 1.5),
         boxShadow: AppShadows.soft,
       ),
@@ -232,7 +232,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             width: 112,
             height: 112,
             decoration: const BoxDecoration(
-              gradient: AppGradients.heroBrown,
+              color: AppColors.primaryDeep,
               shape: BoxShape.circle,
               boxShadow: AppShadows.button,
             ),
@@ -311,31 +311,23 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           ),
         ],
         const SizedBox(height: 24),
-        // The action button stays mounted while busy (label swaps and it
-        // disables) so the layout doesn't jump when a spinner replaces it.
-        if (_refId == null && _consented)
-          TregaButton(
-            label: _busy ? 'Sending…' : 'Send OTP',
-            onPressed: _busy ? null : _requestOtp,
-          )
+        if (_busy)
+          const Center(child: CircularProgressIndicator())
+        else if (_refId == null && _consented)
+          TregaButton(label: 'Send OTP', onPressed: _requestOtp)
         else if (_refId != null) ...[
-          TregaButton(
-            label: _busy ? 'Verifying…' : 'Verify OTP',
-            onPressed: _busy ? null : _verifyOtp,
-          ),
+          TregaButton(label: 'Verify OTP', onPressed: _verifyOtp),
           const SizedBox(height: 12),
           TextButton(
-            onPressed: _resendIn > 0 || _busy ? null : _resendOtp,
+            onPressed: _resendIn > 0 ? null : _resendOtp,
             child: Text(_resendLabel),
           ),
           TextButton(
-            onPressed: _busy
-                ? null
-                : () => setState(() {
-                      _refId = null;
-                      _otpController.clear();
-                      _stopCooldown();
-                    }),
+            onPressed: () => setState(() {
+              _refId = null;
+              _otpController.clear();
+              _stopCooldown();
+            }),
             child: const Text('Use a different Aadhaar number'),
           ),
         ],

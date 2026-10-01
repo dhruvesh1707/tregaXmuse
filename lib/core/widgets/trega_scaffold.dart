@@ -1,16 +1,16 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../icons/phosphor_icons.dart';
 import '../network/connectivity_service.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_shadows.dart';
 
-/// Scaffold with a flat clean Trega backdrop: solid warm paper
-/// ([AppColors.background]).
+/// Scaffold with the minimal Trega backdrop: flat warm paper.
 ///
 /// Drop-in replacement for [Scaffold] on full-screen pages — the
 /// constructor mirrors the commonly used [Scaffold] parameters. Pass
-/// [backgroundColor] to opt a screen out to another solid color.
+/// [backgroundColor] to opt a screen out to a different solid fill.
 class TregaScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget? body;
@@ -24,7 +24,8 @@ class TregaScaffold extends StatelessWidget {
   final Widget? endDrawer;
   final Widget? bottomSheet;
 
-  /// Solid override. Defaults to [AppColors.background].
+  /// Solid override. When null (default) the flat [AppColors.background]
+  /// is used.
   final Color? backgroundColor;
 
   const TregaScaffold({
@@ -94,7 +95,9 @@ class TregaScaffold extends StatelessWidget {
 /// Slim floating "you're offline" pill, shown over every [TregaScaffold]
 /// screen while the device has no connectivity.
 ///
-/// Driven by [ConnectivityService]; appears and vanishes automatically.
+/// Dark glass: espresso at 0.78 alpha + blur 16 + hairline
+/// white-at-0.14 border, no heavy shadow. Driven by
+/// [ConnectivityService]; appears and vanishes automatically.
 /// [IgnorePointer] so it never swallows taps meant for the screen below.
 class _OfflinePill extends StatelessWidget {
   const _OfflinePill();
@@ -102,35 +105,40 @@ class _OfflinePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A1A12).withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.14),
-          ),
-          boxShadow: AppShadows.button,
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              PhosphorIconsRegular.cloudSlash,
-              size: 14,
-              color: Colors.white,
-            ),
-            SizedBox(width: 8),
-            Text(
-              "You're offline",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.espresso.withValues(alpha: 0.78),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.14),
               ),
             ),
-          ],
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  PhosphorIconsRegular.cloudSlash,
+                  size: 14,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  "You're offline",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/screens/home_screen.dart';
 import 'phone_auth_screen.dart';
@@ -99,7 +100,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return TregaScaffold(
-      appBar: AppBar(),
+      appBar: TregaAppBar(),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -150,12 +151,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              // Keep the button mounted while saving (label swaps and it
-              // disables) so the layout doesn't jump.
-              TregaButton(
-                label: _saving ? 'Saving…' : 'Continue',
-                onPressed: _saving ? null : _save,
-              ),
+              if (_saving)
+                const Center(child: CircularProgressIndicator())
+              else
+                TregaButton(
+                  label: 'Continue',
+                  onPressed: _save,
+                ),
               const Spacer(),
               Text(
                 'You can update these later from Profile → Settings.',

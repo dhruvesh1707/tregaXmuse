@@ -7,7 +7,7 @@ import 'package:trega/core/widgets/motion.dart';
 /// Toast severity — controls the icon, accent color and haptic.
 enum TregaToastKind { success, error, info }
 
-/// Trega's premium floating toast: dark, top-anchored, swipe-to-dismiss.
+/// Trega's floating toast: dark glass, top-anchored, swipe-to-dismiss.
 ///
 /// This is the app-wide replacement for raw SnackBars on user-facing
 /// success / error / info feedback. Presentation only — call sites keep
@@ -72,14 +72,13 @@ Future<void> showTregaToast(
     flushbarStyle: FlushbarStyle.FLOATING,
     margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
     borderRadius: BorderRadius.circular(18),
-    backgroundColor: const Color(0xFF241611),
-    boxShadows: const [
-      BoxShadow(
-        color: Color(0x223A2417),
-        blurRadius: 12,
-        offset: Offset(0, 4),
-      ),
-    ],
+    // Dark glass: espresso at 0.78 alpha + blur 16 + hairline
+    // white-at-0.14 border, no heavy shadow.
+    backgroundColor: AppColors.espresso.withValues(alpha: 0.78),
+    barBlur: 16.0,
+    borderColor: Colors.white.withValues(alpha: 0.14),
+    borderWidth: 1.0,
+    boxShadows: const [],
     leftBarIndicatorColor: accent,
     isDismissible: true,
     dismissDirection: FlushbarDismissDirection.HORIZONTAL,

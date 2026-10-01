@@ -7,10 +7,10 @@ import '../delivery/express_delivery.dart';
 import '../firebase/firebase_providers.dart';
 import '../models/listing.dart';
 import '../theme/app_theme.dart';
-import '../theme/app_shadows.dart';
 import '../utils/format.dart';
 import 'condition_badge.dart';
 import 'express_widgets.dart';
+import 'liquid_glass.dart';
 import 'motion.dart';
 
 /// Card used in home feed, search results, category and wishlist grids.
@@ -19,8 +19,9 @@ import 'motion.dart';
 /// (tag `listing-photo-<id>`), and the heart toggles the wishlist via
 /// Firestore with a springy pop + haptic.
 ///
-/// Flat-clean surface: solid white, a hairline divider border and one
-/// subtle shadow.
+/// Minimal glass pass: the card is a [GlassCard] (radius 18) — frosted
+/// fill, hairline border and the one shadow replace the old bordered
+/// gradient surface.
 class ProductCard extends ConsumerWidget {
   final Listing listing;
   final VoidCallback? onTap;
@@ -48,22 +49,11 @@ class ProductCard extends ConsumerWidget {
         ExpressDeliveryConfig.defaults;
     final expressEligible = expressConfig.isCityEligible(listing.city);
     // Tactile press: the whole card dips slightly on touch-down, like an
-    // iOS collection cell. Tap handling stays on the inner InkWell.
+    // iOS collection cell. Tap handling comes from GlassCard's InkWell.
     return PressScale(
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(18)),
-          color: AppColors.surface,
-          // NOTE: not const — Border.all has no const constructor.
-          border: Border.all(color: AppColors.divider),
-          boxShadow: AppShadows.card,
-        ),
-        // InkWell needs a Material ancestor for its splash; the old
-        // Card provided one, the Container does not.
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
+      child: GlassCard(
+        padding: EdgeInsets.zero,
+        borderRadius: 18,
         onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,8 +142,6 @@ class ProductCard extends ConsumerWidget {
               ),
             ),
           ],
-        ),
-          ),
         ),
       ),
     );

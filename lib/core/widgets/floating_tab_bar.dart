@@ -6,11 +6,12 @@ import '../theme/app_shadows.dart';
 import 'liquid_glass.dart';
 import 'motion.dart';
 
-/// iOS-style floating tab bar: a liquid-glass pill hovering above the
-/// content instead of docking to the screen edge.
+/// iOS-style floating tab bar: a frosted pill hovering above the content
+/// instead of docking to the screen edge.
 ///
-/// Frosted blur comes from [LiquidGlass]; the selected destination
-/// gets a solid primary pill.
+/// The frosted blur, hairline border and the one shadow come from
+/// [LiquidGlass]; the selected destination is a solid
+/// [AppColors.primary] pill.
 ///
 /// Destinations and tap behaviour are unchanged from the old
 /// [BottomNavigationBar] — only the presentation is new.
@@ -36,8 +37,8 @@ class FloatingTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return LiquidGlass(
       borderRadius: 30,
-      blur: 24,
-      shadows: AppShadows.floating,
+      blur: 18,
+      shadows: AppShadows.glass,
       padding:
           const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Row(
@@ -89,9 +90,9 @@ class _TabButton extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
             decoration: selected
                 ? const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    borderRadius:
+                        BorderRadius.all(Radius.circular(20)),
                     color: AppColors.primary,
-                    boxShadow: AppShadows.tabSelected,
                   )
                 : null,
             child: Icon(

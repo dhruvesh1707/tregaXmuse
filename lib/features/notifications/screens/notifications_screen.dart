@@ -1,0 +1,214 @@
+import 'package:flutter/material.dart';
+import 'package:trega/core/icons/phosphor_icons.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
+import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/models/app_notification.dart';
+import '../../../core/notifications/notification_router.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/utils/format.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
+import '../../../core/widgets/no_internet_state.dart';
+import '../../../core/widgets/trega_toast.dart';
+
+/// Push + in-app notification inbox.
+///
+/// Reads the user's inbox at `users/{uid}/notifications` (written
+/// server-side by Cloud Functions on bid / order / listing events).
+/// Tapping a notification marks it read; "Mark all read" flips every
+/// unread item via a batched write.
+class NotificationsScreen extends ConsumerStatefulWidget {
+  static const String routeName = '/notifications';
+
+  const NotificationsScreen({super.key});
+
+  @override
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
+}
+
+class _NotificationsScreenState
+    extends ConsumerState<NotificationsScreen> {
+  /// Bumped to force the inbox stream to re-subscribe (retry / refresh).
+  int _streamVersion = 0;
+
+  void _refresh() => setState(() => _streamVersion++);
+
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'bid_received':
+        return PhosphorIconsRegular.gavel;
+      case 'outbid':
+        return PhosphorIconsRegular.trendUp;
+      case 'bid_accepted':
+        return PhosphorIconsRegular.checkCircle;
+      case 'bid_rejected':
+        return PhosphorIconsRegular.xCircle;
+      case 'listing_flagged':
+        return PhosphorIconsRegular.flag;
+      case 'kyc_verified':
+        return PhosphorIconsRegular.sealCheck;
+      case 'kyc_rejected':
+        return PhosphorIconsRegular.xCircle;
+      case 'bid':
+        return PhosphorIconsRegular.gavel;
+      case 'order':
+        return PhosphorIconsRegular.truck;
+      case 'listing':
+        return PhosphorIconsRegular.sealCheck;
+      default:
+        return PhosphorIconsRegular.bell;
+    }
+  }
+
+  /// A tap marks the notification read and opens the screen it is about
+  /// (offer accepted -> checkout, outbid -> listing, and so on). Taps on
+  /// notifications with no destination just mark them read.
+  void _onTapNotification(AppNotification n) {
+    final uid = ref.read(currentUidProvider);
+    if (uid != null && !n.read) {
+      ref
+          .read(firestoreServiceProvider)
+          .markNotificationRead(uid, n.id)
+          .catchError((_) {});
+    }
+    final target = targetForAppNotification(n);
+    if (target != null && mounted) {
+      openNotificationTarget(context, target);
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    try {
+      await ref
+          .read(firestoreServiceProvider)
+          .markAllNotificationsRead(uid);
+    } catch (_) {
+      if (!mounted) return;
+      await showTregaToast(
+        context,
+        'Could not update notifications. Try again.',
+        title: 'Something went wrong',
+        kind: TregaToastKind.error,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = ref.watch(currentUidProvider);
+    final service = ref.watch(firestoreServiceProvider);
+
+    return TregaScaffold(
+      appBar: TregaAppBar(
+        title: const Text('Notifications'),
+        actions: [
+          TextButton(
+            onPressed: uid == null ? null : _markAllRead,
+            child: const Text('Mark all read'),
+          ),
+        ],
+      ),
+      body: uid == null
+          ? const EmptyState(
+              icon: PhosphorIconsRegular.bell,
+              title: 'Not signed in',
+              subtitle: 'Sign in to see your notifications.',
+            )
+          : StreamBuilder<List<AppNotification>>(
+              key: ValueKey(_streamVersion),
+              stream: service.watchNotifications(uid),
+              builder: (context, snap) {
+                if (snap.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator(),);
+                }
+                if (snap.hasError) {
+                  return errorStateFor(
+                    snap.error!,
+                    title: 'Couldn’t load notifications',
+                    onRetry: _refresh,
+                  );
+                }
+                final items = snap.data ?? [];
+                if (items.isEmpty) {
+                  return const EmptyState(
+                    icon:
+                        PhosphorIconsRegular.bell,
+                    title: 'All caught up',
+                    subtitle:
+                        'We’ll notify you about bids, offers and orders.',
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: () async => _refresh(),
+                  child: ListView.builder(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: items.length,
+                    itemBuilder: (context, i) {
+                      final n = items[i];
+                      final time = n.createdAt == null
+                          ? ''
+                          : timeAgo(n.createdAt!);
+                      return Entrance(
+                        index: i % 8,
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(
+                              16, 6, 16, 6),
+                          decoration: BoxDecoration(
+                            // NOTE: not const — Border.all has no const constructor.
+                            borderRadius:
+                                BorderRadius.circular(16),
+                            color: AppColors.surface,
+                            border: Border.all(
+                              color: n.read
+                                  ? AppColors.divider
+                                  : AppColors.primary,
+                              width: n.read ? 1 : 1.5,
+                            ),
+                            boxShadow: AppShadows.soft,
+                          ),
+                          child: ListTile(
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySoft,
+                                borderRadius:
+                                    BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                  _iconForType(n.type),
+                                  color: AppColors.primary,),
+                            ),
+                            title: Text(
+                              n.title,
+                              style: TextStyle(
+                                fontWeight: n.read
+                                    ? FontWeight.w400
+                                    : FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: Text(
+                                '${n.body}${time.isEmpty ? '' : '\n$time'}',),
+                            isThreeLine: true,
+                            onTap: () => _onTapNotification(n),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}

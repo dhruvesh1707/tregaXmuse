@@ -2,67 +2,81 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Flat-clean surface fills for the Trega theme.
+/// Solid / subtle fills for the minimal Trega glass theme.
 ///
-/// Every member keeps its historical name (call sites across the app
-/// reference them) but renders flat: solid colors or uniform
-/// gradients with no specular sheen, no 3D light-falloff and no
-/// ambient glows. White or light labels always sit on the solid
-/// brand colors below.
+/// Every historic member name is kept so feature call sites keep
+/// compiling, but the soft-3D gradients are flattened: surfaces are
+/// solid, glass tints are translucent white, and ambient glows are fully
+/// transparent. The spec forbids gradient washes, glow blobs and sheens —
+/// these tokens now encode that by being solid.
 abstract final class AppGradients {
-  /// Page background: solid warm paper.
+  /// Page background: flat warm paper. Kept as a same-color gradient so
+  /// call sites passing it to `gradient:` keep compiling.
   static const LinearGradient page = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [AppColors.background, AppColors.background],
+    colors: [
+      AppColors.background,
+      AppColors.background,
+    ],
   );
 
   /// Primary button: solid brand brown.
   static const LinearGradient primaryButton = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [AppColors.primary, AppColors.primary],
+    colors: [
+      AppColors.primary,
+      AppColors.primary,
+    ],
   );
 
-  /// Amber CTA: solid brand amber.
+  /// Amber CTA: solid accent.
   static const LinearGradient accentButton = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [AppColors.accent, AppColors.accent],
+    colors: [
+      AppColors.accent,
+      AppColors.accent,
+    ],
   );
 
-  /// Disabled button: flat warm grey.
+  /// Disabled button: flat warm grey, no depth.
   static const LinearGradient disabledButton = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFE2D8C9), Color(0xFFE2D8C9)],
+    colors: [Color(0xFFE4D9CC), Color(0xFFE4D9CC)],
   );
 
-  /// Frosted fill for liquid glass: uniform subtle white.
+  /// Frosted fill for liquid glass: translucent white (alpha 0.70).
   static const LinearGradient glassTint = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0x40FFFFFF), Color(0x40FFFFFF)],
+    colors: [
+      Color(0xB3FFFFFF),
+      Color(0xB3FFFFFF),
+    ],
   );
 
-  /// Former glass hairline gradient — kept for API compatibility.
-  /// New code should use a plain hairline border instead.
+  /// Hairline border for liquid glass: white at 0.60 alpha.
   static const LinearGradient glassBorder = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0x33FFFFFF), Color(0x33FFFFFF)],
+    colors: [
+      Color(0x99FFFFFF),
+      Color(0x99FFFFFF),
+    ],
   );
 
-  /// Former specular top-light — flattened to transparent. Kept so
-  /// existing references keep compiling.
+  /// Specular top-light: removed — fully transparent. Do not paint
+  /// highlights over surfaces.
   static const LinearGradient sheen = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [Color(0x00FFFFFF), Color(0x00FFFFFF)],
   );
 
-  /// Former button sheen — flattened to transparent. Kept so
-  /// existing references keep compiling.
+  /// Button sheen: removed — fully transparent.
   static const LinearGradient buttonSheen = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -76,16 +90,16 @@ abstract final class AppGradients {
     colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
   );
 
-  /// Hero surfaces: solid deep brand brown.
+  /// Hero surfaces: solid espresso.
   static const LinearGradient heroBrown = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [AppColors.primaryDeep, AppColors.primaryDeep],
+    colors: [AppColors.espresso, AppColors.espresso],
   );
 
-  /// Former ambient amber glow — flattened to transparent. Kept so
-  /// existing references keep compiling.
+  /// Ambient amber glow: removed — fully transparent. No glow blobs.
   static const RadialGradient amberGlow = RadialGradient(
     colors: [Color(0x00F7B600), Color(0x00F7B600)],
+    stops: [0.0, 1.0],
   );
 }

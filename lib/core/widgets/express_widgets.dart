@@ -9,19 +9,19 @@ import '../theme/app_shadows.dart';
 
 /// Small "Express" pill overlaid on listing photos in the feed cards.
 ///
-/// Solid amber fill with dark brown text — readable at a glance on
-/// top of photos.
+/// Solid [AppColors.accent] with [AppColors.primaryDark] text/icon — the
+/// contrast pair is deliberate, do not re-theme it to glass.
 class ExpressBadge extends StatelessWidget {
   const ExpressBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: AppColors.accent,
         borderRadius: BorderRadius.circular(999),
-        boxShadow: AppShadows.soft,
+        boxShadow: AppShadows.glass,
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -96,10 +96,9 @@ class _ExpressBannerState extends State<ExpressBanner> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        // NOTE: not const — this SDK rejects a const BoxDecoration here.
         color: AppColors.primaryDeep,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: AppShadows.card,
+        boxShadow: AppShadows.glass,
       ),
       child: Row(
         children: [

@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-import '../theme/app_shadows.dart';
 import 'liquid_glass.dart';
 import 'motion.dart';
 
-/// Primary / secondary button with Trega styling — flat solid fills.
+/// Primary / secondary / accent button — flat and solid.
 ///
-/// Primary buttons are solid brand brown with a white label and one
-/// subtle shadow; the amber accent variant is solid amber with a dark
-/// label; disabled is flat warm grey. Secondary buttons are liquid
-/// glass. Press feedback (scale + haptic) comes from [PressScale].
+/// - Primary: solid [AppColors.primary] fill, white label.
+/// - Accent: solid [AppColors.accent] fill, dark label — the loudest CTA
+///   on a screen.
+/// - Secondary: true light-glass pill, [AppColors.primary] label.
+///
+/// Radius 16 everywhere. Press feedback (scale + haptic) comes from
+/// [PressScale]; the label centers via a full-width Row — never
+/// Center/Align, which expand to max height under finite-loose
+/// constraints (Scaffold.bottomSheet, dialogs) and blow the button up
+/// full-screen.
 class TregaButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -18,7 +23,7 @@ class TregaButton extends StatelessWidget {
   final bool expanded;
   final IconData? icon;
 
-  /// Amber variant for the loudest CTA on a screen.
+  /// Amber solid variant for the loudest CTA on a screen.
   final bool accent;
 
   const TregaButton({
@@ -42,7 +47,7 @@ class TregaButton extends StatelessWidget {
       letterSpacing: 0.2,
     );
 
-    Widget button;
+    late final Widget button;
     if (secondary) {
       final fg = enabled ? AppColors.primary : AppColors.textSecondary;
       button = LiquidGlass(
@@ -51,27 +56,25 @@ class TregaButton extends StatelessWidget {
         onTap: onPressed,
         padding:
             const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        // NOTE: no Center/Align here — under finite-loose constraints
-        // (Scaffold.bottomSheet, dialogs) they expand to max height and
-        // the button fills the screen. The Row centers itself instead.
         child: _labelRow(baseStyle.copyWith(color: fg), fg),
       );
     } else {
-      final fill = !enabled
-          ? const Color(0xFFE2D8C9)
-          : accent
-              ? AppColors.accent
-              : AppColors.primary;
-      final fg = !enabled
-          ? AppColors.textSecondary
-          : accent
-              ? AppColors.textPrimary
-              : Colors.white;
+      final Color fill;
+      final Color fg;
+      if (!enabled) {
+        fill = const Color(0xFFE4D9CC);
+        fg = AppColors.textSecondary;
+      } else if (accent) {
+        fill = AppColors.accent;
+        fg = AppColors.textPrimary;
+      } else {
+        fill = AppColors.primary;
+        fg = Colors.white;
+      }
       button = Container(
         decoration: BoxDecoration(
           borderRadius: _radius,
           color: fill,
-          boxShadow: enabled ? AppShadows.button : const [],
         ),
         child: Material(
           color: Colors.transparent,
@@ -80,12 +83,10 @@ class TregaButton extends StatelessWidget {
             onTap: onPressed,
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                  vertical: 15, horizontal: 20,),
-              // NOTE: no Center/Align here — under finite-loose
-              // constraints (Scaffold.bottomSheet, dialogs) they expand
-              // to max height and the button fills the screen. The Row
-              // centers itself instead.
-              child: _labelRow(baseStyle.copyWith(color: fg), fg,),
+                vertical: 15,
+                horizontal: 20,
+              ),
+              child: _labelRow(baseStyle.copyWith(color: fg), fg),
             ),
           ),
         ),
