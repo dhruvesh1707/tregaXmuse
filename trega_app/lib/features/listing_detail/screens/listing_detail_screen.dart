@@ -317,7 +317,6 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                       right: 16,
                       child: GlassIconButton(
                         icon: PhosphorIconsRegular.play,
-                        onPressed: null,
                       ),
                     ),
                   if (product.imageUrls.length > 1)
