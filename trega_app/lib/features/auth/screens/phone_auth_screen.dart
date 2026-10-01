@@ -7,10 +7,10 @@ import 'package:pinput/pinput.dart';
 import '../../../core/firebase/auth_service.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/screens/home_screen.dart';
 import 'profile_setup_screen.dart';
@@ -217,7 +217,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
       decoration: BoxDecoration(
         // NOTE: not const — Border.all has no const constructor.
         borderRadius: BorderRadius.circular(16),
-        gradient: AppGradients.card,
+        color: AppColors.surface,
         border: Border.all(color: border, width: 1.5),
         boxShadow: AppShadows.soft,
       ),
@@ -227,7 +227,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   @override
   Widget build(BuildContext context) {
     return TregaScaffold(
-      appBar: AppBar(),
+      appBar: TregaAppBar(),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -312,13 +312,17 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              if (_loading)
-                const Center(child: CircularProgressIndicator())
-              else
-                TregaButton(
-                  label: _otpSent ? 'Verify & Continue' : 'Send OTP',
-                  onPressed: _otpSent ? _verifyOtp : _sendOtp,
-                ),
+              // The button stays mounted while busy (label swaps and it
+              // disables) so the layout doesn't jump when the spinner
+              // would otherwise replace it.
+              TregaButton(
+                label: _loading
+                    ? (_otpSent ? 'Verifying…' : 'Sending…')
+                    : (_otpSent ? 'Verify & Continue' : 'Send OTP'),
+                onPressed: _loading
+                    ? null
+                    : (_otpSent ? _verifyOtp : _sendOtp),
+              ),
               if (_otpSent) ...[
                 const SizedBox(height: 8),
                 Center(

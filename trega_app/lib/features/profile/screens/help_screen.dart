@@ -3,10 +3,10 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_toast.dart';
 
@@ -42,7 +42,7 @@ class HelpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Help & Support')),
+      appBar: TregaAppBar(title: const Text('Help & Support')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
@@ -54,7 +54,7 @@ class HelpScreen extends StatelessWidget {
               // NOTE: not const — BoxShadow list + gradient are fine, but
               // this stays non-const to match the card recipe.
               borderRadius: BorderRadius.circular(20),
-              gradient: AppGradients.card,
+              color: AppColors.surface,
               border: Border.all(color: AppColors.divider),
               boxShadow: AppShadows.card,
             ),
@@ -63,6 +63,7 @@ class HelpScreen extends StatelessWidget {
                 Container(
                   width: 52,
                   height: 52,
+                  alignment: Alignment.center,
                   decoration: const BoxDecoration(
                     color: AppColors.primary,
                     shape: BoxShape.circle,
@@ -151,6 +152,7 @@ class HelpScreen extends StatelessWidget {
               leading: Container(
                 width: 48,
                 height: 48,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(14),
@@ -233,7 +235,7 @@ class _FaqTile extends StatelessWidget {
         decoration: BoxDecoration(
           // NOTE: not const — Border.all has no const constructor.
           borderRadius: BorderRadius.circular(16),
-          gradient: AppGradients.card,
+          color: AppColors.surface,
           border: Border.all(color: AppColors.divider),
           boxShadow: AppShadows.soft,
         ),

@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/no_internet_state.dart';
@@ -81,14 +80,9 @@ class HomeScreen extends ConsumerWidget {
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.72),
-                        Colors.white.withValues(alpha: 0.42),
-                      ],
-                    ),
+                    // Flat wash (was a vertical gradient): the BackdropFilter
+                    // above does the actual frosting; this just tints it.
+                    color: Colors.white.withValues(alpha: 0.62),
                     border: Border(
                       bottom: BorderSide(
                         color: Colors.white.withValues(alpha: 0.6),
@@ -250,7 +244,7 @@ class _CategoryRail extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.all(Radius.circular(18)),
-                  gradient: AppGradients.card,
+                  color: AppColors.surface,
                   // NOTE: not const — Border.all has no const constructor.
                   border: Border.all(color: AppColors.divider),
                   boxShadow: AppShadows.card,
@@ -262,6 +256,8 @@ class _CategoryRail extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       category.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall

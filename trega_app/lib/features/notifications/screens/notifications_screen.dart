@@ -3,11 +3,11 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/app_notification.dart';
 import '../../../core/notifications/notification_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -106,7 +106,7 @@ class _NotificationsScreenState
     final service = ref.watch(firestoreServiceProvider);
 
     return TregaScaffold(
-      appBar: AppBar(
+      appBar: TregaAppBar(
         title: const Text('Notifications'),
         actions: [
           TextButton(
@@ -167,7 +167,7 @@ class _NotificationsScreenState
                             // NOTE: not const — Border.all has no const constructor.
                             borderRadius:
                                 BorderRadius.circular(16),
-                            gradient: AppGradients.card,
+                            color: AppColors.surface,
                             border: Border.all(
                               color: n.read
                                   ? AppColors.divider
@@ -180,6 +180,7 @@ class _NotificationsScreenState
                             leading: Container(
                               width: 44,
                               height: 44,
+                              alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: AppColors.primarySoft,
                                 borderRadius:
@@ -191,6 +192,8 @@ class _NotificationsScreenState
                             ),
                             title: Text(
                               n.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontWeight: n.read
                                     ? FontWeight.w400

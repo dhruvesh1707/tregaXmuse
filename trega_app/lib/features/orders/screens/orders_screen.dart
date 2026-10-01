@@ -3,6 +3,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_colors.dart';
@@ -55,7 +56,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return TregaScaffold(
-            appBar: AppBar(title: const Text('My Orders')),
+            appBar: TregaAppBar(title: const Text('My Orders')),
             body: ListView.separated(
               padding: const EdgeInsets.all(16),
               physics: const NeverScrollableScrollPhysics(),
@@ -67,7 +68,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         }
         if (snap.hasError) {
           return TregaScaffold(
-            appBar: AppBar(title: const Text('My Orders')),
+            appBar: TregaAppBar(title: const Text('My Orders')),
             body: errorStateFor(
               snap.error!,
               title: 'Couldn\'t load orders',
@@ -89,7 +90,7 @@ class _OrdersList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TregaScaffold(
-      appBar: AppBar(title: const Text('My Orders')),
+      appBar: TregaAppBar(title: const Text('My Orders')),
       body: orders.isEmpty
           ? const EmptyState(
               icon: PhosphorIconsRegular.package,
@@ -141,14 +142,20 @@ class _OrderCard extends ConsumerWidget {
                         .when(
                           data: (listing) => Text(
                             listing?.product.title ?? 'Listing $listingId',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           loading: () => Text(
                             'Listing $listingId',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           error: (_, __) => Text(
                             'Listing $listingId',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                         ),
@@ -162,6 +169,8 @@ class _OrderCard extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 'Order ${order.id.toUpperCase()} · ${timeAgo(order.createdAt)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
@@ -184,7 +193,9 @@ class _OrderCard extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Icon(PhosphorIconsRegular.caretRight, color: AppColors.primary),
+                      SizedBox(width: 4),
+                      Icon(PhosphorIconsRegular.caretRight,
+                          size: 18, color: AppColors.primary),
                     ],
                   ),
                 ],

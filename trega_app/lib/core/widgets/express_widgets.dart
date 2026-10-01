@@ -4,20 +4,45 @@ import 'package:flutter/material.dart';
 
 import '../delivery/express_delivery.dart';
 import '../icons/phosphor_icons.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
-import 'liquid_glass.dart';
 
 /// Small "Express" pill overlaid on listing photos in the feed cards.
+///
+/// Solid [AppColors.accent] with [AppColors.primaryDark] text/icon — the
+/// contrast pair is deliberate, do not re-theme it to glass.
 class ExpressBadge extends StatelessWidget {
   const ExpressBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Frosted pill over the listing photo, iOS-style.
-    return const GlassChip(
-      label: 'Express',
-      icon: PhosphorIconsRegular.lightning,
-      foreground: Color(0xFFFFC53D),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.accent,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: AppShadows.glass,
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            PhosphorIconsRegular.lightning,
+            size: 13,
+            color: AppColors.primaryDark,
+          ),
+          SizedBox(width: 4),
+          Text(
+            'Express',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryDark,
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -71,14 +96,9 @@ class _ExpressBannerState extends State<ExpressBanner> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        // NOTE: not const — this SDK rejects a const BoxDecoration here.
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFB7791F), Color(0xFF7A3A12)],
-        ),
+        color: AppColors.primaryDeep,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: AppShadows.card,
+        boxShadow: AppShadows.glass,
       ),
       child: Row(
         children: [

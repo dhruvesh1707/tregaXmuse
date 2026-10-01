@@ -7,10 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -66,7 +66,7 @@ class MyListingsScreen extends ConsumerWidget {
 
   Future<void> _confirmDelete(
       BuildContext context, WidgetRef ref, Listing listing,) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
       builder: (ctx) => GlassDialog(
         title: const Text('Delete listing?'),
@@ -109,7 +109,7 @@ class MyListingsScreen extends ConsumerWidget {
 
   void _showPickupAddress(
       BuildContext context, WidgetRef ref, String listingId,) {
-    showDialog(
+    showGlassDialog(
       context: context,
       builder: (ctx) => GlassDialog(
         title: const Text('Pickup address'),
@@ -170,7 +170,7 @@ class MyListingsScreen extends ConsumerWidget {
     final service = ref.watch(firestoreServiceProvider);
 
     return TregaScaffold(
-      appBar: AppBar(title: const Text('My Listings')),
+      appBar: TregaAppBar(title: const Text('My Listings')),
       body: uid == null
           ? const EmptyState(
               icon: PhosphorIconsRegular.package,
@@ -331,9 +331,11 @@ class MyListingsScreen extends ConsumerWidget {
     return Container(
       width: 72,
       height: 72,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: AppGradients.card,
+        // Matches the real photo's ClipRRect(10) corner radius.
+        borderRadius: BorderRadius.circular(10),
+        color: AppColors.surface,
       ),
       child:
           const Icon(PhosphorIconsRegular.image, color: AppColors.primary),

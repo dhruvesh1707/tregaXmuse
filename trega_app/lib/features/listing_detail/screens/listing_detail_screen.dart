@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/delivery/express_delivery.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
@@ -223,7 +224,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     final listingId = widget.listingId;
     if (listingId == null) {
       return TregaScaffold(
-        appBar: AppBar(),
+        appBar: TregaAppBar(),
         body: const Center(child: Text('Listing not found.')),
       );
     }
@@ -233,7 +234,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       data: (listing) => listing == null
           ? (initial == null
               ? TregaScaffold(
-                  appBar: AppBar(),
+                  appBar: TregaAppBar(),
                   body: const Center(child: Text('Listing not found.')),
                 )
               : _buildContent(context, initial))
@@ -242,13 +243,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       loading: () => initial != null
           ? _buildContent(context, initial)
           : TregaScaffold(
-              appBar: AppBar(),
+              appBar: TregaAppBar(),
               body: const Center(child: CircularProgressIndicator()),
             ),
       error: (e, __) => initial != null
           ? _buildContent(context, initial)
           : TregaScaffold(
-              appBar: AppBar(),
+              appBar: TregaAppBar(),
               body: SafeArea(
                 child: errorStateFor(
                   e,
@@ -389,8 +390,12 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(product.title,
-                      style: Theme.of(context).textTheme.headlineSmall,),
+                  Text(
+                    product.title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     formatINR(listing.price),
@@ -641,9 +646,25 @@ class _VerifiedPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const GlassChip(
-      label: 'Verified seller',
-      icon: PhosphorIconsRegular.sealCheck,
-      foreground: AppColors.primaryDark,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            PhosphorIconsRegular.sealCheck,
+            size: 14,
+            color: AppColors.primaryDark,
+          ),
+          SizedBox(width: 4),
+          Text(
+            'Verified seller',
+            style: TextStyle(
+              color: AppColors.primaryDark,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -681,8 +702,14 @@ class _SellerInfo extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Text(name,
-                              style: Theme.of(context).textTheme.titleSmall,),
+                          Flexible(
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
                           if (verified) ...[
                             const SizedBox(width: 4),
                             const Icon(PhosphorIconsRegular.sealCheck,

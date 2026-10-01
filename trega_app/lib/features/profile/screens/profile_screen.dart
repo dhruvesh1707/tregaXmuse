@@ -7,11 +7,11 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_sheet.dart';
 import '../../../core/widgets/liquid_glass.dart';
@@ -53,7 +53,7 @@ class ProfileScreen extends ConsumerWidget {
     final service = ref.watch(firestoreServiceProvider);
 
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: TregaAppBar(title: const Text('Profile')),
       body: uid == null
           ? Center(
               child: Padding(
@@ -120,6 +120,9 @@ class ProfileScreen extends ConsumerWidget {
                                                           false)
                                                       ? user!.name
                                                       : 'Trega user',
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                   style: Theme.of(context)
                                                       .textTheme
                                                       .titleLarge,
@@ -134,6 +137,8 @@ class ProfileScreen extends ConsumerWidget {
                                           ),
                                           Text(
                                             user?.phone ?? '',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodyMedium
@@ -333,7 +338,7 @@ class _MenuTile extends StatelessWidget {
         decoration: BoxDecoration(
           // NOTE: not const — Border.all has no const constructor.
           borderRadius: BorderRadius.circular(16),
-          gradient: AppGradients.card,
+          color: AppColors.surface,
           border: Border.all(color: AppColors.divider),
           boxShadow: AppShadows.soft,
         ),
@@ -341,6 +346,7 @@ class _MenuTile extends StatelessWidget {
           leading: Container(
             width: 40,
             height: 40,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(12),
@@ -483,15 +489,18 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(
                       color: AppColors.primarySoft,
+                      alignment: Alignment.center,
                       child: fallbackIcon,
                     ),
                     errorWidget: (_, __, ___) => Container(
                       color: AppColors.primarySoft,
+                      alignment: Alignment.center,
                       child: fallbackIcon,
                     ),
                   )
                 : Container(
                     color: AppColors.primarySoft,
+                    alignment: Alignment.center,
                     child: fallbackIcon,
                   ),
             ),

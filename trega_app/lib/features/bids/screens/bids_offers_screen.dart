@@ -4,11 +4,11 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../../core/widgets/liquid_glass.dart';
@@ -85,7 +85,7 @@ class _BidsOffersScreenState extends ConsumerState<BidsOffersScreen>
     final service = ref.watch(firestoreServiceProvider);
 
     return TregaScaffold(
-      appBar: AppBar(
+      appBar: TregaAppBar(
         title: const Text('Bids & Offers'),
         bottom: TabBar(
           controller: _tabs,
@@ -239,6 +239,8 @@ class _MyOfferCard extends StatelessWidget {
                     onTap: () => _openListing(context, bid.listingId),
                     child: Text(
                       bid.listingTitle ?? 'Listing',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: textTheme.titleSmall,
                     ),
                   ),
@@ -604,7 +606,12 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(title, style: textTheme.titleMedium),
+                    child: Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleMedium,
+                    ),
                   ),
                   if (open.isNotEmpty)
                     StatusChip(
@@ -782,7 +789,7 @@ class _OfferRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         // NOTE: not const — Border.all has no const constructor.
-        gradient: AppGradients.card,
+        color: AppColors.surface,
         border: Border.all(color: AppColors.divider),
         borderRadius: BorderRadius.circular(12),
         boxShadow: AppShadows.soft,
@@ -795,6 +802,8 @@ class _OfferRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   "${bid.buyerName ?? 'Buyer'} · ${timeAgo(bid.createdAt)}",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyMedium,
                 ),
               ),

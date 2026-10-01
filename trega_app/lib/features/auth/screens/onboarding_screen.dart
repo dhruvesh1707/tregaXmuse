@@ -3,7 +3,6 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/trega_button.dart';
 import 'phone_auth_screen.dart';
@@ -79,8 +78,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Container(
                           width: 120,
                           height: 120,
+                          alignment: Alignment.center,
                           decoration: const BoxDecoration(
-                            gradient: AppGradients.heroBrown,
+                            color: AppColors.primaryDeep,
                             shape: BoxShape.circle,
                             boxShadow: AppShadows.button,
                           ),

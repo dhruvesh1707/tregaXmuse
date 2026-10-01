@@ -1,18 +1,16 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../icons/phosphor_icons.dart';
 import '../network/connectivity_service.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_gradients.dart';
-import '../theme/app_shadows.dart';
 
-/// Scaffold with the modern Trega backdrop: a soft warm gradient wash
-/// with two barely-there ambient glows (amber top-right, brown
-/// bottom-left).
+/// Scaffold with the minimal Trega backdrop: flat warm paper.
 ///
 /// Drop-in replacement for [Scaffold] on full-screen pages — the
 /// constructor mirrors the commonly used [Scaffold] parameters. Pass
-/// [backgroundColor] to opt a screen back out to a solid color.
+/// [backgroundColor] to opt a screen out to a different solid fill.
 class TregaScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget? body;
@@ -26,7 +24,8 @@ class TregaScaffold extends StatelessWidget {
   final Widget? endDrawer;
   final Widget? bottomSheet;
 
-  /// Solid override. When null (default) the gradient wash is used.
+  /// Solid override. When null (default) the flat [AppColors.background]
+  /// is used.
   final Color? backgroundColor;
 
   const TregaScaffold({
@@ -48,24 +47,9 @@ class TregaScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: backgroundColor == null ? AppGradients.page : null,
-        color: backgroundColor,
-      ),
+      color: backgroundColor ?? AppColors.background,
       child: Stack(
         children: [
-          if (backgroundColor == null) ...[
-            Positioned(
-              top: -90,
-              right: -70,
-              child: _glow(230, AppColors.accent, 0.13),
-            ),
-            Positioned(
-              bottom: -110,
-              left: -80,
-              child: _glow(270, AppColors.primary, 0.09),
-            ),
-          ],
           Scaffold(
             backgroundColor: Colors.transparent,
             appBar: appBar,
@@ -106,31 +90,14 @@ class TregaScaffold extends StatelessWidget {
       ),
     );
   }
-
-  /// Static radial glow — cheap (no blur filter), purely decorative.
-  Widget _glow(double size, Color color, double alpha) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [
-              color.withValues(alpha: alpha),
-              color.withValues(alpha: 0),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Slim floating "you're offline" pill, shown over every [TregaScaffold]
 /// screen while the device has no connectivity.
 ///
-/// Driven by [ConnectivityService]; appears and vanishes automatically.
+/// Dark glass: espresso at 0.78 alpha + blur 16 + hairline
+/// white-at-0.14 border, no heavy shadow. Driven by
+/// [ConnectivityService]; appears and vanishes automatically.
 /// [IgnorePointer] so it never swallows taps meant for the screen below.
 class _OfflinePill extends StatelessWidget {
   const _OfflinePill();
@@ -138,35 +105,40 @@ class _OfflinePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A1A12).withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.14),
-          ),
-          boxShadow: AppShadows.button,
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              PhosphorIconsRegular.cloudSlash,
-              size: 14,
-              color: Colors.white,
-            ),
-            SizedBox(width: 8),
-            Text(
-              "You're offline",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.espresso.withValues(alpha: 0.78),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.14),
               ),
             ),
-          ],
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  PhosphorIconsRegular.cloudSlash,
+                  size: 14,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  "You're offline",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

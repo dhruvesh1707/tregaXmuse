@@ -5,13 +5,15 @@ import 'app_colors.dart';
 
 /// Builds the app-wide [ThemeData] for Trega.
 ///
-/// Modern pass: warm paper stays, but surfaces now lift with soft,
-/// warm-tinted shadows (soft-3D) instead of sitting flat. Buttons carry
-/// a gentle colored lift; cards float a few dp off the page wash.
+/// Minimal glass pass: warm paper stays flat, surfaces stay flat and
+/// solid — no gradient washes, no glow blobs, no specular sheens. Depth
+/// comes only from the single frosted-glass recipe (translucent white +
+/// backdrop blur + hairline border + one warm shadow), applied by the
+/// widgets in `core/widgets`.
 ///
 /// Element pass: text fields, dialogs, bottom sheets, snackbars and
-/// progress indicators are themed here, so EVERY screen gets the modern
-/// look automatically — no per-screen work needed for these elements.
+/// progress indicators are themed here, so EVERY screen gets the look
+/// automatically — no per-screen work needed for these elements.
 ThemeData buildTregaTheme() {
   final baseScheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
@@ -32,8 +34,8 @@ ThemeData buildTregaTheme() {
     onError: Colors.white,
   );
 
-  // Premium pass: tight tracking on display type, relaxed leading on body
-  // copy, tabular figures on prices handled at the call site.
+  // Tight tracking on display type, relaxed leading on body copy,
+  // tabular figures on prices handled at the call site.
   const textTheme = TextTheme(
     displaySmall: TextStyle(
       fontSize: 28,
@@ -104,11 +106,14 @@ ThemeData buildTregaTheme() {
     scaffoldBackgroundColor: AppColors.background,
     textTheme: textTheme,
     appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.background,
+      // Frosted default: translucent white, no elevation. Screens that
+      // want the full glass treatment use [TregaAppBar], which adds the
+      // backdrop blur and hairline divider.
+      backgroundColor: Colors.white.withValues(alpha: 0.7),
       surfaceTintColor: Colors.transparent,
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
-      scrolledUnderElevation: 1,
+      scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: textTheme.titleLarge,
     ),
@@ -119,9 +124,8 @@ ThemeData buildTregaTheme() {
         disabledBackgroundColor: AppColors.divider,
         disabledForegroundColor: AppColors.textSecondary,
         minimumSize: const Size(48, 54),
-        // Soft-3D: a gentle colored lift instead of flat paint.
-        elevation: 3,
-        shadowColor: AppColors.primary.withValues(alpha: 0.4),
+        // Flat and solid: no lifted shadow on Material buttons.
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -156,8 +160,8 @@ ThemeData buildTregaTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      // Frosted-glass field: translucent white over the page wash.
-      fillColor: Colors.white.withValues(alpha: 0.6),
+      // Near-solid white fill over the flat paper background.
+      fillColor: Colors.white.withValues(alpha: 0.85),
       // Extra headroom above the field: the floating label sits ~8px above
       // the border, and tight parents (Stepper content, dense columns)
       // otherwise clip its top edge.
@@ -224,10 +228,10 @@ ThemeData buildTregaTheme() {
     ),
     cardTheme: CardThemeData(
       color: AppColors.surface,
-      // Soft-3D: cards float with a warm diffused shadow. The M3
-      // surface-tint overlay is disabled so the warm white stays clean.
-      elevation: 4,
-      shadowColor: const Color(0x263A2417),
+      // Flat: no lifted shadow; the hairline divider border carries the
+      // edge. The M3 surface-tint overlay stays disabled so the warm
+      // white stays clean.
+      elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
@@ -237,11 +241,9 @@ ThemeData buildTregaTheme() {
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: AppColors.surface,
-      // Soft-3D: dialogs lift off the page with a warm diffused shadow.
-      elevation: 8,
-      shadowColor: const Color(0x403A2417),
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(26),
       ),
       titleTextStyle: textTheme.titleLarge,
       contentTextStyle: textTheme.bodyMedium,
@@ -253,14 +255,14 @@ ThemeData buildTregaTheme() {
       showDragHandle: true,
       dragHandleColor: AppColors.divider,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
-      // Dark-glass toast: espresso at near-opacity, floating with margin.
+      // Dark-glass fallback toast: espresso at 0.78 alpha, floating.
       // NOTE: no `margin` here — this SDK's SnackBarThemeData has no such
       // named parameter; the floating behavior still offsets from edges.
-      backgroundColor: AppColors.espresso.withValues(alpha: 0.94),
+      backgroundColor: AppColors.espresso.withValues(alpha: 0.78),
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
       behavior: SnackBarBehavior.floating,
       elevation: 0,

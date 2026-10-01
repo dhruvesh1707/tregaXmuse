@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/trega_toast.dart';
 import '../../auth/screens/phone_auth_screen.dart';
 import 'help_screen.dart';
@@ -31,7 +32,7 @@ class SettingsScreen extends ConsumerWidget {
     var saving = false;
     String? error;
 
-    await showDialog(
+    await showGlassDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => GlassDialog(
@@ -140,7 +141,7 @@ class SettingsScreen extends ConsumerWidget {
     var saving = false;
     String? error;
 
-    await showDialog(
+    await showGlassDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => GlassDialog(
@@ -235,12 +236,12 @@ class SettingsScreen extends ConsumerWidget {
   /// confirmation. On success the user is signed out and returned to the
   /// sign-in screen.
   Future<void> deleteAccount(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
       builder: (_) => const _DeleteAccountDialog(),
     );
     if (confirmed != true || !context.mounted) return;
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
@@ -270,7 +271,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: TregaAppBar(title: const Text('Settings')),
       body: uid == null
           ? const Center(child: Text('You are not signed in.'))
           : ListView(

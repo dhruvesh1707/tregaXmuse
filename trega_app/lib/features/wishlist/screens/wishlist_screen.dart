@@ -3,6 +3,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -48,7 +49,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return TregaScaffold(
-            appBar: AppBar(title: const Text('Wishlist')),
+            appBar: TregaAppBar(title: const Text('Wishlist')),
             body: GridView.builder(
               padding: const EdgeInsets.all(16),
               physics: const NeverScrollableScrollPhysics(),
@@ -66,7 +67,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen> {
         }
         if (snap.hasError) {
           return TregaScaffold(
-            appBar: AppBar(title: const Text('Wishlist')),
+            appBar: TregaAppBar(title: const Text('Wishlist')),
             body: SafeArea(
               child: errorStateFor(
                 snap.error!,
@@ -90,7 +91,7 @@ class _WishlistGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Wishlist')),
+      appBar: TregaAppBar(title: const Text('Wishlist')),
       body: listings.isEmpty
           ? const EmptyState(
               icon: PhosphorIconsRegular.heart,

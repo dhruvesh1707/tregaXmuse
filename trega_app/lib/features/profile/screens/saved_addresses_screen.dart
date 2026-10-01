@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 
 /// The seller's saved pickup addresses (owner-only, never shown to buyers).
 /// Managed here; reused with one tap in the sell flow.
@@ -29,7 +30,7 @@ class SavedAddressesScreen extends ConsumerWidget {
     var saving = false;
     String? error;
 
-    await showDialog(
+    await showGlassDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => GlassDialog(
@@ -186,7 +187,7 @@ class SavedAddressesScreen extends ConsumerWidget {
 
   Future<void> _deleteAddress(
       BuildContext context, WidgetRef ref, String uid, SavedAddress a,) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
       builder: (ctx) => GlassDialog(
         title: const Text('Remove address?'),
@@ -215,7 +216,7 @@ class SavedAddressesScreen extends ConsumerWidget {
     final service = ref.watch(firestoreServiceProvider);
 
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Saved pickup addresses')),
+      appBar: TregaAppBar(title: const Text('Saved pickup addresses')),
       body: uid == null
           ? const Center(child: Text('You are not signed in.'))
           : StreamBuilder<List<SavedAddress>>(
@@ -259,8 +260,16 @@ class SavedAddressesScreen extends ConsumerWidget {
                       child: ListTile(
                         leading: const Icon(PhosphorIconsRegular.mapPin,
                             color: AppColors.primary,),
-                        title: Text(a.displayLabel),
-                        subtitle: Text(a.fullAddress),
+                        title: Text(
+                          a.displayLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          a.fullAddress,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         trailing: IconButton(
                           icon: const Icon(PhosphorIconsRegular.trash,
                               color: AppColors.error,),

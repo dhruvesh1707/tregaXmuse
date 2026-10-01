@@ -8,13 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/marketplace/fee_config.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
 import '../../../core/models/saved_address.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../../core/widgets/liquid_glass.dart';
@@ -426,7 +426,7 @@ static bool _isValidUpi(String upi) =>
 
       if (!mounted) return;
       // Celebration beats a snackbar: the listing is live, take a beat.
-      await showDialog(
+      await showGlassDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => const _PublishedCelebration(),
@@ -457,7 +457,7 @@ static bool _isValidUpi(String upi) =>
     final minPrice = feeCfg.minListPrice;
 
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Sell an item')),
+      appBar: TregaAppBar(title: const Text('Sell an item')),
       body: Column(
         children: [
           if (_error != null)
@@ -657,7 +657,7 @@ static bool _isValidUpi(String upi) =>
                               decoration: BoxDecoration(
                                 // NOTE: not const — Border.all has no const constructor.
                                 borderRadius: BorderRadius.circular(12),
-                                gradient: AppGradients.card,
+                                color: AppColors.surface,
                                 border: Border.all(
                                   color: AppColors.primary,
                                   style: BorderStyle.solid,
@@ -1007,7 +1007,7 @@ class _CategoryTile extends StatelessWidget {
       decoration: BoxDecoration(
         // NOTE: not const — Border.all has no const constructor.
         borderRadius: BorderRadius.circular(14),
-        gradient: AppGradients.card,
+        color: AppColors.surface,
         border: Border.all(
           color: selected ? AppColors.primary : AppColors.divider,
           width: selected ? 1.5 : 1,

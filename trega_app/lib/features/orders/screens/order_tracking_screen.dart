@@ -8,11 +8,11 @@ import 'package:timelines_plus/timelines_plus.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/no_internet_state.dart';
@@ -55,7 +55,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     final id = widget.orderId;
     if (id == null) {
       return TregaScaffold(
-        appBar: AppBar(title: const Text('Track order')),
+        appBar: TregaAppBar(title: const Text('Track order')),
         body: const Center(child: Text('Order not found.')),
       );
     }
@@ -66,14 +66,14 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return TregaScaffold(
-            appBar: AppBar(title: const Text('Track order')),
+            appBar: TregaAppBar(title: const Text('Track order')),
             body: const Center(child: CircularProgressIndicator()),
           );
         }
         final order = snap.data;
         if (snap.hasError) {
           return TregaScaffold(
-            appBar: AppBar(title: const Text('Track order')),
+            appBar: TregaAppBar(title: const Text('Track order')),
             body: errorStateFor(
               snap.error!,
               title: 'Couldn\'t load this order',
@@ -83,7 +83,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         }
         if (order == null) {
           return TregaScaffold(
-            appBar: AppBar(title: const Text('Track order')),
+            appBar: TregaAppBar(title: const Text('Track order')),
             body: const Center(
               child:
                   Text('Couldn\'t load this order. Check your connection.'),
@@ -107,7 +107,7 @@ class _TrackingContent extends ConsumerWidget {
         .indexWhere((e) => e.$1 == order.status);
 
     return TregaScaffold(
-      appBar: AppBar(
+      appBar: TregaAppBar(
         title: const Text('Track order'),
         actions: [
           Builder(
@@ -133,20 +133,28 @@ class _TrackingContent extends ConsumerWidget {
                         data: (listing) => Text(
                           listing?.product.title ??
                               'Listing ${order.listing.id}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         loading: () => Text(
                           'Listing ${order.listing.id}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         error: (_, __) => Text(
                           'Listing ${order.listing.id}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
                   const SizedBox(height: 4),
                   Text(
                     'Order ${order.id.toUpperCase()}${order.trackingId != null ? ' · ${order.trackingId}' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
@@ -228,7 +236,7 @@ class _TrackingContent extends ConsumerWidget {
                                 // NOTE: not const — gradient recipe.
                                 borderRadius:
                                     BorderRadius.circular(8),
-                                gradient: AppGradients.card,
+                                color: AppColors.surface,
                                 border: Border.all(
                                     color: AppColors.divider),
                                 boxShadow: AppShadows.soft,

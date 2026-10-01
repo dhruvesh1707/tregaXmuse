@@ -3,6 +3,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -37,7 +38,7 @@ class CategoryScreen extends ConsumerWidget {
         : ref.watch(categoryListingsProvider(categoryId));
 
     return TregaScaffold(
-      appBar: AppBar(title: Text(name)),
+      appBar: TregaAppBar(title: Text(name)),
       body: listingsAsync == null
           ? const Center(child: Text('Pick a category to browse.'))
           : listingsAsync.when(

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
+import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/delivery/express_delivery.dart';
 import '../../../core/marketplace/fee_config.dart';
 import '../../../core/firebase/firebase_providers.dart';
@@ -13,7 +14,6 @@ import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/payments/cashfree_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../../core/widgets/liquid_glass.dart';
@@ -183,7 +183,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             final status = verification['paymentStatus'] as String?;
             if (status == 'SUCCESS') {
               setState(() => _confirmingPayment = false);
-              await showDialog(
+              await showGlassDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => const _PaymentCelebration(),
@@ -239,7 +239,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     _prefill(uid);
 
     return TregaScaffold(
-      appBar: AppBar(title: const Text('Checkout')),
+      appBar: TregaAppBar(title: const Text('Checkout')),
       body: StreamBuilder<Bid?>(
         stream: ref.read(firestoreServiceProvider).watchBid(widget.bidId),
         builder: (context, bidSnap) {
@@ -739,7 +739,7 @@ class _DeliveryOptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             // NOTE: not const — Border.all has no const constructor.
             borderRadius: BorderRadius.circular(16),
-            gradient: AppGradients.card,
+            color: AppColors.surface,
             border: Border.all(
               color: selected ? AppColors.primary : AppColors.divider,
               width: selected ? 1.6 : 1,
@@ -751,6 +751,7 @@ class _DeliveryOptionTile extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: (selected
                           ? AppColors.primary
