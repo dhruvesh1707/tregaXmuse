@@ -1,0 +1,88 @@
+# Builds the signed release AAB (for Play Console) and APK for Trega on a
+# GitHub-hosted Linux runner.
+#
+# Signing: the upload keystore is NOT in the repo. It lives in GitHub
+# Secrets (repo -> Settings -> Secrets and variables -> Actions):
+#   UPLOAD_KEYSTORE_BASE64 — base64 of C:\Users\Prime\upload-keystore.jks
+#   KEYSTORE_PASSWORD      — the keystore password
+#   KEY_ALIAS              — key alias (upload)
+#   KEY_PASSWORD           — key password
+# One-time, on the dev PC (PowerShell) — copies the base64 to clipboard:
+#   [Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\Users\Prime\upload-keystore.jks')) | Set-Clipboard
+# then paste it into the UPLOAD_KEYSTORE_BASE64 secret.
+#
+# Prerequisite (one-time, on the dev PC) — google-services.json is gitignored
+# but the cloud runner needs it, same as the iOS files were force-added:
+#   git add -f trega_app/android/app/google-services.json
+#   git commit -m "Add google-services.json for cloud Android builds"
+#   git push
+# (google-services.json holds public client identifiers, not secrets —
+# committing it is standard Firebase practice.)
+#
+# Usage: GitHub repo -> Actions tab -> "Android release (AAB + APK)" ->
+# Run workflow -> download the two artifacts when it finishes.
+# Upload the AAB to Play Console (internal testing track).
+name: Android release (AAB + APK)
+
+on:
+  workflow_dispatch: # manual trigger only
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Restore upload keystore
+        run: |
+          if [ -z "${{ secrets.UPLOAD_KEYSTORE_BASE64 }}" ]; then
+            echo "::error::UPLOAD_KEYSTORE_BASE64 secret is not set. See the header of this workflow for setup."
+            exit 1
+          fi
+          echo "${{ secrets.UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+          cat > trega_app/android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=$RUNNER_TEMP/upload-keystore.jks
+          EOF
+
+      - name: Flutter pub get
+        run: flutter pub get
+        working-directory: trega_app
+
+      - name: Build release AAB
+        run: flutter build appbundle --release
+        working-directory: trega_app
+
+      - name: Build release APK
+        run: flutter build apk --release
+        working-directory: trega_app
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trega-app-release-aab
+          path: trega_app/build/app/outputs/bundle/release/app-release.aab
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trega-app-release-apk
+          path: trega_app/build/app/outputs/apk/release/app-release.apk
