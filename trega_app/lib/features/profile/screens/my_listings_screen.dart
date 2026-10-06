@@ -247,7 +247,11 @@ class MyListingsScreen extends ConsumerWidget {
                             ),
                         ],
                       ),
-                      child: GlassCard(
+                      // Pressable is constraint-transparent and only
+                      // listens for taps, so the Slidable swipe gestures
+                      // and vertical scrolling are untouched.
+                      child: Pressable(
+                        child: GlassCard(
                         padding: const EdgeInsets.all(12),
                         borderRadius: 16,
                         onTap: () => Navigator.of(context).pushNamed(
@@ -317,6 +321,7 @@ class MyListingsScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
+                        ),
                         ),
                       ),
                     );

@@ -235,13 +235,15 @@ class _MyOfferCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: InkWell(
+                  child: Pressable(
+                    child: InkWell(
                     onTap: () => _openListing(context, bid.listingId),
                     child: Text(
                       bid.listingTitle ?? 'Listing',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.titleSmall,
+                    ),
                     ),
                   ),
                 ),
@@ -601,7 +603,8 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Listing header.
-            InkWell(
+            Pressable(
+              child: InkWell(
               onTap: () => _openListing(context, listingId),
               child: Row(
                 children: [
@@ -621,6 +624,7 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
                       foreground: AppColors.warning,
                     ),
                 ],
+              ),
               ),
             ),
             const SizedBox(height: 12),

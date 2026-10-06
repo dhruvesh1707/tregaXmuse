@@ -124,7 +124,8 @@ class _OrderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listingId = order.listing.id;
-    return GlassCard(
+    return Pressable(
+      child: GlassCard(
       padding: const EdgeInsets.all(16),
       borderRadius: 16,
       onTap: () => Navigator.of(context).pushNamed(
@@ -202,6 +203,7 @@ class _OrderCard extends ConsumerWidget {
               ),
             ],
           ),
+      ),
     );
   }
 }

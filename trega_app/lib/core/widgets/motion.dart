@@ -239,6 +239,24 @@ class _PressScaleState extends State<PressScale> {
   }
 }
 
+/// The canonical press-feedback wrapper — the intent-revealing name for
+/// [PressScale].
+///
+/// Scales to [pressedScale] (default 0.96) on tap-down, springs back on
+/// release/cancel, and fires a light [TregaHaptics.tap] on release.
+///
+/// Constraint-transparent: a [GestureDetector] + [AnimatedScale] around
+/// [child] with no [Center]/[Align] inside, so parent constraints pass
+/// through unchanged — safe under finite-loose constraints (bottom
+/// sheets, dialogs, [ListTile] trailing slots, horizontal lists).
+class Pressable extends PressScale {
+  const Pressable({
+    super.key,
+    required super.child,
+    super.pressedScale,
+  });
+}
+
 /// Heart button with a springy pop when it turns liked.
 class LikeButton extends StatefulWidget {
   final bool isLiked;

@@ -331,9 +331,7 @@ class _MenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Entrance(
-      index: index,
-      child: Container(
+    final tile = Container(
         margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         decoration: BoxDecoration(
           // NOTE: not const — Border.all has no const constructor.
@@ -359,7 +357,11 @@ class _MenuTile extends StatelessWidget {
               color: AppColors.textSecondary,),
           onTap: onTap,
         ),
-      ),
+      );
+    return Entrance(
+      index: index,
+      // Press feedback only when tappable — never a tap target of its own.
+      child: onTap == null ? tile : Pressable(child: tile),
     );
   }
 }

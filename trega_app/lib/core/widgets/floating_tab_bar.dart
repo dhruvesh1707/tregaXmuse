@@ -49,10 +49,8 @@ class FloatingTabBar extends StatelessWidget {
                 icon: _items[i].icon,
                 label: _items[i].label,
                 selected: i == currentIndex,
-                onTap: () {
-                  TregaHaptics.tap();
-                  onTap(i);
-                },
+                // Release haptic + press scale come from Pressable below.
+                onTap: () => onTap(i),
               ),
             ),
         ],
@@ -77,10 +75,13 @@ class _TabButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Column(
+    // Pressable composes with the inner GestureDetector: it only scales
+    // + haptics, so the existing onTap still fires unchanged.
+    return Pressable(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedContainer(
@@ -115,6 +116,7 @@ class _TabButton extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

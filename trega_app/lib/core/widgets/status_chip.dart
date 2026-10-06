@@ -50,7 +50,6 @@ class StatusChip extends StatelessWidget {
           child: Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: radius,
               color: Color.alphaBlend(

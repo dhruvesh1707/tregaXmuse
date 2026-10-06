@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
+import 'motion.dart';
 
 /// The canonical light-glass surface for the minimal Trega theme.
 ///
@@ -169,7 +170,7 @@ class GlassChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const radius = BorderRadius.all(Radius.circular(999));
-    return Container(
+    final chip = Container(
       decoration: const BoxDecoration(
         borderRadius: radius,
         boxShadow: AppShadows.glass,
@@ -206,6 +207,16 @@ class GlassChip extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+    // Press feedback only when tappable — never a tap target of its own.
+    // Tappable chips also get the HIG 44pt minimum touch target; the
+    // inner alignment keeps the label centered at the larger size.
+    if (onTap == null) return chip;
+    return Pressable(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        child: chip,
       ),
     );
   }
