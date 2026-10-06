@@ -258,7 +258,7 @@ class _PromoCardState extends State<_PromoCard> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              child: Padding(
+              Padding(
                 padding: const EdgeInsets.all(18),
                 child: Row(
                   children: [
