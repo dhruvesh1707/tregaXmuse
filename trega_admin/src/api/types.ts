@@ -114,3 +114,45 @@ export interface DashboardStats {
   ordersInTransit: number;
   bidsToday: number;
 }
+
+/** Fixed set of report reasons the app submits (reports/{listingId}_{reporterId}). */
+export type ReportReason =
+  | 'Spam or misleading'
+  | 'Fraud or scam'
+  | 'Inappropriate content'
+  | 'Wrong category';
+
+/** Listing report row (reports/{id}), enriched client-side.
+ *  Reports are write-protected (firestore.rules denies update/delete, even
+ *  for admins) — the panel can only read them and act on the listing itself. */
+export interface Report {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  reporterId: string;
+  reporterName: string;
+  reason: ReportReason;
+  createdAt: string; // ISO
+}
+
+/** config/fees — marketplace pricing. Console-only writes (firestore.rules). */
+export interface FeeConfig {
+  promoActive: boolean;
+  sellerPct: number;
+  buyerPct: number;
+  deliveryFlat: number; // INR
+  gstPct: number;
+}
+
+/** config/delivery — Trega Express settings. Console-only writes. */
+export interface DeliveryConfig {
+  enabled: boolean;
+  expressCities: string[];
+  cutoffHour: number; // 24h local hour, e.g. 21
+}
+
+/** Combined app config for the Settings page. */
+export interface AppConfig {
+  fees: FeeConfig | null;
+  delivery: DeliveryConfig | null;
+}

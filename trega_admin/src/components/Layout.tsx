@@ -7,11 +7,13 @@ import { db } from '../lib/firebase';
 const NAV = [
   { to: '/', label: 'Dashboard', end: true, icon: '▦' },
   { to: '/review', label: 'Review Queue', icon: '✓' },
+  { to: '/reports', label: 'Reports', icon: '⚑' },
   { to: '/listings', label: 'All Listings', icon: '▤' },
   { to: '/users', label: 'Users', icon: '◉' },
   { to: '/orders', label: 'Orders', icon: '▣' },
   { to: '/bids', label: 'Bids & Offers', icon: '◈' },
   { to: '/categories', label: 'Categories', icon: '▦' },
+  { to: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
 export default function Layout() {
@@ -19,6 +21,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [reportsCount, setReportsCount] = useState<number | null>(null);
 
   useEffect(() => {
     getCountFromServer(
@@ -26,6 +29,9 @@ export default function Layout() {
     )
       .then((s) => setPendingCount(s.data().count))
       .catch(() => setPendingCount(null));
+    getCountFromServer(collection(db, 'reports'))
+      .then((s) => setReportsCount(s.data().count))
+      .catch(() => setReportsCount(null));
   }, []);
 
   const sidebar = (
@@ -66,6 +72,11 @@ export default function Layout() {
             {item.to === '/review' && pendingCount !== null && pendingCount > 0 && (
               <span className="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">
                 {pendingCount}
+              </span>
+            )}
+            {item.to === '/reports' && reportsCount !== null && reportsCount > 0 && (
+              <span className="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">
+                {reportsCount}
               </span>
             )}
           </NavLink>

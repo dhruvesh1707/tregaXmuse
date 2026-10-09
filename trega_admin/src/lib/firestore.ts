@@ -21,12 +21,17 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './firebase';
 import type {
   AdminUser,
+  AppConfig,
   Bid,
   Category,
   DashboardStats,
+  DeliveryConfig,
+  FeeConfig,
   KycStatus,
   Listing,
   Order,
+  Report,
+  ReportReason,
   UserLite,
 } from '../api/types';
 
@@ -175,6 +180,54 @@ function mapAdminUser(id: string, d: DocumentData): AdminUser {
     ...toUserLite(id, d),
     kycNote: d.kycNote as string | undefined,
     createdAt: tsToIso(d.createdAt),
+  };
+}
+
+/** Listing title for a report row — falls back to the raw listing ID when the
+ *  listing doc is missing (e.g. already removed), so the row still renders. */
+async function fetchListingTitle(id: string): Promise<string> {
+  if (!id) return '';
+  try {
+    const snap = await getDoc(doc(db, 'listings', id));
+    if (snap.exists()) return (snap.data().title as string) ?? id;
+  } catch {
+    /* fall through to the raw id */
+  }
+  return id;
+}
+
+export async function mapReport(id: string, d: DocumentData): Promise<Report> {
+  const listingId = (d.listingId as string) ?? '';
+  const [listingTitle, reporter] = await Promise.all([
+    fetchListingTitle(listingId),
+    fetchUserLite(d.reporterId as string),
+  ]);
+  return {
+    id,
+    listingId,
+    listingTitle,
+    reporterId: (d.reporterId as string) ?? '',
+    reporterName: reporter.name,
+    reason: (d.reason as ReportReason) ?? 'Spam or misleading',
+    createdAt: tsToIso(d.createdAt),
+  };
+}
+
+function mapFeeConfig(d: DocumentData): FeeConfig {
+  return {
+    promoActive: (d.promoActive as boolean) ?? false,
+    sellerPct: (d.sellerPct as number) ?? 0,
+    buyerPct: (d.buyerPct as number) ?? 0,
+    deliveryFlat: (d.deliveryFlat as number) ?? 0,
+    gstPct: (d.gstPct as number) ?? 0,
+  };
+}
+
+function mapDeliveryConfig(d: DocumentData): DeliveryConfig {
+  return {
+    enabled: (d.enabled as boolean) ?? false,
+    expressCities: (d.expressCities as string[]) ?? [],
+    cutoffHour: (d.cutoffHour as number) ?? 21,
   };
 }
 
@@ -397,6 +450,57 @@ export function useBids(status: string, page: number, pageSize: number): Paged<B
     pageSize,
     sort: byNewest,
   });
+}
+
+/** User-submitted listing reports, newest first. Reports are read-only
+ *  (firestore.rules denies update/delete, even for admins) — moderation
+ *  acts on the listing itself via the reviewListing callable. */
+export function useReports(page: number, pageSize: number): Paged<Report> {
+  return usePagedQuery<Report>('reports', [], `reports|${page}`, mapReport, {
+    page,
+    pageSize,
+    sort: byNewest,
+  });
+}
+
+/** App config (config/fees + config/delivery), real-time. Writes are
+ *  console-only (firestore.rules) — this hook reads only. */
+export function useAppConfig(): AppConfig & { loading: boolean; error: string | null } {
+  const [fees, setFees] = useState<FeeConfig | null>(null);
+  const [delivery, setDelivery] = useState<DeliveryConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onErr = (e: Error) => {
+      setError(e.message);
+      setLoading(false);
+    };
+    const unsubFees = onSnapshot(
+      doc(db, 'config', 'fees'),
+      (snap) => {
+        setFees(snap.exists() ? mapFeeConfig(snap.data()) : null);
+        setError(null);
+        setLoading(false);
+      },
+      onErr,
+    );
+    const unsubDelivery = onSnapshot(
+      doc(db, 'config', 'delivery'),
+      (snap) => {
+        setDelivery(snap.exists() ? mapDeliveryConfig(snap.data()) : null);
+        setError(null);
+        setLoading(false);
+      },
+      onErr,
+    );
+    return () => {
+      unsubFees();
+      unsubDelivery();
+    };
+  }, []);
+
+  return { fees, delivery, loading, error };
 }
 
 export function useCategories() {

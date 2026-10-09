@@ -1,4 +1,4 @@
-/** Colored pill badge for listing / KYC / order / bid statuses. */
+/** Colored pill badge for listing / KYC / order / bid statuses and report reasons. */
 
 const TONES: Record<string, string> = {
   // listings
@@ -23,6 +23,11 @@ const TONES: Record<string, string> = {
   accepted: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
   expired: 'bg-stone-200 text-stone-700 ring-stone-300',
   countered: 'bg-sky-100 text-sky-800 ring-sky-200',
+  // listing report reasons
+  'Spam or misleading': 'bg-amber-100 text-amber-800 ring-amber-200',
+  'Fraud or scam': 'bg-red-100 text-red-800 ring-red-200',
+  'Inappropriate content': 'bg-orange-100 text-orange-800 ring-orange-200',
+  'Wrong category': 'bg-sky-100 text-sky-800 ring-sky-200',
   // roles / misc
   admin: 'bg-trega-100 text-trega-700 ring-trega-200',
   seller: 'bg-gold-300/40 text-gold-600 ring-gold-400/40',

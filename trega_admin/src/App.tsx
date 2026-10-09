@@ -11,6 +11,8 @@ import Users from './pages/Users';
 import Orders from './pages/Orders';
 import Bids from './pages/Bids';
 import Categories from './pages/Categories';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
 
 function ProtectedRoute() {
   const { user, denied, loading, claimAdmin, claimError, logout } = useAuth();
@@ -75,6 +77,8 @@ export default function App() {
               <Route path="orders" element={<Orders />} />
               <Route path="bids" element={<Bids />} />
               <Route path="categories" element={<Categories />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
