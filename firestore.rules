@@ -73,10 +73,11 @@ service cloud.firestore {
         (resource.data.sellerId == request.auth.uid
           && request.resource.data.status == resource.data.status)
         ||
-        // Anyone liking / viewing: only like+view counters may change,
-        // and likedBy may only gain/lose the caller's own uid.
+        // Anyone liking: only like counters may change, and likedBy may
+        // only gain/lose the caller's own uid. Views are server-only
+        // (recordListingView callable) — clients can't touch viewCount.
         (request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['likedBy', 'likesCount', 'viewCount'])
+           .hasOnly(['likedBy', 'likesCount'])
          && request.resource.data.likedBy.toSet()
               .difference(resource.data.likedBy.toSet())
               .hasOnly([request.auth.uid])
@@ -148,6 +149,14 @@ service cloud.firestore {
     // by the verifyAadhaarOtp callable inside a transaction. No client —
     // not even the owning user — may read or write it.
     match /aadhaarIndex/{fingerprint} {
+      allow read, write: if false;
+    }
+
+    // ── listingViews/{listingId}_{uid} ────────────────────────────
+    // Per-viewer view state for the IG-style counter (lastViewedAt drives
+    // the 1h per-viewer cooldown). Written only by the recordListingView
+    // callable via the Admin SDK; clients never read or write it.
+    match /listingViews/{viewId} {
       allow read, write: if false;
     }
 

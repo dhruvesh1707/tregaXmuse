@@ -30,6 +30,8 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// - `acceptBid` ({bidId}) -> {success}
 /// - `rejectBid` ({bidId}) -> {success}
 /// - `cancelAcceptance` ({bidId}) -> {success}
+/// - `recordListingView` ({listingId}) -> {counted, viewCount} — IG-style
+///   view counter: call only after 3s of continuous detail visibility
 /// - `deleteAccount` () -> {deleted} — wipes the account completely
 /// - `reviewListing` ({listingId, approve, reason?}) -> {success, status}
 ///   (admin custom claim only)
@@ -129,6 +131,20 @@ class FunctionsService {
   /// The listing opens up for offers again.
   Future<void> cancelAcceptance({required String bidId}) async {
     await _functions.httpsCallable('cancelAcceptance').call({'bidId': bidId});
+  }
+
+  // ------------------------------------------------------- listing views
+
+  /// Records a listing view, Instagram-style. Call this ONLY after the
+  /// detail screen has been continuously visible for 3 seconds (IG's
+  /// video-view threshold) — never on plain screen open. The server
+  /// ignores seller self-views and enforces a 1-hour per-viewer cooldown,
+  /// so replays count like IG but tap-spam can't game the counter.
+  /// Fire-and-forget: never block UI on the result.
+  Future<void> recordListingView({required String listingId}) async {
+    await _functions
+        .httpsCallable('recordListingView')
+        .call({'listingId': listingId});
   }
 
   // ---------------------------------------------------------- account

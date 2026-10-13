@@ -44,6 +44,7 @@ import {
   onBidCreateHandler,
   onListingCreateHandler,
   placeBidHandler,
+  recordListingViewHandler,
   rejectBidHandler,
   reviewListingHandler,
 } from "./marketplace";
@@ -198,6 +199,18 @@ export const cancelAcceptance = onCall(async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("bids", { uid, ip: ipOf(request) });
   return cancelAcceptanceHandler(uid, { bidId: request.data?.bidId });
+});
+
+/**
+ * Instagram-style listing view counter. The app calls this only after the
+ * detail screen has been continuously visible for 3 seconds (IG's video-view
+ * threshold). Seller self-views never count; replays count after a 1-hour
+ * per-viewer cooldown. Replaces the old client-side `viewCount` increment.
+ */
+export const recordListingView = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("views", { uid, ip: ipOf(request) });
+  return recordListingViewHandler(uid, { listingId: request.data?.listingId });
 });
 
 // ------------------------------------------------------------- Admin ------

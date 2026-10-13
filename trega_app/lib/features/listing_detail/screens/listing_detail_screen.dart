@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -77,19 +79,63 @@ class ListingDetailScreen extends ConsumerStatefulWidget {
       _ListingDetailScreenState();
 }
 
-class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
+class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
+    with WidgetsBindingObserver {
   int _page = 0;
+
+  /// Instagram-style view counting: a view is recorded only after the
+  /// detail screen has been continuously visible for [_viewDwell]
+  /// (IG's ~3s video-view threshold) — never on plain screen open.
+  /// The timer is cancelled if the app is backgrounded first, and the
+  /// server ignores seller self-views plus a 1h per-viewer cooldown.
+  static const _viewDwell = Duration(seconds: 3);
+  Timer? _viewDwellTimer;
+  bool _viewRecorded = false;
 
   @override
   void initState() {
     super.initState();
-    // Count a view once per screen open (server increments the counter).
+    WidgetsBinding.instance.addObserver(this);
     final id = widget.listingId;
     if (id != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(firestoreServiceProvider).incrementViews(id).catchError((_) {});
+        if (mounted) _startViewDwellTimer(id);
       });
     }
+  }
+
+  void _startViewDwellTimer(String listingId) {
+    _viewDwellTimer?.cancel();
+    _viewDwellTimer = Timer(_viewDwell, () {
+      if (!mounted || _viewRecorded) return;
+      _viewRecorded = true;
+      // Fire-and-forget: the live listing stream refreshes the count.
+      ref
+          .read(functionsServiceProvider)
+          .recordListingView(listingId: listingId)
+          .catchError((_) {});
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // Backgrounded before the dwell elapsed: not a real view.
+      _viewDwellTimer?.cancel();
+    } else if (state == AppLifecycleState.resumed &&
+        mounted &&
+        !_viewRecorded) {
+      final id = widget.listingId;
+      if (id != null) _startViewDwellTimer(id);
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewDwellTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   /// Opens the offer sheet, then places the offer server-side.

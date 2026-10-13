@@ -127,7 +127,7 @@ false` for clients).
 | status | string | `draft` → `live` → `sold`, or `rejected` (`pending` kept for legacy docs) |
 | rejectionReason | string? | set when flagged/rejected |
 | acceptedBidId | string? | bids/{id} once seller accepts an offer |
-| viewCount | number | |
+| viewCount | number | IG-style counter: incremented ONLY by the `recordListingView` callable (3s detail-screen dwell, seller self-views never count, 1h per-viewer cooldown). Clients cannot write it (see `firestore.rules`). |
 | liveAt / soldAt | timestamp? | lifecycle markers |
 | createdAt | timestamp | |
 | city | string | denormalized from the seller's pickup address at publish time; drives Trega Express eligibility |
@@ -137,6 +137,28 @@ Write rule of thumb: clients create with `status: "draft"`; the
 admins (reactive moderation — the team reviews new listings and flags
 suspicious ones after the fact). `reviewListing` (admin claim) may set
 `live`/`rejected` from `live` or legacy `pending`.
+
+### `listingViews/{listingId}_{viewerUid}`
+
+Per-viewer state for the IG-style view counter. Server-only (`allow read,
+write: if false` for clients; written by `recordListingView` via Admin SDK).
+
+| Field | Type | Notes |
+|---|---|---|
+| listingId | string | listings/{id} |
+| viewerId | string | users/{uid} |
+| lastViewedAt | timestamp | last counted view; drives the 1h per-viewer cooldown |
+| views | number | counted views by this viewer (diagnostic) |
+
+View-counting rules (mirrors how Instagram counts reel views):
+- A view counts only after the detail screen has been **continuously
+  visible for 3 seconds** (IG's video-view threshold) — never on screen open.
+- The **seller's own views never count** (IG counts self-views; we
+  deliberately don't — sellers could otherwise inflate their listings).
+- **Replays count** like IG, but a **1-hour per-viewer-per-listing cooldown**
+  stops open → back → open tap-spam.
+- The increment is **atomic** (transaction) and **server-side**; the old
+  client-side `FieldValue.increment` path is removed.
 
 ### `listings/{id}/private/details` (owner-only)
 

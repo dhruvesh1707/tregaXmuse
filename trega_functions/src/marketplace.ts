@@ -547,3 +547,67 @@ export async function cancelAcceptanceHandler(
   await commitAndNotify(batch);
   return { cancelled: true as const };
 }
+
+/**
+ * Instagram-style view counting for listings.
+ *
+ * A view counts only after the client proves real attention: the app calls
+ * this after the detail screen has been continuously visible for 3 seconds
+ * (IG's documented video-view threshold) — never on plain screen open.
+ *
+ * - The seller's own views never count. (IG counts self-views; we
+ *   deliberately don't — sellers could otherwise inflate their listings.)
+ * - Replays count like IG, but a 1-hour per-viewer-per-listing cooldown
+ *   stops open → back → open tap-spam from gaming the counter.
+ * - Atomic via a transaction (reads before writes); per-viewer state lives
+ *   in `listingViews/{listingId}_{uid}`.
+ */
+export async function recordListingViewHandler(
+  uid: string,
+  input: { listingId?: string }
+): Promise<{ counted: boolean; viewCount: number }> {
+  const { listingId } = input;
+  assertDocId(listingId, "listingId");
+
+  const db = admin.firestore();
+  const listingRef = db.collection("listings").doc(listingId);
+  const viewRef = db.collection("listingViews").doc(`${listingId}_${uid}`);
+
+  const COOLDOWN_MS = 60 * 60 * 1000; // 1h per viewer per listing
+
+  return db.runTransaction(async (tx) => {
+    // All reads before all writes (Firestore transaction rule).
+    const listingSnap = await tx.get(listingRef);
+    const viewSnap = await tx.get(viewRef);
+
+    const listing = listingSnap.data();
+    if (!listingSnap.exists || !listing) {
+      throw new HttpsError("not-found", "Listing not found.");
+    }
+    const current = (listing.viewCount as number | undefined) ?? 0;
+    if (listing.sellerId === uid) {
+      return { counted: false, viewCount: current };
+    }
+    const last = viewSnap.data()?.lastViewedAt as
+      | admin.firestore.Timestamp
+      | undefined;
+    if (last && Date.now() - last.toMillis() < COOLDOWN_MS) {
+      return { counted: false, viewCount: current };
+    }
+
+    tx.set(
+      viewRef,
+      {
+        listingId,
+        viewerId: uid,
+        lastViewedAt: admin.firestore.FieldValue.serverTimestamp(),
+        views: admin.firestore.FieldValue.increment(1),
+      },
+      { merge: true }
+    );
+    tx.update(listingRef, {
+      viewCount: admin.firestore.FieldValue.increment(1),
+    });
+    return { counted: true, viewCount: current + 1 };
+  });
+}

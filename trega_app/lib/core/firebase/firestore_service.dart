@@ -370,12 +370,6 @@ class FirestoreService {
     await _listings.doc(listingId).delete();
   }
 
-  Future<void> incrementViews(String listingId) async {
-    await _listings
-        .doc(listingId)
-        .update({'viewCount': FieldValue.increment(1)});
-  }
-
   Future<void> toggleLike(String listingId, String uid, bool liked) async {
     await _listings.doc(listingId).update({
       'likedBy':
