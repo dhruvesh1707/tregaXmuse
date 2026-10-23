@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Plain warm paper (#FFFBF7) — the Flutter splash owns the launch
+     animation now; the native screen is just the brand background. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
-        <bitmap android:gravity="fill" android:src="@drawable/background"/>
-    </item>
-    <item>
-        <bitmap android:gravity="center" android:src="@drawable/splash"/>
+        <color android:color="#FFFBF7"/>
     </item>
 </layer-list>

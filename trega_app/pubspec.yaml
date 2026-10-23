@@ -94,8 +94,7 @@ flutter_launcher_icons:
   remove_alpha_ios: true
 
 flutter_native_splash:
-  color: "#ffffff"
-  image: "assets/logo/trega_logo.png"
+  color: "#fffbf7"
   android: true
   ios: true
 
