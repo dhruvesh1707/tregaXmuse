@@ -12,11 +12,11 @@ import '../../../core/widgets/trega_toast.dart';
 
 /// Help centre: how Trega works + how to reach support.
 ///
-/// Support inbox — matches the Contact page (support@trega.in).
+/// Support inbox — matches the Contact page (contact@trega.in).
 class HelpScreen extends StatelessWidget {
   static const String routeName = '/profile/help';
 
-  static const _supportEmail = 'support@trega.in';
+  static const _supportEmail = 'contact@trega.in';
 
   const HelpScreen({super.key});
 

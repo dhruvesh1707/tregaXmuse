@@ -47,7 +47,7 @@ manages both.
 | active | boolean | |
 | sortOrder | number | |
 
-Seed: Gaming, Mobile, Laptops, Cameras, Music, Others.
+Seed: Gaming, Mobiles, Laptops, Cameras, Music, Fashion, Furniture, Home Appliances, Cycles, Watches, Collectibles, Books, Others.
 
 ### `config/delivery`
 

@@ -524,6 +524,41 @@ class FirestoreService {
             slug: 'music',
             icon: Category.iconKeyToIconData('music'),),
         Category(
+            id: 'fashion',
+            name: 'Fashion',
+            slug: 'fashion',
+            icon: Category.iconKeyToIconData('fashion'),),
+        Category(
+            id: 'furniture',
+            name: 'Furniture',
+            slug: 'furniture',
+            icon: Category.iconKeyToIconData('furniture'),),
+        Category(
+            id: 'appliances',
+            name: 'Home Appliances',
+            slug: 'appliances',
+            icon: Category.iconKeyToIconData('appliances'),),
+        Category(
+            id: 'cycles',
+            name: 'Cycles',
+            slug: 'cycles',
+            icon: Category.iconKeyToIconData('cycles'),),
+        Category(
+            id: 'watches',
+            name: 'Watches',
+            slug: 'watches',
+            icon: Category.iconKeyToIconData('watch'),),
+        Category(
+            id: 'collectibles',
+            name: 'Collectibles',
+            slug: 'collectibles',
+            icon: Category.iconKeyToIconData('collectible'),),
+        Category(
+            id: 'books',
+            name: 'Books',
+            slug: 'books',
+            icon: Category.iconKeyToIconData('books'),),
+        Category(
             id: 'others',
             name: 'Others',
             slug: 'others',
