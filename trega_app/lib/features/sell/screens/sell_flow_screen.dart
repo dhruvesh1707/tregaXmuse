@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -19,6 +21,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/utils/pincode_lookup.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -82,6 +85,26 @@ class _IndianGroupingFormatter extends TextInputFormatter {
 class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   static const _lastStep = 5;
 
+  static const _stepTitles = [
+    'Category',
+    'Photos & video',
+    'Details',
+    'Price',
+    'Pickup address',
+    'Review',
+  ];
+
+  /// Local draft (SharedPreferences) — restored when the seller returns
+  /// mid-flow, cleared on publish or discard. Photos survive only while
+  /// their camera files still exist on disk.
+  static const _draftKey = 'sell_draft_v1';
+  bool _draftRestored = false;
+
+  /// PIN autofill: last PIN successfully looked up, and whether a lookup
+  /// is in flight (shows the 'Looking up…' hint).
+  String _lastFetchedPin = '';
+  bool _fetchingPin = false;
+
   int _step = 0;
   /// Slide direction of the last step change (+1 forward, -1 back) and a
   /// counter bumped on every navigation so the entering step's transition
@@ -134,6 +157,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
         .pickImage(source: ImageSource.camera, imageQuality: 85);
     if (file == null) return;
     setState(() => _pickedMedia.add(file));
+    _saveDraft();
   }
 
   double? get _parsedPrice {
@@ -224,6 +248,22 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   @override
   void initState() {
     super.initState();
+    for (final c in [
+      _titleController,
+      _descriptionController,
+      _priceController,
+      _addrLine1Controller,
+      _addrLine2Controller,
+      _addrCityController,
+      _addrStateController,
+      _addrPinController,
+      _upiController,
+    ]) {
+      c.addListener(_saveDraft);
+    }
+    _addrPinController
+        .addListener(() => _onSellPinChanged(_addrPinController.text));
+    _restoreDraft();
     _prefillSavedPayout();
   }
 
@@ -235,10 +275,145 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       final upi =
           await ref.read(firestoreServiceProvider).getPayoutUpi(uid);
       if (!mounted || upi == null || upi.isEmpty) return;
-      _upiController.text = upi;
+      // A restored draft's UPI wins over the saved default.
+      if (_upiController.text.isEmpty) _upiController.text = upi;
     } catch (_) {
       // Best-effort prefill; the seller can type it manually.
     }
+  }
+
+  /// Persists the in-progress form so leaving the app mid-flow never
+  /// loses it. Called on every field edit and navigation; cheap
+  /// (one prefs write) and failure-proof by design.
+  Future<void> _saveDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _draftKey,
+        jsonEncode(<String, dynamic>{
+          'step': _step,
+          'categoryId': _categoryId,
+          'condition': _condition.wireValue,
+          'negotiable': _negotiable,
+          'title': _titleController.text,
+          'description': _descriptionController.text,
+          'price': _priceController.text,
+          'line1': _addrLine1Controller.text,
+          'line2': _addrLine2Controller.text,
+          'city': _addrCityController.text,
+          'state': _addrStateController.text,
+          'pin': _addrPinController.text,
+          'upi': _upiController.text,
+          'photos': _pickedMedia.map((m) => m.path).toList(),
+        }),
+      );
+    } catch (_) {}
+  }
+
+  /// Restores a saved draft, if it holds anything worth restoring.
+  /// Draft values win only when non-empty, so a saved payout UPI
+  /// prefilled meanwhile is never wiped by an empty draft field.
+  Future<void> _restoreDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_draftKey);
+      if (raw == null || raw.isEmpty) return;
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      bool nonEmpty(Object? v) => v is String && v.isNotEmpty;
+      final photos = (data['photos'] as List?)?.cast<String>() ?? const [];
+      final hasContent = nonEmpty(data['title']) ||
+          nonEmpty(data['description']) ||
+          nonEmpty(data['price']) ||
+          nonEmpty(data['categoryId']) ||
+          photos.isNotEmpty;
+      if (!hasContent || !mounted) return;
+      void fill(TextEditingController c, Object? v) {
+        if (nonEmpty(v)) c.text = v as String;
+      }
+
+      setState(() {
+        _step = (data['step'] as int? ?? 0).clamp(0, _lastStep);
+        _categoryId = data['categoryId'] as String?;
+        _condition = Condition.values.firstWhere(
+          (c) => c.wireValue == data['condition'],
+          orElse: () => Condition.likeNew,
+        );
+        _negotiable = data['negotiable'] as bool? ?? true;
+        fill(_titleController, data['title']);
+        fill(_descriptionController, data['description']);
+        fill(_priceController, data['price']);
+        fill(_addrLine1Controller, data['line1']);
+        fill(_addrLine2Controller, data['line2']);
+        fill(_addrCityController, data['city']);
+        fill(_addrStateController, data['state']);
+        fill(_addrPinController, data['pin']);
+        fill(_upiController, data['upi']);
+        _pickedMedia
+          ..clear()
+          ..addAll(
+            photos
+                .where((path) => File(path).existsSync())
+                .map((path) => XFile(path)),
+          );
+        _draftRestored = true;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _clearDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_draftKey);
+    } catch (_) {}
+  }
+
+  /// Discards the draft and resets the form to a clean start.
+  Future<void> _discardDraft() async {
+    await _clearDraft();
+    if (!mounted) return;
+    setState(() {
+      _draftRestored = false;
+      _step = 0;
+      _categoryId = null;
+      _condition = Condition.likeNew;
+      _negotiable = true;
+      _titleController.clear();
+      _descriptionController.clear();
+      _priceController.clear();
+      _addrLine1Controller.clear();
+      _addrLine2Controller.clear();
+      _addrCityController.clear();
+      _addrStateController.clear();
+      _addrPinController.clear();
+      _upiController.clear();
+      _pickedMedia.clear();
+      _selectedSavedAddressId = null;
+      _error = null;
+    });
+    _prefillSavedPayout();
+  }
+
+  /// PIN → city/state autofill (India Post). Fires only when the PIN
+  /// changes to a new valid 6-digit code, so manual edits to city/state
+  /// after a lookup stick until the PIN itself changes. A failed lookup
+  /// leaves both fields editable — it never blocks the form.
+  Future<void> _onSellPinChanged(String value) async {
+    final pin = value.trim();
+    if (pin == _lastFetchedPin ||
+        !RegExp(r'^[1-9][0-9]{5}$').hasMatch(pin)) {
+      return;
+    }
+    setState(() => _fetchingPin = true);
+    final result = await lookupCityState(pin);
+    if (!mounted) return;
+    setState(() => _fetchingPin = false);
+    if (result == null) return;
+    _lastFetchedPin = pin;
+    setState(() {
+      _addrCityController.text = result.city;
+      _addrStateController.text = result.state;
+    });
+    _saveDraft();
   }
 
     /// One-tap picker for a previously saved pickup address.
@@ -431,6 +606,7 @@ static bool _isValidUpi(String upi) =>
         barrierDismissible: false,
         builder: (_) => const _PublishedCelebration(),
       );
+      await _clearDraft();
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
@@ -486,6 +662,70 @@ static bool _isValidUpi(String upi) =>
               ),
               ),
             ),
+          if (_draftRestored)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: GlassCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                borderRadius: 12,
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Draft restored — pick up where you left off.',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _discardDraft,
+                      child: const Text('Discard'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Step ${_step + 1} of 6',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _stepTitles[_step],
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: (_step + 1) / 6,
+                    minHeight: 6,
+                    backgroundColor: AppColors.divider,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: Stepper(
               currentStep: _step,
@@ -562,24 +802,40 @@ static bool _isValidUpi(String upi) =>
                     index: 0,
                     direction: _direction,
                     nav: _navCount,
-                    child: Column(
-                    children: [
-                      for (final c in categories)
-                        _CategoryTile(
-                          name: c.name,
-                          selected: c.id == _categoryId,
-                          onTap: () => setState(() {
-                            _categoryId = c.id;
-                            _error = null;
-                          }),
-                        ),
-                      if (categories.isEmpty)
-                        Text(
-                          'Loading categories…',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                    ],
-                    ),
+                    child: categories.isEmpty
+                        ? Text(
+                            'Loading categories…',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          )
+                        : GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 1.9,
+                            children: [
+                              for (final c in categories)
+                                _CategoryGridTile(
+                                  name: c.name,
+                                  icon: c.icon,
+                                  selected: c.id == _categoryId,
+                                  // One tap picks AND advances — with 13
+                                  // categories the list used to push the
+                                  // Continue button below the fold.
+                                  onTap: () {
+                                    setState(() {
+                                      _categoryId = c.id;
+                                      _error = null;
+                                      _direction = 1;
+                                      _navCount++;
+                                      _step = 1;
+                                    });
+                                    _saveDraft();
+                                  },
+                                ),
+                            ],
+                          ),
                   ),
                 ),
                 Step(
@@ -626,9 +882,11 @@ static bool _isValidUpi(String upi) =>
                                       top: 4,
                                       right: 4,
                                       child: GestureDetector(
-                                        onTap: () => setState(() =>
-                                            _pickedMedia
-                                                .removeAt(e.key),),
+                                        onTap: () {
+                                        setState(() => _pickedMedia
+                                            .removeAt(e.key));
+                                        _saveDraft();
+                                      },
                                         child: Container(
                                           padding:
                                               const EdgeInsets.all(4),
@@ -888,6 +1146,13 @@ static bool _isValidUpi(String upi) =>
                           ),
                         ],
                       ),
+                      if (_fetchingPin) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Looking up city and state for this PIN…',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       TextField(
                         controller: _addrStateController,
@@ -988,45 +1253,56 @@ static bool _isValidUpi(String upi) =>
   }
 }
 
-/// Single selectable row in the category-first step.
-class _CategoryTile extends StatelessWidget {
+/// Compact icon tile in the category grid (2 columns, no scroll hunt).
+class _CategoryGridTile extends StatelessWidget {
   final String name;
+  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
-  const _CategoryTile({
+  const _CategoryGridTile({
     required this.name,
+    required this.icon,
     required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        // NOTE: not const — Border.all has no const constructor.
-        borderRadius: BorderRadius.circular(14),
-        color: AppColors.surface,
-        border: Border.all(
-          color: selected ? AppColors.primary : AppColors.divider,
-          width: selected ? 1.5 : 1,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          // NOTE: not const — Border.all has no const constructor.
+          borderRadius: BorderRadius.circular(14),
+          color: selected ? AppColors.primarySoft : AppColors.surface,
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.divider,
+            width: selected ? 1.5 : 1,
+          ),
+          boxShadow: AppShadows.soft,
         ),
-        boxShadow: AppShadows.soft,
-      ),
-      child: ListTile(
-        title: Text(
-          name,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontWeight:
-                    selected ? FontWeight.w700 : FontWeight.w500,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 26),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
               ),
+            ),
+          ],
         ),
-        trailing: selected
-            ? const Icon(PhosphorIconsRegular.checkCircle, color: AppColors.primary)
-            : const Icon(PhosphorIconsRegular.caretRight,
-                color: AppColors.textSecondary,),
-        onTap: onTap,
       ),
     );
   }

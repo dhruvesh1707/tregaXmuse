@@ -36,7 +36,20 @@ write. Buyers never see this — pickup addresses are copied per-listing into
 at publish time, so payouts stay correct even if the seller changes it
 later). The sell flow auto-saves new pickup addresses here (deduped) and
 prefills the payout UPI field from the saved value; Profile → Settings
-manages both.
+manages both. Checkout reuses the same collection for the buyer's delivery
+address (one-tap picker + auto-save on order creation, deduped) — manual
+entry always stays available on both flows.
+
+Client-only notes (no schema change, 2026-10-24): the sell flow keeps a
+local draft in SharedPreferences (`sell_draft_v1`: step, category,
+fields, payout UPI, camera photo paths that still exist) and restores it
+when the seller returns; it is cleared on publish or discard. PIN →
+city/state autofill uses the free India Post API
+(`api.postalpincode.in/pincode/<pin>`, no key) on both sell and checkout
+forms; a failed lookup leaves both fields manually editable. Offer cards
+show counterparty names by reading the public `users/{uid}` profile
+client-side (bid docs carry ids only); the listing seller card shows
+`avatarUrl` when set.
 
 ### `categories/{id}`
 | Field | Type | Notes |

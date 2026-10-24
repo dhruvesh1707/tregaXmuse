@@ -8,6 +8,7 @@ import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
+import '../../../core/models/user.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
@@ -148,6 +149,45 @@ void _openListing(BuildContext context, String listingId) {
   );
 }
 
+/// The other party's display name on an offer card.
+///
+/// Bid docs carry only ids — names are joined client-side from the public
+/// profile. While loading (or if the profile has no name) the fallback
+/// shows, so a card never renders a blank name.
+class _CounterpartyName extends ConsumerWidget {
+  final String uid;
+  final String fallback;
+  final String prefix;
+  final TextStyle? style;
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  const _CounterpartyName({
+    required this.uid,
+    this.fallback = 'Buyer',
+    this.prefix = '',
+    this.style,
+    this.maxLines,
+    this.overflow,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return StreamBuilder<AppUser?>(
+      stream: ref.watch(firestoreServiceProvider).watchUser(uid),
+      builder: (context, snap) {
+        final name = snap.data?.name;
+        return Text(
+          '$prefix${(name?.isNotEmpty ?? false) ? name! : fallback}',
+          style: style,
+          maxLines: maxLines,
+          overflow: overflow,
+        );
+      },
+    );
+  }
+}
+
 // ── Buyer tab ─────────────────────────────────────────────────────────────
 
 /// Every offer the buyer sent, with the next action per state.
@@ -253,6 +293,13 @@ class _MyOfferCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               timeAgo(bid.createdAt),
+              style: textTheme.bodySmall,
+            ),
+            const SizedBox(height: 2),
+            _CounterpartyName(
+              uid: bid.sellerId,
+              fallback: 'Seller',
+              prefix: 'Seller · ',
               style: textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -410,7 +457,9 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
 
   Future<void> _accept(
       BuildContext context, WidgetRef ref, Bid bid,) async {
-    final buyerLabel = bid.buyerName ?? 'the buyer';
+    final buyer = await ref.read(firestoreServiceProvider).getUser(bid.buyerId);
+    final buyerLabel =
+        (buyer?.name.isNotEmpty ?? false) ? buyer!.name : 'the buyer';
     final confirmed = await showGlassDialog<bool>(
       context: context,
       builder: (context) => GlassDialog(
@@ -640,12 +689,22 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            'Accepted: ${formatINR(bid.amount)} from '
-                            "${bid.buyerName ?? 'buyer'}",
-                            style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: Wrap(
+                            children: [
+                              Text(
+                                'Accepted: ${formatINR(bid.amount)} from ',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              _CounterpartyName(
+                                uid: bid.buyerId,
+                                fallback: 'buyer',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         _statusChip(_acceptedOptimistic.contains(bid.id)
@@ -724,9 +783,18 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
-                        title: Text(
-                          "${bid.buyerName ?? 'Buyer'} · "
-                          '${formatINR(bid.amount)}',
+                        title: Row(
+                          children: [
+                            Flexible(
+                              child: _CounterpartyName(
+                                uid: bid.buyerId,
+                                fallback: 'Buyer',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(' · ${formatINR(bid.amount)}'),
+                          ],
                         ),
                         subtitle: Text(timeAgo(bid.createdAt)),
                         trailing: _statusChip(bid.status),
@@ -804,11 +872,22 @@ class _OfferRow extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  "${bid.buyerName ?? 'Buyer'} · ${timeAgo(bid.createdAt)}",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyMedium,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: _CounterpartyName(
+                        uid: bid.buyerId,
+                        fallback: 'Buyer',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyMedium,
+                      ),
+                    ),
+                    Text(
+                      ' · ${timeAgo(bid.createdAt)}',
+                      style: textTheme.bodyMedium,
+                    ),
+                  ],
                 ),
               ),
               Text(

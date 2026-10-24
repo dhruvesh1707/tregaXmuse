@@ -735,10 +735,20 @@ class _SellerInfo extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
               children: [
-                const CircleAvatar(
+                // The seller's profile photo when set — previously this
+                // always showed the placeholder icon even though
+                // `avatarUrl` was already on the profile.
+                CircleAvatar(
                   radius: 24,
                   backgroundColor: AppColors.primarySoft,
-                  child: Icon(PhosphorIconsRegular.user, color: AppColors.primary),
+                  backgroundImage:
+                      (seller?.avatarUrl?.isNotEmpty ?? false)
+                          ? NetworkImage(seller!.avatarUrl!)
+                          : null,
+                  child: (seller?.avatarUrl?.isNotEmpty ?? false)
+                      ? null
+                      : const Icon(PhosphorIconsRegular.user,
+                          color: AppColors.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

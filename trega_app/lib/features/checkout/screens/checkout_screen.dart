@@ -11,6 +11,8 @@ import '../../../core/marketplace/fee_config.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
+import '../../../core/models/saved_address.dart';
+import '../../../core/utils/pincode_lookup.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/payments/cashfree_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -60,6 +62,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _pincode = TextEditingController();
 
   String? _error;
+  String? _selectedSavedAddressId;
+  String _lastFetchedPin = '';
+  bool _fetchingPin = false;
   bool _placing = false;
   bool _confirmingPayment = false;
   bool _prefilled = false;
@@ -161,6 +166,30 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final orderId = result['orderId'] as String?;
       if (sessionId == null || orderId == null) {
         throw StateError('no session');
+      }
+      // Remember this delivery address for next time (deduped) — the
+      // buyer never has to type it again, but can still edit or enter
+      // a new one at every checkout.
+      try {
+        final buyerUid = ref.read(currentUidProvider);
+        if (buyerUid != null) {
+          final saved = SavedAddress(
+            id: '',
+            line1: address['line1']!,
+            line2: address['line2'] ?? '',
+            city: address['city']!,
+            state: address['state']!,
+            pincode: address['pincode']!,
+            createdAt: DateTime.now(),
+          );
+          final existing =
+              await ref.read(firestoreServiceProvider).getSavedAddresses(buyerUid);
+          if (!existing.any((a) => a.sameAs(saved))) {
+            await ref.read(firestoreServiceProvider).saveAddress(buyerUid, saved);
+          }
+        }
+      } catch (_) {
+        // Best-effort: a failed address save must never block payment.
       }
       final cfOrderId =
           (result['cfOrderRef'] as String?) ?? 'trega_$orderId';
@@ -382,6 +411,7 @@ _buildPriceBreakdown(context, bid),
               ),
             ),
             const SizedBox(height: 12),
+            _buildSavedAddressPicker(ref.read(currentUidProvider)),
             _field(_name, 'Receiver name', TextInputType.name),
             const SizedBox(height: 12),
             _field(
@@ -422,7 +452,15 @@ _buildPriceBreakdown(context, bid),
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(6),
               ],
+              onChanged: _onCheckoutPinChanged,
             ),
+            if (_fetchingPin) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Looking up city and state for this PIN…',
+                style: textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 24),
             // Rebuilds as the buyer types their city, so the express
             // option unlocks live.
@@ -460,13 +498,97 @@ _buildPriceBreakdown(context, bid),
     String label,
     TextInputType keyboardType, {
     List<TextInputFormatter>? formatters,
+    ValueChanged<String>? onChanged,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: formatters,
+      onChanged: onChanged,
       decoration: InputDecoration(labelText: label),
     );
+  }
+
+  /// Saved delivery addresses, same pattern as the sell flow: one tap
+  /// fills the form; fields stay editable, and 'Enter a new address'
+  /// clears them for manual entry.
+  Widget _buildSavedAddressPicker(String? uid) {
+    if (uid == null) return const SizedBox.shrink();
+    return StreamBuilder<List<SavedAddress>>(
+      stream:
+          ref.watch(firestoreServiceProvider).watchSavedAddresses(uid),
+      builder: (context, snap) {
+        final addresses = snap.data ?? const <SavedAddress>[];
+        if (addresses.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: DropdownButtonFormField<String>(
+            initialValue: _selectedSavedAddressId,
+            decoration: const InputDecoration(
+              labelText: 'Use a saved address',
+            ),
+            items: [
+              const DropdownMenuItem(
+                value: '',
+                child: Text('Enter a new address'),
+              ),
+              ...addresses.map(
+                (a) => DropdownMenuItem(
+                  value: a.id,
+                  child: Text(
+                    a.displayLabel,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+            onChanged: (id) {
+              if (id == null) return;
+              if (id.isEmpty) {
+                setState(() {
+                  _selectedSavedAddressId = null;
+                  _line1.clear();
+                  _line2.clear();
+                  _city.clear();
+                  _state.clear();
+                  _pincode.clear();
+                });
+                return;
+              }
+              final a = addresses.firstWhere((x) => x.id == id);
+              setState(() {
+                _selectedSavedAddressId = id;
+                _line1.text = a.line1;
+                _line2.text = a.line2;
+                _city.text = a.city;
+                _state.text = a.state;
+                _pincode.text = a.pincode;
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// PIN → city/state autofill (India Post). Same rule as the sell
+  /// flow: only on a new valid PIN, manual edits stick until then.
+  Future<void> _onCheckoutPinChanged(String value) async {
+    final pin = value.trim();
+    if (pin == _lastFetchedPin ||
+        !RegExp(r'^[1-9][0-9]{5}$').hasMatch(pin)) {
+      return;
+    }
+    setState(() => _fetchingPin = true);
+    final result = await lookupCityState(pin);
+    if (!mounted) return;
+    setState(() => _fetchingPin = false);
+    if (result == null) return;
+    _lastFetchedPin = pin;
+    setState(() {
+      _city.text = result.city;
+      _state.text = result.state;
+    });
   }
   /// Buyer-side price breakdown: item price, protection fee (+GST),
   /// delivery split, and the all-in total. Display only — the server
