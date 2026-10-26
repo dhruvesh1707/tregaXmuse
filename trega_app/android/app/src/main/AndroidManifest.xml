@@ -1,7 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Gallery access for the profile photo picker (photo picker needs no
-         permission on Android 13+; this covers older versions). -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Play policy (2026-10-26): apps targeting Android 13+ may not request
+         broad photo/video permissions when the system picker suffices. The
+         profile photo picker uses the system picker (no permission needed on
+         13+); the camera option covers the rest. Strip both permissions even
+         if a plugin (image_picker) declares them, or Play blocks the release. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
     <application
         android:label="trega"
         android:name="${applicationName}"
