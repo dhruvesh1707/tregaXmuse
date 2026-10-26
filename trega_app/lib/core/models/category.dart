@@ -54,6 +54,16 @@ class Category {
         return PhosphorIconsRegular.musicNote;
       case 'furniture':
         return PhosphorIconsRegular.house;
+      case 'fashion':
+        return PhosphorIconsRegular.tShirt;
+      case 'appliances':
+        return PhosphorIconsRegular.television;
+      case 'cycles':
+        return PhosphorIconsRegular.bicycle;
+      case 'books':
+        return PhosphorIconsRegular.bookOpen;
+      case 'others':
+        return PhosphorIconsRegular.squaresFour;
       case 'watch':
         return PhosphorIconsRegular.watch;
       case 'collectible':

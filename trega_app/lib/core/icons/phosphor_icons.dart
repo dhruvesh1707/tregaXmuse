@@ -23,6 +23,16 @@ class PhosphorIconsRegular {
     fontFamily: 'PhosphorRegular',
     matchTextDirection: true,
   );
+  static const IconData bicycle = IconData(
+    0xe9b8,
+    fontFamily: 'PhosphorRegular',
+    matchTextDirection: true,
+  );
+  static const IconData bookOpen = IconData(
+    0xe9c7,
+    fontFamily: 'PhosphorRegular',
+    matchTextDirection: true,
+  );
   static const IconData camera = IconData(
     0xe9e9,
     fontFamily: 'PhosphorRegular',
@@ -228,6 +238,11 @@ class PhosphorIconsRegular {
     fontFamily: 'PhosphorRegular',
     matchTextDirection: true,
   );
+  static const IconData television = IconData(
+    0xed50,
+    fontFamily: 'PhosphorRegular',
+    matchTextDirection: true,
+  );
   static const IconData trash = IconData(
     0xed8a,
     fontFamily: 'PhosphorRegular',
@@ -245,6 +260,11 @@ class PhosphorIconsRegular {
   );
   static const IconData truck = IconData(
     0xed95,
+    fontFamily: 'PhosphorRegular',
+    matchTextDirection: true,
+  );
+  static const IconData tShirt = IconData(
+    0xed96,
     fontFamily: 'PhosphorRegular',
     matchTextDirection: true,
   );
