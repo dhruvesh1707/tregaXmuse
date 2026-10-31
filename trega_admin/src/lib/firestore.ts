@@ -625,6 +625,10 @@ const reviewListingFn = httpsCallable<{ listingId: string; decision: 'approve' |
   functions,
   'reviewListing',
 );
+const deleteListingFn = httpsCallable<{ listingId: string }, { deleted: boolean }>(
+  functions,
+  'deleteListing',
+);
 const setUserKycStatusFn = httpsCallable<{ uid: string; status: 'verified' | 'rejected'; note?: string }, { kycStatus: string }>(
   functions,
   'setUserKycStatus',
@@ -651,6 +655,16 @@ export async function approveListing(listingId: string): Promise<void> {
 export async function rejectListing(listingId: string, reason: string): Promise<void> {
   try {
     await reviewListingFn({ listingId, decision: 'reject', reason });
+  } catch (e) {
+    throw new Error(callableError(e));
+  }
+}
+
+/** Permanent admin delete (listing doc + its bids + its photos). Sold
+ *  listings are refused server-side because an order references them. */
+export async function deleteListing(listingId: string): Promise<void> {
+  try {
+    await deleteListingFn({ listingId });
   } catch (e) {
     throw new Error(callableError(e));
   }

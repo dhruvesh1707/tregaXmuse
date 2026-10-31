@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useListing, useCategories, approveListing, rejectListing } from '../lib/firestore';
+import { useListing, useCategories, approveListing, rejectListing, deleteListing } from '../lib/firestore';
 import type { MediaItem } from '../api/types';
 import ImageGallery from '../components/ImageGallery';
 import StatusBadge from '../components/StatusBadge';
@@ -15,6 +15,7 @@ export default function ListingDetail({ backTo }: { backTo: string }) {
   const { map: categories } = useCategories();
   const { listing, loading, error } = useListing(id, categories);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [acting, setActing] = useState(false);
 
@@ -39,6 +40,18 @@ export default function ListingDetail({ backTo }: { backTo: string }) {
       navigate(backTo);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Reject failed.');
+      setActing(false);
+    }
+  };
+
+  const doDelete = async () => {
+    if (!id) return;
+    setActing(true);
+    try {
+      await deleteListing(id);
+      navigate(backTo);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed.');
       setActing(false);
     }
   };
@@ -145,8 +158,55 @@ export default function ListingDetail({ backTo }: { backTo: string }) {
               </button>
             </div>
           )}
+
+          {listing.status !== 'sold' && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <h2 className="text-sm font-bold text-red-800">Danger zone</h2>
+              <p className="mt-1 text-sm text-red-700">
+                Permanently delete this listing, all bids on it, and its photos. The seller
+                is notified and it can't be restored. For a temporary takedown the seller
+                can fix and re-publish, use Reject instead.
+              </p>
+              <button
+                onClick={() => setDeleteOpen(true)}
+                disabled={acting}
+                className="mt-3 rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+              >
+                Delete permanently
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {deleteOpen && (
+        <Modal title="Delete listing permanently" onClose={() => setDeleteOpen(false)}>
+          <div className="space-y-4">
+            <p className="text-sm text-stone-600">
+              This permanently deletes{' '}
+              <span className="font-semibold text-stone-900">{listing.title}</span>, all bids
+              on it, and its photos. The seller will be notified. This can't be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                className="flex-1 rounded-lg border border-stone-300 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={doDelete}
+                disabled={acting}
+                className="flex-1 rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+              >
+                {acting ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {rejectOpen && (
         <Modal title="Reject listing" onClose={() => setRejectOpen(false)}>

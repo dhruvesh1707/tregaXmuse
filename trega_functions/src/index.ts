@@ -41,6 +41,7 @@ import {
 import {
   acceptBidHandler,
   cancelAcceptanceHandler,
+  deleteListingHandler,
   onBidCreateHandler,
   onListingCreateHandler,
   placeBidHandler,
@@ -160,6 +161,19 @@ export const reviewListing = onCall(async (request) => {
     listingId: request.data?.listingId,
     decision: request.data?.decision,
     reason: request.data?.reason,
+  });
+});
+
+/**
+ * Permanent admin delete of a listing (doc + bids + media). The hard
+ * counterpart to reviewListing's reject; sold listings are refused
+ * because an order references them.
+ */
+export const deleteListing = onCall(async (request) => {
+  await rateLimit("adminOps", { uid: request.auth?.uid, ip: ipOf(request) });
+  const isAdmin = request.auth?.token?.admin === true;
+  return deleteListingHandler(isAdmin, {
+    listingId: request.data?.listingId,
   });
 });
 
