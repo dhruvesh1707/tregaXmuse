@@ -6,14 +6,12 @@ import * as logger from "firebase-functions/logger";
  * Firestore-backed rate limiting for every callable + the Cashfree webhook.
  *
  * Tiers (stricter → looser):
- * - auth tier (`kycOtp`, `kycVerify`, `bootstrap`, `loginOtp`,
- *   `loginVerify`): OTP issuance, OTP verification, and the one-shot admin
- *   bootstrap. Per-account AND per-IP, with exponential backoff.
- *   (Sign-in OTP is our own branded MSG91 flow — see `loginOtp.ts` — so
- *   `loginOtp`/`loginVerify` are first-class auth routes, limited per-IP
- *   here plus per-phone inside the handlers; Aadhaar OTP is equally
- *   abuse-sensitive since BulkPe bills per OTP and OTP guessing is a
- *   real attack.)
+ * - auth tier (`kycOtp`, `kycVerify`, `bootstrap`): OTP issuance, OTP
+ *   verification, and the one-shot admin bootstrap. Per-account AND per-IP,
+ *   with exponential backoff. (Trega's actual sign-in is Firebase phone
+ *   auth, which Google rate-limits itself — these are our auth-adjacent
+ *   routes: Aadhaar OTP is the abuse-sensitive one since BulkPe bills per
+ *   OTP and OTP guessing is a real attack.)
  * - moderate (`webhook`, `adminOps`): the Cashfree webhook (per-IP) and
  *   admin-panel mutations (per-account).
  * - loose (`bids`, `payments`): normal authenticated user actions.
@@ -47,8 +45,6 @@ const DEFAULT_RULES: Record<string, RateLimitRule> = {
   kycOtp: { limit: 5, windowSec: 3600, blockBaseSec: 300, blockMaxSec: 7200 },
   kycVerify: { limit: 10, windowSec: 600, blockBaseSec: 300, blockMaxSec: 7200 },
   bootstrap: { limit: 5, windowSec: 3600, blockBaseSec: 600, blockMaxSec: 7200 },
-  loginOtp: { limit: 20, windowSec: 3600, blockBaseSec: 300, blockMaxSec: 7200 },
-  loginVerify: { limit: 20, windowSec: 600, blockBaseSec: 300, blockMaxSec: 7200 },
   webhook: { limit: 120, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 3600 },
   adminOps: { limit: 120, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 3600 },
   bids: { limit: 60, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 1800 },

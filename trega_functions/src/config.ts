@@ -14,17 +14,8 @@ export const CASHFREE_ENV = defineSecret("CASHFREE_ENV");
 export const BULKPE_API_TOKEN = defineSecret("BULKPE_API_TOKEN");
 export const KYC_SALT = defineSecret("KYC_SALT");
 export const ADMIN_BOOTSTRAP_PHONE = defineSecret("ADMIN_BOOTSTRAP_PHONE");
-// Branded login OTP (MSG91) — set with:
-//   firebase functions:secrets:set MSG91_AUTH_KEY
-//   firebase functions:secrets:set MSG91_SENDER_ID    # DLT-approved sender header
-//   firebase functions:secrets:set MSG91_TEMPLATE_ID  # DLT-approved OTP template id
-export const MSG91_AUTH_KEY = defineSecret("MSG91_AUTH_KEY");
-export const MSG91_SENDER_ID = defineSecret("MSG91_SENDER_ID");
-export const MSG91_TEMPLATE_ID = defineSecret("MSG91_TEMPLATE_ID");
 
 export const BULKPE_BASE = "https://api.bulkpe.in";
-
-export const MSG91_BASE = "https://control.msg91.com/api/v5";
 
 export function cashfreeBase(env: string): string {
   return env === "production"

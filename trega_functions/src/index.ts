@@ -4,8 +4,6 @@
  * - KYC: Aadhaar OTP via BulkPe (token from the BULKPE_API_TOKEN secret).
  * - Payments: Cashfree PG (CASHFREE_APP_ID / CASHFREE_SECRET_KEY / CASHFREE_ENV).
  * - Marketplace: listing review queue, structured bids/offers, orders.
- * - Login: branded OTP via MSG91 (`loginOtp.ts`) minting Firebase custom
- *   tokens — Firebase's own phone-auth SMS cannot carry Trega branding.
  * - No buyer-seller chat anywhere by design.
  *
  * Security layers (see SECURITY.md notes in each module):
@@ -32,9 +30,6 @@ import {
   CASHFREE_SECRET_KEY,
   KYC_SALT,
   ADMIN_BOOTSTRAP_PHONE,
-  MSG91_AUTH_KEY,
-  MSG91_SENDER_ID,
-  MSG91_TEMPLATE_ID,
 } from "./config";
 import { clientIp, rateLimit } from "./rateLimit";
 import { requestAadhaarOtpHandler, verifyAadhaarOtpHandler } from "./kyc";
@@ -60,7 +55,6 @@ import {
 } from "./admin";
 import { deleteAccountHandler } from "./account";
 import { checkUploadedImage } from "./storageCheck";
-import { requestLoginOtpHandler, verifyLoginOtpHandler } from "./loginOtp";
 
 admin.initializeApp();
 setGlobalOptions({ region: "asia-south1", maxInstances: 10 });
@@ -88,30 +82,6 @@ export const verifyAadhaarOtp = onCall({ secrets }, async (request) => {
   await rateLimit("kycVerify", { uid, ip: ipOf(request) });
   return verifyAadhaarOtpHandler(uid, request.data?.refId, request.data?.otp);
 });
-
-// ------------------------------------------------- Login (branded OTP) ----
-// Sign-in OTP under Trega's own sender name (MSG91 + DLT), replacing
-// Firebase-sent phone-auth SMS. PRE-AUTH by design — these are how a
-// signed-out user signs in — so no requireAuthUid; abuse control is the
-// per-IP rate-limit tiers here plus the per-phone throttle, daily cap and
-// attempt limit inside loginOtp.ts.
-const loginSecrets = [MSG91_AUTH_KEY, MSG91_SENDER_ID, MSG91_TEMPLATE_ID];
-
-export const requestLoginOtp = onCall(
-  { secrets: loginSecrets },
-  async (request) => {
-    await rateLimit("loginOtp", { ip: ipOf(request) });
-    return requestLoginOtpHandler(request.data?.phone);
-  }
-);
-
-export const verifyLoginOtp = onCall(
-  { secrets: loginSecrets },
-  async (request) => {
-    await rateLimit("loginVerify", { ip: ipOf(request) });
-    return verifyLoginOtpHandler(request.data?.phone, request.data?.otp);
-  }
-);
 
 // --------------------------------------------------------- Payments ---------
 export const createCashfreeOrder = onCall({ secrets }, async (request) => {

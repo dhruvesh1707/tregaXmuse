@@ -233,19 +233,6 @@ Never on the public listing doc. Readable only by the seller and admins
 Client reads: owner-only, plus admins (the admin panel shows how each
 user was verified).
 
-### `loginOtps/{phoneHash}`
-Branded login OTP state (see `loginOtp.ts`). Doc id is the SHA-256 of the
-E.164 phone — the raw number is never a key or a field. Client access is
-fully denied in rules; only the login OTP callables touch it.
-
-| Field | Type | Notes |
-|---|---|---|
-| codeHash | string | SHA-256 of `phone:code`; the code itself is never stored |
-| attempts | number | failed verify attempts; doc destroyed at 5 |
-| lastSentAtMs / expiresAtMs | number | epoch ms; 60s resend throttle, 10 min code life |
-| sendCount / sendWindowStartMs | number | rolling 24h send cap (6 per phone) |
-| requestedAt | timestamp | |
-
 ### `aadhaarIndex/{fingerprint}`
 Duplicate-KYC guard. Doc ID is the salted fingerprint of an Aadhaar number; the number itself is never stored anywhere.
 
