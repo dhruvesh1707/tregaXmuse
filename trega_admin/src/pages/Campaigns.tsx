@@ -322,7 +322,7 @@ export default function Campaigns() {
           <div className="space-y-4">
             <div className="mx-auto max-w-xs rounded-2xl border border-stone-200 bg-stone-50 p-3">
               <div className="flex items-start gap-2.5">
-                <img src="/logo.png" alt="" className="mt-0.5 h-8 w-8 rounded-md bg-white" />
+                <img src="/logo.png" alt="" className="mt-0.5 h-8 w-8 shrink-0 rounded-md bg-white object-contain p-1" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-stone-900">{title.trim()}</div>
                   <div className="text-sm text-stone-600">{body.trim()}</div>
