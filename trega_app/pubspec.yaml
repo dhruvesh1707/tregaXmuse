@@ -19,6 +19,7 @@ dependencies:
   cloud_firestore: ^5.4.4
   firebase_storage: ^12.3.6
   firebase_messaging: ^15.1.5
+  flutter_local_notifications: 17.2.4 # foreground push banners on Android + the trega_alerts channel (pinned exact, like the other native packages)
   cloud_functions: ^5.1.3
 
   # Networking (DEPRECATED: kept only as fallback for legacy REST endpoints.

@@ -59,6 +59,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Push: background/killed FCM notifications post to the
+             high-importance 'trega_alerts' channel created in main.dart
+             (must match the backend's FCM channelId). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="trega_alerts" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

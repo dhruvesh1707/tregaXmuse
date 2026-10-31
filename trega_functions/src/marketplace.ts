@@ -82,6 +82,14 @@ async function sendPush(job: PushJob): Promise<void> {
       tokens,
       notification: { title: job.title, body: job.body },
       data,
+      // Android: post to the app's high-importance channel (banner +
+      // sound) instead of FCM's silent fallback channel. The id must
+      // match the channel created in the app's main.dart and the
+      // manifest's default_notification_channel_id.
+      android: {
+        priority: "high",
+        notification: { channelId: "trega_alerts" },
+      },
     });
     // Prune dead tokens so the array doesn't rot over time.
     const dead: string[] = [];

@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
@@ -20,7 +23,8 @@ import 'firebase_options.dart';
 /// generate the real `lib/firebase_options.dart` before first run.
 ///
 /// Handles notification taps that arrive while the app is terminated.
-/// Foreground/background presentation is left to the OS defaults in v1.
+/// Background/killed presentation is the OS's (FCM tray); foreground
+/// pushes on Android are shown via flutter_local_notifications below.
 ///
 /// Observability: Firebase Crashlytics (crash reporting) + Firebase
 /// Performance Monitoring (app-start, screen & network traces) ride on the
@@ -31,6 +35,87 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+}
+
+/// Local notifications — Android foreground display. FCM presents pushes
+/// itself when the app is backgrounded or killed, but a push that arrives
+/// while the app is OPEN is handed to Dart and never shown; this plugin
+/// turns it into a banner. The channel id must match the manifest's
+/// default_notification_channel_id and the backend's FCM channelId.
+const String _alertsChannelId = 'trega_alerts';
+
+final FlutterLocalNotificationsPlugin _localNotifications =
+    FlutterLocalNotificationsPlugin();
+
+/// Shows a foreground push as a local notification. The payload is the
+/// FCM data map as JSON, so a tap routes exactly like a tray-push tap.
+Future<void> _showForegroundPush(RemoteMessage message) async {
+  // iOS presents foreground pushes itself (see the presentation options
+  // in main); only Android needs the local-notification path.
+  if (defaultTargetPlatform != TargetPlatform.android) return;
+  final notification = message.notification;
+  if (notification == null) return;
+  await _localNotifications.show(
+    message.hashCode,
+    notification.title,
+    notification.body,
+    NotificationDetails(
+      android: AndroidNotificationDetails(
+        _alertsChannelId,
+        'Trega alerts',
+        channelDescription:
+            'Offers, order updates and listing alerts from Trega.',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      ),
+    ),
+    payload: jsonEncode(message.data),
+  );
+}
+
+/// A tap on a foreground-shown local notification. The app is alive, so
+/// route immediately through the same resolver tray taps use.
+void _onLocalNotificationTap(NotificationResponse response) {
+  final payload = response.payload;
+  if (payload == null || payload.isEmpty) return;
+  Map<String, dynamic> data;
+  try {
+    data = jsonDecode(payload) as Map<String, dynamic>;
+  } catch (_) {
+    return;
+  }
+  final target = targetForNotification(
+    type: data['type']?.toString() ?? 'system',
+    data: data,
+  );
+  if (target == null) return;
+  tregaNavigatorKey.currentState
+      ?.pushNamed(target.routeName, arguments: target.arguments);
+}
+
+/// Creates the Android alerts channel (high importance = banner + sound)
+/// and wires the foreground-display path. Called once at startup; the
+/// platform-specific pieces are no-ops on iOS.
+Future<void> _initLocalNotifications() async {
+  await _localNotifications.initialize(
+    InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    ),
+    onDidReceiveNotificationResponse: _onLocalNotificationTap,
+  );
+  await _localNotifications
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(
+        AndroidNotificationChannel(
+          _alertsChannelId,
+          'Trega alerts',
+          description: 'Offers, order updates and listing alerts from Trega.',
+          importance: Importance.high,
+        ),
+      );
+  FirebaseMessaging.onMessage.listen(_showForegroundPush);
 }
 
 /// Routes a tapped push notification to the screen it is about.
@@ -100,6 +185,10 @@ Future<void> main() async {
     badge: true,
     sound: true,
   );
+
+  // Android: create the alerts channel + show foreground pushes (FCM
+  // never displays a push while the app is open). No-op pieces on iOS.
+  await _initLocalNotifications();
 
   // Tapping a push while the app is backgrounded: the navigator is already
   // up, so route straight away.
