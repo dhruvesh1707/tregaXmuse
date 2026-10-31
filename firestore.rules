@@ -143,6 +143,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── loginOtps/{phoneHash} ────────────────────────────────────
+    // Branded login OTP state: doc ID is the SHA-256 of the phone
+    // number. Written ONLY by the login OTP callables. No client may
+    // read or write it — a stored code hash must stay unreachable.
+    match /loginOtps/{phoneHash} {
+      allow read, write: if false;
+    }
+
     // ── aadhaarIndex/{fingerprint} ───────────────────────────────
     // Duplicate-KYC guard: doc ID is the salted HMAC-SHA256 fingerprint of
     // an Aadhaar number (the number itself is never stored). Written ONLY
