@@ -26,6 +26,11 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications requires core library desugaring
+        // (java.time backport); without it the release build fails at
+        // checkReleaseAarMetadata. The desugar_jdk_libs dependency is
+        // declared at the bottom of this file.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -79,4 +84,9 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Companion to isCoreLibraryDesugaringEnabled above.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
