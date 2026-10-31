@@ -59,7 +59,7 @@ AndroidNotificationDetails _androidDetails({
     channelDescription: 'Offers, order updates and listing alerts from Trega.',
     importance: Importance.high,
     priority: Priority.high,
-    icon: '@mipmap/ic_launcher',
+    icon: '@drawable/ic_stat_notification',
     styleInformation: styleInformation,
   );
 }
@@ -135,7 +135,7 @@ void _onLocalNotificationTap(NotificationResponse response) {
 Future<void> _initLocalNotifications() async {
   await _localNotifications.initialize(
     InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@drawable/ic_stat_notification'),
     ),
     onDidReceiveNotificationResponse: _onLocalNotificationTap,
   );

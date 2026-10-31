@@ -65,6 +65,11 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="trega_alerts" />
+        <!-- Small icon for tray pushes: a white wordmark silhouette.
+             The full-colour launcher icon renders as a grey square. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notification" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
