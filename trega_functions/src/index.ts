@@ -51,6 +51,7 @@ import {
 } from "./marketplace";
 import {
   bootstrapAdminHandler,
+  sendCampaignHandler,
   setUserKycStatusHandler,
   updateOrderFulfillmentHandler,
 } from "./admin";
@@ -259,6 +260,25 @@ export const setUserKycStatus = onCall(async (request) => {
     uid: request.data?.uid,
     status: request.data?.status,
     note: request.data?.note,
+  });
+});
+
+/**
+ * Broadcast a custom campaign push (text + optional image + optional
+ * listing/category deep link) to every user with a saved FCM token.
+ * Admin claim required; one `campaigns` doc is kept as history.
+ */
+export const sendCampaign = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("adminOps", { uid, ip: ipOf(request) });
+  const isAdmin = request.auth?.token?.admin === true;
+  return sendCampaignHandler(isAdmin, uid, {
+    title: request.data?.title,
+    body: request.data?.body,
+    imageUrl: request.data?.imageUrl,
+    linkType: request.data?.linkType,
+    listingId: request.data?.listingId,
+    categoryId: request.data?.categoryId,
   });
 });
 

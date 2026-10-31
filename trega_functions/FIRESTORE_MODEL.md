@@ -293,6 +293,21 @@ Writers (in `trega_functions/src/admin.ts`):
 Doc ID guarantees one report per user per listing. Clients may only
 create; reads are admin-only (`firestore.rules`).
 
+### `campaigns/{id}` (broadcast push history, server-written)
+
+| Field | Type | Notes |
+|---|---|---|
+| title / body | string | push text (title ≤ 100, body ≤ 300 chars) |
+| imageUrl | string? | https image shown in the Android push |
+| linkType | string | `none` \| `listing` \| `category` |
+| listingId / categoryId / categoryName | string? | deep-link target |
+| recipients / sent / failed | number | distinct-token audience + FCM delivery counts |
+| createdBy | string? | admin uid |
+| createdAt | timestamp | |
+
+Written only by the `sendCampaign` callable; admin-read only in rules.
+One doc per broadcast — this is the admin panel's campaign history.
+
 ### `reviews/{id}`
 | Field | Type | Notes |
 |---|---|---|
@@ -358,6 +373,12 @@ Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
 - `updateOrderFulfillment({orderId, status?, trackingNote?})` — advances
   order fulfillment from the admin panel's Orders page. Payment status is
   owned by the Cashfree webhook and cannot be set here.
+- `sendCampaign({title, body, imageUrl?, linkType?, listingId?, categoryId?})`
+  — broadcasts a custom campaign push to every user with a saved FCM
+  token (batched multicast, dead tokens pruned). `linkType: "listing"`
+  requires a live listing; `"category"` resolves the category name
+  server-side. Writes one `campaigns/{id}` history doc with delivery
+  counts; the push is tray-only (never copied into user inboxes).
 
 Account (`trega_functions/src/account.ts`):
 

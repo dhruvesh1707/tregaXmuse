@@ -13,6 +13,7 @@ const NAV = [
   { to: '/orders', label: 'Orders', icon: '▣' },
   { to: '/bids', label: 'Bids & Offers', icon: '◈' },
   { to: '/categories', label: 'Categories', icon: '▦' },
+  { to: '/campaigns', label: 'Push Notifications', icon: '✉' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
 ];
 

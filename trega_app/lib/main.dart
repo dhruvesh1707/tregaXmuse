@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -47,6 +49,21 @@ const String _alertsChannelId = 'trega_alerts';
 final FlutterLocalNotificationsPlugin _localNotifications =
     FlutterLocalNotificationsPlugin();
 
+/// The shared Android notification style for foreground pushes.
+AndroidNotificationDetails _androidDetails({
+  StyleInformation? styleInformation,
+}) {
+  return AndroidNotificationDetails(
+    _alertsChannelId,
+    'Trega alerts',
+    channelDescription: 'Offers, order updates and listing alerts from Trega.',
+    importance: Importance.high,
+    priority: Priority.high,
+    icon: '@mipmap/ic_launcher',
+    styleInformation: styleInformation,
+  );
+}
+
 /// Shows a foreground push as a local notification. The payload is the
 /// FCM data map as JSON, so a tap routes exactly like a tray-push tap.
 Future<void> _showForegroundPush(RemoteMessage message) async {
@@ -55,21 +72,39 @@ Future<void> _showForegroundPush(RemoteMessage message) async {
   if (defaultTargetPlatform != TargetPlatform.android) return;
   final notification = message.notification;
   if (notification == null) return;
+  // Rich pushes (campaigns) carry an image URL in the data payload:
+  // download it and show the big-picture style. Any failure falls back
+  // to the plain banner — a push must never be lost over a photo.
+  var details = _androidDetails();
+  final imageUrl = message.data['imageUrl']?.toString();
+  if (imageUrl != null && imageUrl.isNotEmpty) {
+    try {
+      final response = await Dio().get<List<int>>(
+        imageUrl,
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+      final bytes = response.data;
+      if (bytes != null && bytes.isNotEmpty) {
+        final bitmap = ByteArrayAndroidBitmap(Uint8List.fromList(bytes));
+        details = _androidDetails(
+          styleInformation: BigPictureStyleInformation(
+            bitmap,
+            largeIcon: bitmap,
+          ),
+        );
+      }
+    } catch (_) {
+      // Keep the plain details.
+    }
+  }
   await _localNotifications.show(
     message.hashCode,
     notification.title,
     notification.body,
-    NotificationDetails(
-      android: AndroidNotificationDetails(
-        _alertsChannelId,
-        'Trega alerts',
-        channelDescription:
-            'Offers, order updates and listing alerts from Trega.',
-        importance: Importance.high,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-      ),
-    ),
+    NotificationDetails(android: details),
     payload: jsonEncode(message.data),
   );
 }

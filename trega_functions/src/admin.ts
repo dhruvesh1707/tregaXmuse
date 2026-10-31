@@ -173,3 +173,168 @@ export async function updateOrderFulfillmentHandler(
   await ref.update(update);
   return { status: (snap.data()?.status as string) ?? "placed" };
 }
+
+/**
+ * Admin-only: broadcast a custom campaign push (Zomato-style) to every
+ * user with at least one saved FCM token. Text + optional image +
+ * optional deep link (a live listing, or a category) — the app routes
+ * the tap through its notification_router (`campaign` type). One
+ * `campaigns` doc is written per send as the admin history; the push is
+ * deliberately NOT copied into user inboxes (promos are tray-only).
+ */
+export async function sendCampaignHandler(
+  isAdmin: boolean,
+  createdBy: string | undefined,
+  input: {
+    title?: string;
+    body?: string;
+    imageUrl?: string;
+    linkType?: string;
+    listingId?: string;
+    categoryId?: string;
+  }
+): Promise<{ recipients: number; sent: number; failed: number }> {
+  if (!isAdmin) {
+    throw new HttpsError("permission-denied", "Admin access required.");
+  }
+  const title = assertText(input.title, "title", 1, 100);
+  const body = assertText(input.body, "body", 1, 300);
+
+  // Optional image: a plain https URL. FCM and the devices fetch it;
+  // this function never does.
+  let imageUrl: string | undefined;
+  if (input.imageUrl != null && input.imageUrl !== "") {
+    imageUrl = assertText(input.imageUrl, "imageUrl", 1, 1000);
+    if (!imageUrl.startsWith("https://")) {
+      throw new HttpsError(
+        "invalid-argument",
+        "imageUrl must be an https URL."
+      );
+    }
+  }
+
+  const db = admin.firestore();
+
+  // Optional deep link. A listing link is only as good as the listing,
+  // so verify it exists and is live; a category link carries its display
+  // name so the app can title the screen without a second lookup.
+  const data: Record<string, string> = { type: "campaign" };
+  let linkType: "none" | "listing" | "category" = "none";
+  let listingId: string | undefined;
+  let categoryId: string | undefined;
+  let categoryName: string | undefined;
+  if (input.linkType === "listing") {
+    assertDocId(input.listingId, "listingId");
+    const snap = await db.collection("listings").doc(input.listingId).get();
+    if (!snap.exists || snap.data()?.status !== "live") {
+      throw new HttpsError(
+        "invalid-argument",
+        "Listing not found or not live."
+      );
+    }
+    linkType = "listing";
+    listingId = input.listingId;
+    data.listingId = listingId;
+  } else if (input.linkType === "category") {
+    assertDocId(input.categoryId, "categoryId");
+    const snap = await db.collection("categories").doc(input.categoryId).get();
+    if (!snap.exists) {
+      throw new HttpsError("invalid-argument", "Category not found.");
+    }
+    linkType = "category";
+    categoryId = input.categoryId;
+    categoryName = (snap.data()?.name as string | undefined) ?? "Category";
+    data.categoryId = categoryId;
+    data.categoryName = categoryName;
+  } else if (
+    input.linkType != null &&
+    input.linkType !== "" &&
+    input.linkType !== "none"
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "linkType must be none, listing or category."
+    );
+  }
+  if (imageUrl) data.imageUrl = imageUrl;
+
+  // Reserve the history doc first so its id can ride in the tap payload.
+  const campaignRef = db.collection("campaigns").doc();
+  data.campaignId = campaignRef.id;
+
+  // Fan-out: every distinct saved token, remembered against its owner so
+  // dead tokens can be pruned from the right user doc afterwards.
+  const usersSnap = await db.collection("users").get();
+  const tokenOwner = new Map<string, string>();
+  for (const doc of usersSnap.docs) {
+    const tokens = (doc.data().fcmTokens as string[] | undefined) ?? [];
+    for (const t of tokens) {
+      if (!tokenOwner.has(t)) tokenOwner.set(t, doc.id);
+    }
+  }
+  const tokens = [...tokenOwner.keys()];
+
+  let sent = 0;
+  let failed = 0;
+  const deadByUser = new Map<string, string[]>();
+  for (let i = 0; i < tokens.length; i += 500) {
+    const chunk = tokens.slice(i, i + 500);
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens: chunk,
+      notification: { title, body },
+      data,
+      // Same high-importance channel as the transactional pushes; the
+      // image renders in the tray on Android (foreground display is
+      // handled in the app from data.imageUrl).
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "trega_alerts",
+          ...(imageUrl ? { imageUrl } : {}),
+        },
+      },
+    });
+    sent += res.successCount;
+    failed += res.failureCount;
+    res.responses.forEach((r, j) => {
+      if (r.success) return;
+      const code = (r.error as { code?: string } | undefined)?.code;
+      if (
+        code === "messaging/invalid-registration-token" ||
+        code === "messaging/registration-token-not-registered"
+      ) {
+        const uid = tokenOwner.get(chunk[j])!;
+        const arr = deadByUser.get(uid) ?? [];
+        arr.push(chunk[j]);
+        deadByUser.set(uid, arr);
+      }
+    });
+  }
+  // Prune dead tokens, best-effort (mirrors marketplace sendPush).
+  for (const [uid, dead] of deadByUser) {
+    await db
+      .collection("users")
+      .doc(uid)
+      .update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...dead),
+      })
+      .catch(() => undefined);
+  }
+
+  await campaignRef.set({
+    title,
+    body,
+    imageUrl: imageUrl ?? null,
+    linkType,
+    listingId: listingId ?? null,
+    categoryId: categoryId ?? null,
+    categoryName: categoryName ?? null,
+    recipients: tokens.length,
+    sent,
+    failed,
+    createdBy: createdBy ?? null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { recipients: tokens.length, sent, failed };
+}

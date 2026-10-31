@@ -12,6 +12,7 @@ import Orders from './pages/Orders';
 import Bids from './pages/Bids';
 import Categories from './pages/Categories';
 import Reports from './pages/Reports';
+import Campaigns from './pages/Campaigns';
 import Settings from './pages/Settings';
 
 function ProtectedRoute() {
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="bids" element={<Bids />} />
               <Route path="categories" element={<Categories />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="campaigns" element={<Campaigns />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>

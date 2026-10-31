@@ -156,3 +156,19 @@ export interface AppConfig {
   fees: FeeConfig | null;
   delivery: DeliveryConfig | null;
 }
+
+/** campaigns/{id} — one broadcast push, written by the sendCampaign callable. */
+export interface Campaign {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  linkType: 'none' | 'listing' | 'category';
+  listingId?: string;
+  categoryId?: string;
+  categoryName?: string;
+  recipients: number;
+  sent: number;
+  failed: number;
+  createdAt: string;
+}

@@ -7,6 +7,7 @@ import '../../features/orders/screens/order_tracking_screen.dart';
 import '../../features/orders/screens/orders_screen.dart';
 import '../../features/profile/screens/kyc_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
+import '../../features/search/screens/category_screen.dart';
 import '../models/app_notification.dart';
 
 /// Where a notification tap should land: a named route plus its arguments.
@@ -34,6 +35,7 @@ NotificationTarget? pendingNotificationTarget;
 /// - listing_flagged -> My Listings (the listing itself is down)
 /// - kyc_verified / kyc_rejected -> KYC screen
 /// - order         -> order tracking (or Orders when no order id)
+/// - campaign      -> the linked listing or category (admin broadcasts)
 NotificationTarget? targetForNotification({
   required String type,
   required Map<String, dynamic> data,
@@ -84,6 +86,25 @@ NotificationTarget? targetForNotification({
         return NotificationTarget(OrderTrackingScreen.routeName, orderId);
       }
       return const NotificationTarget(OrdersScreen.routeName);
+    case 'campaign':
+      // Admin broadcast: opens the linked listing or category, if any.
+      if (listingId != null) {
+        return NotificationTarget(
+          ListingDetailScreen.routeName,
+          ListingDetailArgs(listingId: listingId),
+        );
+      }
+      final categoryId = str('categoryId');
+      if (categoryId != null) {
+        return NotificationTarget(
+          CategoryScreen.routeName,
+          CategoryArgs(
+            categoryId: categoryId,
+            categoryName: str('categoryName') ?? 'Category',
+          ),
+        );
+      }
+      return null;
     case 'bid':
       return const NotificationTarget(BidsOffersScreen.routeName);
     case 'listing':

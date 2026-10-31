@@ -23,6 +23,7 @@ import type {
   AdminUser,
   AppConfig,
   Bid,
+  Campaign,
   Category,
   DashboardStats,
   DeliveryConfig,
@@ -463,6 +464,32 @@ export function useReports(page: number, pageSize: number): Paged<Report> {
   });
 }
 
+function mapCampaign(id: string, d: DocumentData): Campaign {
+  return {
+    id,
+    title: (d.title as string) ?? '',
+    body: (d.body as string) ?? '',
+    imageUrl: (d.imageUrl as string | null) ?? undefined,
+    linkType: (d.linkType as Campaign['linkType']) ?? 'none',
+    listingId: (d.listingId as string | null) ?? undefined,
+    categoryId: (d.categoryId as string | null) ?? undefined,
+    categoryName: (d.categoryName as string | null) ?? undefined,
+    recipients: (d.recipients as number) ?? 0,
+    sent: (d.sent as number) ?? 0,
+    failed: (d.failed as number) ?? 0,
+    createdAt: tsToIso(d.createdAt),
+  };
+}
+
+/** Past campaign broadcasts, newest first (written by sendCampaign). */
+export function useCampaigns(page: number, pageSize: number): Paged<Campaign> {
+  return usePagedQuery<Campaign>('campaigns', [], `campaigns|${page}`, mapCampaign, {
+    page,
+    pageSize,
+    sort: byNewest,
+  });
+}
+
 /** App config (config/fees + config/delivery), real-time. Writes are
  *  console-only (firestore.rules) — this hook reads only. */
 export function useAppConfig(): AppConfig & { loading: boolean; error: string | null } {
@@ -629,6 +656,19 @@ const deleteListingFn = httpsCallable<{ listingId: string }, { deleted: boolean 
   functions,
   'deleteListing',
 );
+const sendCampaignFn = httpsCallable<CampaignInput, { recipients: number; sent: number; failed: number }>(
+  functions,
+  'sendCampaign',
+);
+
+export interface CampaignInput {
+  title: string;
+  body: string;
+  imageUrl?: string;
+  linkType: 'none' | 'listing' | 'category';
+  listingId?: string;
+  categoryId?: string;
+}
 const setUserKycStatusFn = httpsCallable<{ uid: string; status: 'verified' | 'rejected'; note?: string }, { kycStatus: string }>(
   functions,
   'setUserKycStatus',
@@ -665,6 +705,19 @@ export async function rejectListing(listingId: string, reason: string): Promise<
 export async function deleteListing(listingId: string): Promise<void> {
   try {
     await deleteListingFn({ listingId });
+  } catch (e) {
+    throw new Error(callableError(e));
+  }
+}
+
+/** Broadcast a custom campaign push to every user with a saved FCM
+ *  token. Returns the delivery counts recorded on the campaign doc. */
+export async function sendCampaign(
+  input: CampaignInput,
+): Promise<{ recipients: number; sent: number; failed: number }> {
+  try {
+    const res = await sendCampaignFn(input);
+    return res.data;
   } catch (e) {
     throw new Error(callableError(e));
   }
