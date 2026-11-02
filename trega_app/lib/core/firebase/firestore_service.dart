@@ -174,6 +174,30 @@ class FirestoreService {
     });
   }
 
+  /// First-run spotlight tour: records that this account has finished
+  /// or skipped it (`settings.tourSeen`), so it never shows again.
+  Future<void> markTourSeen(String uid) {
+    return _users.doc(uid).set({
+      'settings': {'tourSeen': true},
+    }, SetOptions(merge: true),);
+  }
+
+  /// True only for a brand-new account (created within the last 7
+  /// days) that has not finished or skipped the first-run tour yet.
+  /// Older accounts never see it.
+  Future<bool> shouldShowTour(String uid) async {
+    final doc = await _users.doc(uid).get();
+    final data = doc.data();
+    if (data == null) return false;
+    final settings = data['settings'];
+    if (settings is Map && settings['tourSeen'] == true) return false;
+    final createdAt = data['createdAt'];
+    if (createdAt is Timestamp) {
+      return DateTime.now().difference(createdAt.toDate()).inDays < 7;
+    }
+    return false;
+  }
+
   Stream<AppUser?> watchUser(String uid) {
     return _users.doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;

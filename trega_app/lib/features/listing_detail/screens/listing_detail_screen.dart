@@ -11,6 +11,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
+import '../../../core/widgets/app_tour.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/delivery/express_delivery.dart';
@@ -621,11 +622,15 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
         }
 
         // No offer (or last one was rejected): the single buyer action.
+        // Keyed so the first-run tour can point at the real button.
         final rejected = bids.any((b) => b.status == BidStatus.rejected);
         return bar(
-          TregaButton(
-            label: rejected ? 'Offer again' : 'Make an Offer',
-            onPressed: () => _makeOffer(context, listing),
+          KeyedSubtree(
+            key: TourKeys.offerButton,
+            child: TregaButton(
+              label: rejected ? 'Offer again' : 'Make an Offer',
+              onPressed: () => _makeOffer(context, listing),
+            ),
           ),
         );
       },

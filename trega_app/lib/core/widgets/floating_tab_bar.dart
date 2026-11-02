@@ -19,10 +19,16 @@ class FloatingTabBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
+  /// Optional per-item anchor keys (same order as the destinations).
+  /// Used by the first-run tour to point at individual tabs; screens
+  /// that don't pass it are unaffected.
+  final List<GlobalKey?>? itemKeys;
+
   const FloatingTabBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.itemKeys,
   });
 
   static const List<({IconData icon, String label})> _items = [
@@ -46,6 +52,9 @@ class FloatingTabBar extends StatelessWidget {
           for (var i = 0; i < _items.length; i++)
             Expanded(
               child: _TabButton(
+                key: (itemKeys != null && i < itemKeys!.length)
+                    ? itemKeys![i]
+                    : null,
                 icon: _items[i].icon,
                 label: _items[i].label,
                 selected: i == currentIndex,
@@ -66,6 +75,7 @@ class _TabButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _TabButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.selected,

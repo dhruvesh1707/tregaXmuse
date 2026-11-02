@@ -5,10 +5,12 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/app_tour.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/floating_tab_bar.dart';
@@ -40,11 +42,56 @@ class HomeScreen extends ConsumerWidget {
 
   const HomeScreen({super.key});
 
+  /// The first-run tour gate runs at most once per app session; the
+  /// account-level decision lives in Firestore (see shouldShowTour).
+  static bool _tourGateChecked = false;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listingsAsync = ref.watch(liveListingsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
+
+    // First-run spotlight tour: brand-new accounts only, shown once.
+    final uid = ref.watch(currentUidProvider);
+    if (uid != null && !_tourGateChecked) {
+      _tourGateChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final service = ref.read(firestoreServiceProvider);
+        var show = false;
+        try {
+          show = await service.shouldShowTour(uid);
+        } catch (_) {
+          show = false; // Offline or read failed: no tour, no crash.
+        }
+        if (!show) return;
+        // Give the feed a moment to land so the tour can point at a
+        // real listing and open it for the offer-button step.
+        var listings = const <Listing>[];
+        for (var i = 0; i < 10; i++) {
+          listings = ref.read(liveListingsProvider).valueOrNull ?? const [];
+          if (listings.isNotEmpty) break;
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+        }
+        if (!context.mounted) return;
+        final first = listings.isEmpty ? null : listings.first;
+        AppTour.start(
+          context: context,
+          hasListings: first != null,
+          openFirstListing: () {
+            if (first == null) return;
+            Navigator.of(context).pushNamed(
+              ListingDetailScreen.routeName,
+              arguments: ListingDetailArgs(
+                listingId: first.id,
+                initial: first,
+              ),
+            );
+          },
+          onDone: () => service.markTourSeen(uid),
+        );
+      });
+    }
 
     return TregaScaffold(
       body: Stack(
@@ -95,6 +142,7 @@ class HomeScreen extends ConsumerWidget {
             title: Image.asset('assets/logo/trega_logo.png', height: 28),
             actions: [
               IconButton(
+                key: TourKeys.search,
                 icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
                 onPressed: () =>
                     Navigator.of(context).pushNamed(SearchScreen.routeName),
@@ -117,7 +165,10 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           SliverToBoxAdapter(
-            child: _CategoryRail(categoriesAsync: categoriesAsync),
+            child: KeyedSubtree(
+              key: TourKeys.categories,
+              child: _CategoryRail(categoriesAsync: categoriesAsync),
+            ),
           ),
           const SliverToBoxAdapter(
             child: Padding(
@@ -142,7 +193,10 @@ class HomeScreen extends ConsumerWidget {
                       subtitle: 'Be the first to list your gear on Trega.',
                     ),
                   )
-                : _ListingGrid(listings: listings),
+                : _ListingGrid(
+                    listings: listings,
+                    firstCardKey: TourKeys.firstCard,
+                  ),
             loading: () => SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(
@@ -180,6 +234,13 @@ class HomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 14),
                 child: FloatingTabBar(
                   currentIndex: 0,
+                  itemKeys: [
+                    null,
+                    null,
+                    TourKeys.tabSell,
+                    TourKeys.tabBids,
+                    TourKeys.tabProfile,
+                  ],
                   onTap: (i) {
                     // Bottom-nav destinations: Home / Search / Sell / Bids /
                     // Profile. (Haptics live inside FloatingTabBar.)
@@ -276,9 +337,12 @@ class _CategoryRail extends StatelessWidget {
 }
 
 class _ListingGrid extends StatelessWidget {
-  const _ListingGrid({required this.listings});
+  const _ListingGrid({required this.listings, this.firstCardKey});
 
   final List<Listing> listings;
+
+  /// Anchor for the first card, used by the first-run tour.
+  final Key? firstCardKey;
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +358,7 @@ class _ListingGrid extends StatelessWidget {
         delegate: SliverChildBuilderDelegate(
           (context, i) {
             final listing = listings[i];
-            return Entrance(
+            final card = Entrance(
               // Staggered entrance: the cascade restarts every 8 items
               // so long scrolls keep feeling alive.
               index: i % 8,
@@ -309,6 +373,11 @@ class _ListingGrid extends StatelessWidget {
                 ),
               ),
             );
+            // The tour points at the first real card in the feed.
+            if (i == 0 && firstCardKey != null) {
+              return KeyedSubtree(key: firstCardKey, child: card);
+            }
+            return card;
           },
           childCount: listings.length,
         ),
