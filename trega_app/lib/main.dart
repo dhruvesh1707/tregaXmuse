@@ -130,9 +130,15 @@ void _onLocalNotificationTap(NotificationResponse response) {
 }
 
 /// Creates the Android alerts channel (high importance = banner + sound)
-/// and wires the foreground-display path. Called once at startup; the
-/// platform-specific pieces are no-ops on iOS.
+/// and wires the foreground-display path. Called once at startup.
+/// Android only: iOS presents foreground pushes itself (see the
+/// presentation options in main), and flutter_local_notifications
+/// throws an ArgumentError on iOS when no Darwin settings are supplied,
+/// so the plugin must not be touched at all off Android. This runs
+/// before runApp, so throwing here would strand the app on a blank
+/// screen — the guard is load-bearing, not cosmetic.
 Future<void> _initLocalNotifications() async {
+  if (defaultTargetPlatform != TargetPlatform.android) return;
   await _localNotifications.initialize(
     InitializationSettings(
       android: AndroidInitializationSettings('@drawable/ic_stat_notification'),
