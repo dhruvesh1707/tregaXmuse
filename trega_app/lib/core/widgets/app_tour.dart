@@ -124,8 +124,8 @@ class AppTour {
         TourKeys.tabProfile,
         'Your account',
         'Your listings, orders and settings live here. One quick '
-            'Aadhaar verification before your first offer or sale '
-            'keeps everyone genuine.',
+            'Aadhaar verification before you sell '
+            'keeps every seller genuine.',
         nextLabel: 'Done',
       ),
     ];

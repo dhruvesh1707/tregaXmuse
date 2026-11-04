@@ -36,13 +36,13 @@ import '../widgets/gallery_viewer.dart';
 import '../../bids/screens/bids_offers_screen.dart';
 import '../../checkout/screens/checkout_screen.dart';
 import '../../home/providers/listing_providers.dart';
-import '../../profile/screens/kyc_screen.dart';
+
 
 /// Full listing page: media gallery (photos + video), condition badge,
 /// verified seller card, specs, and the single state-driven offer action.
 ///
 /// The bottom bar shows exactly one action, driven by state:
-/// - buyer, no offer yet -> "Make an Offer" (Aadhaar-verified only)
+/// - buyer, no offer yet -> "Make an Offer"
 /// - buyer, offer open -> "Offer sent — awaiting the seller" (disabled)
 /// - buyer, offer rejected -> "Offer again"
 /// - buyer, offer accepted -> "Buy Now at ₹X" -> checkout with address
@@ -141,26 +141,10 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
 
   /// Opens the offer sheet, then places the offer server-side.
   ///
-  /// Only Aadhaar-verified buyers can make offers — unverified users get a
-  /// prompt and are routed to the KYC screen.
+  /// Buyers need no Aadhaar KYC (sellers-only since 2026-11-04); the
+  /// server enforces the remaining guards (live listing, not the
+  /// seller, one open offer per buyer per listing).
   Future<void> _makeOffer(BuildContext context, Listing listing) async {
-    final uid = ref.read(currentUidProvider);
-    if (uid != null) {
-      final me = await ref.read(firestoreServiceProvider).getUser(uid);
-      if (me == null || !me.isKycVerified) {
-        if (!context.mounted) return;
-        await showTregaToast(
-          context,
-          'Only Aadhaar-verified buyers can make offers.',
-          title: 'Verification needed',
-          kind: TregaToastKind.info,
-        );
-        if (!context.mounted) return;
-        Navigator.of(context).pushNamed(KycScreen.routeName);
-        return;
-      }
-    }
-
     if (!context.mounted) return;
     final amount = await showGlassSheet<double>(
       context: context,

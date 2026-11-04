@@ -321,10 +321,10 @@ One doc per broadcast — this is the admin panel's campaign history.
 
 Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
 
-- `placeBid({listingId, amount})` — guards: listing must be `live`; buyer
-  must be Aadhaar-verified (`users/{uid}.kycStatus == "verified"`); buyer must
+- `placeBid({listingId, amount})` — guards: listing must be `live`; buyer must
   not be the seller; at most **one open offer per buyer per listing** (a
-  rejected buyer may offer again). Writes the bid (`status: open`) and bumps
+  rejected buyer may offer again). No Aadhaar gate for buyers since
+  2026-11-04 (KYC is sellers-only; buyers are phone-OTP verified). Writes the bid (`status: open`) and bumps
   `highestBid`/`bidCount` when appropriate.
 - `acceptBid({bidId})` — seller only; the listing must be `live` and have no
   `acceptedBidId` yet (accepting is exclusive). Marks the bid `accepted`,
@@ -367,9 +367,9 @@ Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
   `users/{uid}` (`kycStatus`, `verifiedSeller`, `kycNote`), merges a
   `kycVerifications/{uid}` audit record (`method: "manual"`, `verifiedBy`,
   `reviewedAt`, note), and notifies the user (`kyc_verified` /
-  `kyc_rejected`). A manually-verified user passes the same gates as an
-  Aadhaar-verified one (selling, making offers) because both read
-  `users/{uid}.kycStatus`.
+  `kyc_rejected`). A manually-verified user passes the same seller gate as
+  an Aadhaar-verified one (listing creation reads `users/{uid}.kycStatus`;
+  making offers needs no KYC since 2026-11-04).
 - `updateOrderFulfillment({orderId, status?, trackingNote?})` — advances
   order fulfillment from the admin panel's Orders page. Payment status is
   owned by the Cashfree webhook and cannot be set here.

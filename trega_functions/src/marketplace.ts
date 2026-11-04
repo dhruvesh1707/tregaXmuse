@@ -395,14 +395,11 @@ export async function placeBidHandler(
     throw new HttpsError("failed-precondition", "You cannot bid on your own listing.");
   }
 
-  // Aadhaar gate: only verified users may make offers.
-  const userSnap = await db.collection("users").doc(uid).get();
-  if (userSnap.data()?.kycStatus !== "verified") {
-    throw new HttpsError(
-      "failed-precondition",
-      "Verify your Aadhaar to make an offer."
-    );
-  }
+  // No Aadhaar gate for buyers (policy change, 2026-11-04): KYC is
+  // sellers-only. Buyers are phone-OTP verified at login, and no money
+  // or goods move until the winner pays at checkout. Aadhaar stays
+  // mandatory for selling (listing creation is gated in the rules and
+  // the sell flow).
 
   // One open offer per buyer per listing. A rejected buyer may offer again,
   // but an open offer must be accepted/rejected first.
