@@ -15,6 +15,9 @@ import * as logger from "firebase-functions/logger";
  * - moderate (`webhook`, `adminOps`): the Cashfree webhook (per-IP) and
  *   admin-panel mutations (per-account).
  * - loose (`bids`, `payments`): normal authenticated user actions.
+ * - loose (`views`): listing view recording; generous because normal
+ *   browsing opens many listings (count inflation is prevented by the
+ *   handler's 1h per-viewer-per-listing cooldown, not by this tier).
  * - destructive (`deleteAccount`): 3/day per account.
  *
  * Backoff, not lockout: exceeding the limit blocks for
@@ -50,6 +53,20 @@ const DEFAULT_RULES: Record<string, RateLimitRule> = {
   bids: { limit: 60, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 1800 },
   payments: { limit: 30, windowSec: 3600, blockBaseSec: 120, blockMaxSec: 3600 },
   deleteAccount: { limit: 3, windowSec: 86400, blockBaseSec: 3600, blockMaxSec: 86400 },
+  views: { limit: 300, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 1800 },
+};
+
+/**
+ * Last-resort rule for a tier that has no configured rule anywhere.
+ * A missing tier must never crash the endpoint it guards: this once
+ * silently killed `recordListingView` (its "views" tier was never
+ * added), failing every call while the app swallowed the error.
+ */
+const FALLBACK_RULE: RateLimitRule = {
+  limit: 120,
+  windowSec: 3600,
+  blockBaseSec: 60,
+  blockMaxSec: 1800,
 };
 
 const RULE_CACHE_TTL_MS = 60_000;
@@ -97,7 +114,12 @@ async function getRule(tier: string): Promise<RateLimitRule> {
     }
     ruleCache = { at: now, rules };
   }
-  return ruleCache.rules[tier] ?? DEFAULT_RULES[tier];
+  const rule = ruleCache.rules[tier] ?? DEFAULT_RULES[tier];
+  if (!rule) {
+    logger.warn("rateLimit: no rule for tier, using fallback", { tier });
+    return FALLBACK_RULE;
+  }
+  return rule;
 }
 
 interface Bucket {

@@ -164,14 +164,6 @@ service cloud.firestore {
     // User-submitted listing reports (reactive moderation). Doc ID is
     // `{listingId}_{reporterId}` so each user reports a listing at most
     // once. Clients create only; the team reads via the admin panel.
-    // ── campaigns/{campaignId} ────────────────────────────────────
-    // Broadcast push history. Written only by the sendCampaign callable
-    // (Admin SDK bypasses rules); admins read it for the panel history.
-    match /campaigns/{campaignId} {
-      allow read: if isAdmin();
-      allow write: if false;
-    }
-
     match /reports/{reportId} {
       allow read: if isAdmin();
       allow create: if signedIn()

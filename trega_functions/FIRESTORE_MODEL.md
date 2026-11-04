@@ -36,20 +36,7 @@ write. Buyers never see this — pickup addresses are copied per-listing into
 at publish time, so payouts stay correct even if the seller changes it
 later). The sell flow auto-saves new pickup addresses here (deduped) and
 prefills the payout UPI field from the saved value; Profile → Settings
-manages both. Checkout reuses the same collection for the buyer's delivery
-address (one-tap picker + auto-save on order creation, deduped) — manual
-entry always stays available on both flows.
-
-Client-only notes (no schema change, 2026-10-24): the sell flow keeps a
-local draft in SharedPreferences (`sell_draft_v1`: step, category,
-fields, payout UPI, camera photo paths that still exist) and restores it
-when the seller returns; it is cleared on publish or discard. PIN →
-city/state autofill uses the free India Post API
-(`api.postalpincode.in/pincode/<pin>`, no key) on both sell and checkout
-forms; a failed lookup leaves both fields manually editable. Offer cards
-show counterparty names by reading the public `users/{uid}` profile
-client-side (bid docs carry ids only); the listing seller card shows
-`avatarUrl` when set.
+manages both.
 
 ### `categories/{id}`
 | Field | Type | Notes |
@@ -60,7 +47,7 @@ client-side (bid docs carry ids only); the listing seller card shows
 | active | boolean | |
 | sortOrder | number | |
 
-Seed: Gaming, Mobiles, Laptops, Cameras, Music, Fashion, Furniture, Home Appliances, Cycles, Watches, Collectibles, Books, Others.
+Seed: Gaming, Mobile, Laptops, Cameras, Music, Others.
 
 ### `config/delivery`
 
@@ -293,21 +280,6 @@ Writers (in `trega_functions/src/admin.ts`):
 Doc ID guarantees one report per user per listing. Clients may only
 create; reads are admin-only (`firestore.rules`).
 
-### `campaigns/{id}` (broadcast push history, server-written)
-
-| Field | Type | Notes |
-|---|---|---|
-| title / body | string | push text (title ≤ 100, body ≤ 300 chars) |
-| imageUrl | string? | https image shown in the Android push |
-| linkType | string | `none` \| `listing` \| `category` |
-| listingId / categoryId / categoryName | string? | deep-link target |
-| recipients / sent / failed | number | distinct-token audience + FCM delivery counts |
-| createdBy | string? | admin uid |
-| createdAt | timestamp | |
-
-Written only by the `sendCampaign` callable; admin-read only in rules.
-One doc per broadcast — this is the admin panel's campaign history.
-
 ### `reviews/{id}`
 | Field | Type | Notes |
 |---|---|---|
@@ -321,10 +293,10 @@ One doc per broadcast — this is the admin panel's campaign history.
 
 Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
 
-- `placeBid({listingId, amount})` — guards: listing must be `live`; buyer must
+- `placeBid({listingId, amount})` — guards: listing must be `live`; buyer
+  must be Aadhaar-verified (`users/{uid}.kycStatus == "verified"`); buyer must
   not be the seller; at most **one open offer per buyer per listing** (a
-  rejected buyer may offer again). No Aadhaar gate for buyers since
-  2026-11-04 (KYC is sellers-only; buyers are phone-OTP verified). Writes the bid (`status: open`) and bumps
+  rejected buyer may offer again). Writes the bid (`status: open`) and bumps
   `highestBid`/`bidCount` when appropriate.
 - `acceptBid({bidId})` — seller only; the listing must be `live` and have no
   `acceptedBidId` yet (accepting is exclusive). Marks the bid `accepted`,
@@ -367,18 +339,12 @@ Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
   `users/{uid}` (`kycStatus`, `verifiedSeller`, `kycNote`), merges a
   `kycVerifications/{uid}` audit record (`method: "manual"`, `verifiedBy`,
   `reviewedAt`, note), and notifies the user (`kyc_verified` /
-  `kyc_rejected`). A manually-verified user passes the same seller gate as
-  an Aadhaar-verified one (listing creation reads `users/{uid}.kycStatus`;
-  making offers needs no KYC since 2026-11-04).
+  `kyc_rejected`). A manually-verified user passes the same gates as an
+  Aadhaar-verified one (selling, making offers) because both read
+  `users/{uid}.kycStatus`.
 - `updateOrderFulfillment({orderId, status?, trackingNote?})` — advances
   order fulfillment from the admin panel's Orders page. Payment status is
   owned by the Cashfree webhook and cannot be set here.
-- `sendCampaign({title, body, imageUrl?, linkType?, listingId?, categoryId?})`
-  — broadcasts a custom campaign push to every user with a saved FCM
-  token (batched multicast, dead tokens pruned). `linkType: "listing"`
-  requires a live listing; `"category"` resolves the category name
-  server-side. Writes one `campaigns/{id}` history doc with delivery
-  counts; the push is tray-only (never copied into user inboxes).
 
 Account (`trega_functions/src/account.ts`):
 
