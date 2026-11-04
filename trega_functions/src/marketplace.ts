@@ -82,6 +82,14 @@ async function sendPush(job: PushJob): Promise<void> {
       tokens,
       notification: { title: job.title, body: job.body },
       data,
+      // Android: post to the app's high-importance channel (banner +
+      // sound) instead of FCM's silent fallback channel. The id must
+      // match the channel created in the app's main.dart and the
+      // manifest's default_notification_channel_id.
+      android: {
+        priority: "high",
+        notification: { channelId: "trega_alerts" },
+      },
     });
     // Prune dead tokens so the array doesn't rot over time.
     const dead: string[] = [];
@@ -229,6 +237,83 @@ export async function reviewListingHandler(
 }
 
 /**
+ * Permanent admin delete — the hard counterpart to reviewListing's reject.
+ * Removes the listing doc (recursiveDelete also clears its `private`
+ * subcollection), every bid placed on it, and its Storage media under
+ * `listingMedia/{listingId}/`. Sold listings are refused: an order
+ * references them, so their record must stay. The seller is notified via
+ * the same listing_flagged inbox type the app already renders for
+ * takedowns — only the wording says the removal is permanent.
+ */
+export async function deleteListingHandler(
+  isAdmin: boolean,
+  input: { listingId?: string }
+): Promise<{ deleted: true }> {
+  if (!isAdmin) {
+    throw new HttpsError("permission-denied", "Admin access required.");
+  }
+  const { listingId } = input;
+  assertDocId(listingId, "listingId");
+
+  const db = admin.firestore();
+  const ref = db.collection("listings").doc(listingId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Listing not found.");
+  const data = snap.data()!;
+  if ((data.status as ListingStatus | undefined) === "sold") {
+    throw new HttpsError(
+      "failed-precondition",
+      "Sold listings can't be deleted — an order references them."
+    );
+  }
+  const sellerId = data.sellerId as string | undefined;
+  const title = (data.title as string | undefined) ?? "Your listing";
+
+  // Bids on this listing (single-field query — no composite index needed).
+  // Deleted in batch-sized chunks; bid counts per listing are small, but
+  // the loop keeps a pathological case under the 500-write batch limit.
+  const bidsSnap = await db
+    .collection("bids")
+    .where("listingId", "==", listingId)
+    .get();
+  for (let i = 0; i < bidsSnap.docs.length; i += 400) {
+    const chunk = db.batch();
+    for (const doc of bidsSnap.docs.slice(i, i + 400)) chunk.delete(doc.ref);
+    await chunk.commit();
+  }
+
+  // Notify the seller (same commitAndNotify pattern as the review
+  // takedown). No deep-link data — the listing is about to not exist.
+  if (sellerId) {
+    const batch = db.batch();
+    queueNotification(batch, sellerId, {
+      type: NotificationType.listingFlagged,
+      title: "Your listing was removed",
+      body: `“${title}” was permanently removed by the Trega team and can't be restored.`,
+    });
+    await commitAndNotify(batch);
+  }
+
+  // Doc + `private` subcollection in one recursive delete.
+  await db.recursiveDelete(ref);
+
+  // Media last, best-effort: if this fails the listing is still gone from
+  // the app, and orphaned files under the prefix are inert. Never fail
+  // the callable over cleanup (mirrors account.ts).
+  try {
+    const bucket = admin.storage().bucket();
+    const [files] = await bucket.getFiles({
+      prefix: `listingMedia/${listingId}/`,
+    });
+    await Promise.all(files.map((f) => f.delete().catch(() => undefined)));
+  } catch {
+    // best-effort cleanup only
+  }
+
+  return { deleted: true };
+}
+
+/**
  * Runs on every new bid: notifies the seller, and notifies the previous
  * highest bidder if they have just been outbid.
  */
@@ -310,14 +395,11 @@ export async function placeBidHandler(
     throw new HttpsError("failed-precondition", "You cannot bid on your own listing.");
   }
 
-  // Aadhaar gate: only verified users may make offers.
-  const userSnap = await db.collection("users").doc(uid).get();
-  if (userSnap.data()?.kycStatus !== "verified") {
-    throw new HttpsError(
-      "failed-precondition",
-      "Verify your Aadhaar to make an offer."
-    );
-  }
+  // No Aadhaar gate for buyers (policy change, 2026-11-04): KYC is
+  // sellers-only. Buyers are phone-OTP verified at login, and no money
+  // or goods move until the winner pays at checkout. Aadhaar stays
+  // mandatory for selling (listing creation is gated in the rules and
+  // the sell flow).
 
   // One open offer per buyer per listing. A rejected buyer may offer again,
   // but an open offer must be accepted/rejected first.

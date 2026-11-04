@@ -174,6 +174,30 @@ class FirestoreService {
     });
   }
 
+  /// First-run spotlight tour: records that this account has finished
+  /// or skipped it (`settings.tourSeen`), so it never shows again.
+  Future<void> markTourSeen(String uid) {
+    return _users.doc(uid).set({
+      'settings': {'tourSeen': true},
+    }, SetOptions(merge: true),);
+  }
+
+  /// True only for a brand-new account (created within the last 7
+  /// days) that has not finished or skipped the first-run tour yet.
+  /// Older accounts never see it.
+  Future<bool> shouldShowTour(String uid) async {
+    final doc = await _users.doc(uid).get();
+    final data = doc.data();
+    if (data == null) return false;
+    final settings = data['settings'];
+    if (settings is Map && settings['tourSeen'] == true) return false;
+    final createdAt = data['createdAt'];
+    if (createdAt is Timestamp) {
+      return DateTime.now().difference(createdAt.toDate()).inDays < 7;
+    }
+    return false;
+  }
+
   Stream<AppUser?> watchUser(String uid) {
     return _users.doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;
@@ -523,6 +547,41 @@ class FirestoreService {
             name: 'Music',
             slug: 'music',
             icon: Category.iconKeyToIconData('music'),),
+        Category(
+            id: 'fashion',
+            name: 'Fashion',
+            slug: 'fashion',
+            icon: Category.iconKeyToIconData('fashion'),),
+        Category(
+            id: 'furniture',
+            name: 'Furniture',
+            slug: 'furniture',
+            icon: Category.iconKeyToIconData('furniture'),),
+        Category(
+            id: 'appliances',
+            name: 'Home Appliances',
+            slug: 'appliances',
+            icon: Category.iconKeyToIconData('appliances'),),
+        Category(
+            id: 'cycles',
+            name: 'Cycles',
+            slug: 'cycles',
+            icon: Category.iconKeyToIconData('cycles'),),
+        Category(
+            id: 'watches',
+            name: 'Watches',
+            slug: 'watches',
+            icon: Category.iconKeyToIconData('watch'),),
+        Category(
+            id: 'collectibles',
+            name: 'Collectibles',
+            slug: 'collectibles',
+            icon: Category.iconKeyToIconData('collectible'),),
+        Category(
+            id: 'books',
+            name: 'Books',
+            slug: 'books',
+            icon: Category.iconKeyToIconData('books'),),
         Category(
             id: 'others',
             name: 'Others',

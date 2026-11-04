@@ -41,6 +41,7 @@ import {
 import {
   acceptBidHandler,
   cancelAcceptanceHandler,
+  deleteListingHandler,
   onBidCreateHandler,
   onListingCreateHandler,
   placeBidHandler,
@@ -50,6 +51,7 @@ import {
 } from "./marketplace";
 import {
   bootstrapAdminHandler,
+  sendCampaignHandler,
   setUserKycStatusHandler,
   updateOrderFulfillmentHandler,
 } from "./admin";
@@ -163,6 +165,19 @@ export const reviewListing = onCall(async (request) => {
   });
 });
 
+/**
+ * Permanent admin delete of a listing (doc + bids + media). The hard
+ * counterpart to reviewListing's reject; sold listings are refused
+ * because an order references them.
+ */
+export const deleteListing = onCall(async (request) => {
+  await rateLimit("adminOps", { uid: request.auth?.uid, ip: ipOf(request) });
+  const isAdmin = request.auth?.token?.admin === true;
+  return deleteListingHandler(isAdmin, {
+    listingId: request.data?.listingId,
+  });
+});
+
 export const placeBid = onCall(async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("bids", { uid, ip: ipOf(request) });
@@ -245,6 +260,25 @@ export const setUserKycStatus = onCall(async (request) => {
     uid: request.data?.uid,
     status: request.data?.status,
     note: request.data?.note,
+  });
+});
+
+/**
+ * Broadcast a custom campaign push (text + optional image + optional
+ * listing/category deep link) to every user with a saved FCM token.
+ * Admin claim required; one `campaigns` doc is kept as history.
+ */
+export const sendCampaign = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("adminOps", { uid, ip: ipOf(request) });
+  const isAdmin = request.auth?.token?.admin === true;
+  return sendCampaignHandler(isAdmin, uid, {
+    title: request.data?.title,
+    body: request.data?.body,
+    imageUrl: request.data?.imageUrl,
+    linkType: request.data?.linkType,
+    listingId: request.data?.listingId,
+    categoryId: request.data?.categoryId,
   });
 });
 
