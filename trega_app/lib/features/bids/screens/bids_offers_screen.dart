@@ -215,7 +215,7 @@ class _ListingTitle extends ConsumerWidget {
     return StreamBuilder<Listing?>(
       stream: ref.watch(firestoreServiceProvider).watchListing(listingId),
       builder: (context, snap) {
-        final title = snap.data?.title;
+        final title = snap.data?.product.title;
         return Text(
           (title?.isNotEmpty ?? false) ? title! : 'Listing',
           style: style,
