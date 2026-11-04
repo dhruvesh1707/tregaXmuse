@@ -8,6 +8,7 @@ import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
+import '../../../core/models/listing.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -188,6 +189,44 @@ class _CounterpartyName extends ConsumerWidget {
   }
 }
 
+/// The listing's real title on an offer card.
+///
+/// Bid docs carry only the listing id — the title is joined client-side
+/// from the listing doc, exactly like the counterparty name above.
+/// Falls back to 'Listing' while loading or if the listing is gone, so
+/// a card never renders blank. (Bid.listingTitle was never populated by
+/// any code path, which is why every card used to say just 'Listing'
+/// and two different offers could look like the same one flipped.)
+class _ListingTitle extends ConsumerWidget {
+  final String listingId;
+  final TextStyle? style;
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  const _ListingTitle({
+    required this.listingId,
+    this.style,
+    this.maxLines,
+    this.overflow,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return StreamBuilder<Listing?>(
+      stream: ref.watch(firestoreServiceProvider).watchListing(listingId),
+      builder: (context, snap) {
+        final title = snap.data?.title;
+        return Text(
+          (title?.isNotEmpty ?? false) ? title! : 'Listing',
+          style: style,
+          maxLines: maxLines,
+          overflow: overflow,
+        );
+      },
+    );
+  }
+}
+
 // ── Buyer tab ─────────────────────────────────────────────────────────────
 
 /// Every offer the buyer sent, with the next action per state.
@@ -278,8 +317,8 @@ class _MyOfferCard extends StatelessWidget {
                   child: Pressable(
                     child: InkWell(
                     onTap: () => _openListing(context, bid.listingId),
-                    child: Text(
-                      bid.listingTitle ?? 'Listing',
+                    child: _ListingTitle(
+                      listingId: bid.listingId,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.titleSmall,
@@ -631,7 +670,6 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final title = widget.bids.first.listingTitle ?? 'Listing';
     // Optimistic accept: a bid the seller just accepted renders as
     // accepted immediately; the stream converges a few seconds later.
     final open = widget.bids
@@ -658,8 +696,8 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      title,
+                    child: _ListingTitle(
+                      listingId: listingId,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.titleMedium,
