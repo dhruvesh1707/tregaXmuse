@@ -172,9 +172,10 @@ void _routePushMessage(RemoteMessage message) {
 
 /// Deep links from shared listings:
 ///   - trega://listing/<id> (custom scheme), and
-///   - https://tregaxmuse.web.app/l/<id> (Android App Links — the manifest
+///   - https://listings.trega.in/l/<id> (Android App Links — the manifest
 ///     declares autoVerify for this host/path, and assetlinks.json proves
-///     ownership).
+///     ownership). The old https://tregaxmuse.web.app/l/<id> form is still
+///     accepted for links shared before the domain migration.
 /// Cold start: stashed for the splash screen (navigator isn't up yet) —
 /// same mechanism as a tapped push on a terminated app.
 /// Warm (app already running): routed immediately like a tapped push.
@@ -183,7 +184,7 @@ void _handleDeepLink(Uri uri, {required bool cold}) {
   if (uri.scheme == 'trega' && uri.host == 'listing') {
     id = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
   } else if (uri.scheme == 'https' &&
-      uri.host == 'tregaxmuse.web.app' &&
+      (uri.host == 'listings.trega.in' || uri.host == 'tregaxmuse.web.app') &&
       uri.pathSegments.length >= 2 &&
       uri.pathSegments.first == 'l') {
     id = uri.pathSegments[1];
@@ -245,7 +246,7 @@ Future<void> main() async {
   });
 
   // Shared-listing deep links (trega://listing/<id>,
-  // https://tregaxmuse.web.app/l/<id>).
+  // https://listings.trega.in/l/<id>, legacy tregaxmuse.web.app form too).
   //
   // The launch link is exposed for the splash screen: it awaits it (bounded)
   // before consuming the stashed cold-start target, so a slow platform

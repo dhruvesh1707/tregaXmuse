@@ -56,6 +56,10 @@ import {
   updateOrderFulfillmentHandler,
 } from "./admin";
 import { deleteAccountHandler } from "./account";
+import {
+  listingPageHandler,
+  listingsSitemapHandler,
+} from "./listingPage";
 import { checkUploadedImage } from "./storageCheck";
 
 admin.initializeApp();
@@ -324,3 +328,15 @@ export const validateUpload = onObjectFinalized(
   },
 );
 
+// ------------------------------------------------- Public listing pages --
+// SEO Phase 3: server-rendered listing pages + dynamic listings sitemap.
+// Public GET endpoints (NOT callables, so no callable rate limiter); all
+// canonical / sitemap URLs are built on https://trega.in inside
+// listingPage.ts (PUBLIC_BASE_URL) — tregaxmuse.web.app stays internal.
+export const listingPage = onRequest(async (req, res) => {
+  await listingPageHandler(req, res);
+});
+
+export const listingsSitemap = onRequest(async (_req, res) => {
+  await listingsSitemapHandler(res);
+});

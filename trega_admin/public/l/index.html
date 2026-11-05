@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Listing on Trega</title>
 <meta name="description" content="View this listing on Trega — India's marketplace for pre-owned gear.">
+<script>
+  // DOMAIN RULE (2026-11-05): tregaxmuse.web.app is internal. Listing
+  // pages live on the public domain — bounce old shared links there,
+  // preserving the listing id. If JS is unavailable, the preview below
+  // still renders as before.
+  (function () {
+    var parts = window.location.pathname.split('/').filter(Boolean);
+    var id = parts.length >= 2 && parts[0] === 'l' ? parts[1] : '';
+    if (id) {
+      window.location.replace('https://listings.trega.in/l/' + encodeURIComponent(id));
+    }
+  })();
+</script>
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {

@@ -20,30 +20,61 @@
   "storage": {
     "rules": "storage.rules"
   },
-  "hosting": {
-    "public": "trega_admin/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/.well-known/assetlinks.json",
-        "destination": "/assetlinks.json"
-      },
-      {
-        "source": "/l/**",
-        "destination": "/l/index.html"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "predeploy": [
-      "npm --prefix trega_admin run build"
-    ],
-    "cleanUrls": true
-  }
+  "hosting": [
+    {
+      "site": "tregaxmuse",
+      "public": "trega_admin/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/.well-known/assetlinks.json",
+          "destination": "/assetlinks.json"
+        },
+        {
+          "source": "/l/**",
+          "destination": "/l/index.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "predeploy": [
+        "npm --prefix trega_admin run build"
+      ],
+      "cleanUrls": true
+    },
+    {
+      "site": "trega-listings",
+      "public": "trega_listings",
+      "ignore": [
+        "firebase.json"
+      ],
+      "cleanUrls": true,
+      "rewrites": [
+        {
+          "source": "/l/**",
+          "function": {
+            "functionId": "listingPage",
+            "region": "asia-south1"
+          }
+        },
+        {
+          "source": "/sitemap-listings.xml",
+          "function": {
+            "functionId": "listingsSitemap",
+            "region": "asia-south1"
+          }
+        },
+        {
+          "source": "/.well-known/assetlinks.json",
+          "destination": "/assetlinks.json"
+        }
+      ]
+    }
+  ]
 }

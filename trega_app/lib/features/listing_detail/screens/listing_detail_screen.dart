@@ -623,14 +623,15 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
 
   /// Shares the listing marketplace-style: title, price, condition and a
   /// link that opens the listing — in the app when Trega is installed
-  /// (trega:// deep link), otherwise a web preview page.
+  /// (Android App Links for listings.trega.in, trega:// deep link),
+  /// otherwise the public web listing page on listings.trega.in.
   Future<void> _shareListing(
       BuildContext shareBtnContext, Listing listing) async {
     final expressConfig = ref.read(expressConfigProvider).valueOrNull ??
         ExpressDeliveryConfig.defaults;
     final express = expressConfig.isCityEligible(listing.city);
     final city = listing.city.trim();
-    final link = 'https://tregaxmuse.web.app/l/${listing.id}';
+    final link = 'https://listings.trega.in/l/${listing.id}';
     final text = StringBuffer()
       ..writeln(
         '${listing.product.title} — ${formatINR(listing.price)} on Trega',

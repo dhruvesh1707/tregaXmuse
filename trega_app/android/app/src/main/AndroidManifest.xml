@@ -53,6 +53,19 @@
                       android:host="tregaxmuse.web.app"
                       android:pathPrefix="/l/"/>
             </intent-filter>
+            <!-- App Links: the public listings domain
+                 (https://listings.trega.in/l/<id>) opens straight in the
+                 app too. The listings site serves assetlinks.json for
+                 this host. Keep the web.app filter above for old links
+                 already in circulation. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"
+                      android:host="listings.trega.in"
+                      android:pathPrefix="/l/"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
