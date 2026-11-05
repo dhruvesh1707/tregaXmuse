@@ -441,18 +441,37 @@ export async function createCashfreeOrderHandler(
 
 /**
  * Verifies a Cashfree PG webhook signature.
- * Cashfree signs webhooks as base64(HMAC_SHA256(secretKey, rawRequestBody)).
+ *
+ * Cashfree's current scheme signs the concatenation of the
+ * `x-webhook-timestamp` header and the raw body:
+ * base64(HMAC_SHA256(secretKey, timestamp + rawBody)). The original
+ * implementation verified the raw body only, which rejects every real
+ * event Cashfree sends today — found 2026-11-05 during webhook
+ * registration. Both schemes are accepted (current first, legacy
+ * fallback) so the check does not depend on the dashboard's selected
+ * webhook version.
  */
 export function verifyWebhookSignature(
   rawBody: Buffer,
-  signatureHeader: string | undefined
+  signatureHeader: string | undefined,
+  timestampHeader?: string | undefined
 ): boolean {
   const secret = CASHFREE_SECRET_KEY.value();
   if (!secret || !signatureHeader) return false;
-  const expected = createHmac("sha256", secret).update(rawBody).digest("base64");
-  const a = Buffer.from(expected);
-  const b = Buffer.from(signatureHeader);
-  return a.length === b.length && timingSafeEqual(a, b);
+  const given = Buffer.from(signatureHeader);
+  const matches = (signed: Buffer): boolean => {
+    const expected = Buffer.from(
+      createHmac("sha256", secret).update(signed).digest("base64")
+    );
+    return expected.length === given.length && timingSafeEqual(expected, given);
+  };
+  if (
+    timestampHeader &&
+    matches(Buffer.concat([Buffer.from(timestampHeader, "utf8"), rawBody]))
+  ) {
+    return true;
+  }
+  return matches(rawBody);
 }
 
 interface CashfreeWebhookPayload {
@@ -465,9 +484,10 @@ interface CashfreeWebhookPayload {
 
 export async function handleCashfreeWebhook(
   rawBody: Buffer,
-  signatureHeader: string | undefined
+  signatureHeader: string | undefined,
+  timestampHeader?: string | undefined
 ): Promise<{ ok: boolean; reason?: string }> {
-  if (!verifyWebhookSignature(rawBody, signatureHeader)) {
+  if (!verifyWebhookSignature(rawBody, signatureHeader, timestampHeader)) {
     return { ok: false, reason: "bad_signature" };
   }
   const payload = JSON.parse(rawBody.toString("utf8")) as CashfreeWebhookPayload;

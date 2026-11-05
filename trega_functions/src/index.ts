@@ -136,7 +136,8 @@ export const cashfreeWebhook = onRequest(
 
     const result = await handleCashfreeWebhook(
       rawBody,
-      req.header("x-webhook-signature")
+      req.header("x-webhook-signature"),
+      req.header("x-webhook-timestamp")
     );
     if (!result.ok) {
       logger.warn("cashfreeWebhook rejected", { reason: result.reason });
