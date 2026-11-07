@@ -13,7 +13,7 @@ import 'storage_service.dart';
 /// Central Riverpod providers for Firebase SDK singletons.
 ///
 /// All feature code should depend on these providers (or the typed services
-/// in this folder) — never construct Firebase instances directly in widgets.
+/// in this folder), never construct Firebase instances directly in widgets.
 final firebaseAuthProvider =
     Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
 
@@ -58,7 +58,7 @@ final authServiceProvider = Provider<AuthService>(
 );
 
 /// Callables for server-side integrations (BulkPe KYC, Cashfree payments).
-/// Secrets stay in Cloud Functions config — never in the app.
+/// Secrets stay in Cloud Functions config, never in the app.
 final functionsServiceProvider = Provider<FunctionsService>(
   (ref) => FunctionsService(ref.watch(cloudFunctionsProvider)),
 );

@@ -9,7 +9,7 @@ import 'trega_button.dart';
 
 /// Full failure state: what went wrong, plus a retry action.
 ///
-/// Sibling of [EmptyState] — same visual language (fade-slide entrance,
+/// Sibling of [EmptyState], same visual language (fade-slide entrance,
 /// icon medallion, title, subtitle) but with a primary retry button.
 /// Use it in every `error:` / `hasError` branch so a failed load never
 /// strands the user on a spinner or a dead screen.

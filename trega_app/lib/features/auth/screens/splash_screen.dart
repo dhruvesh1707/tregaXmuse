@@ -13,12 +13,12 @@ import '../../home/screens/home_screen.dart';
 import 'onboarding_screen.dart';
 import 'profile_setup_screen.dart';
 
-/// Launch screen: routes based on the persisted session — home (or profile
+/// Launch screen: routes based on the persisted session, home (or profile
 /// setup for a fresh account) when signed in, onboarding when signed out.
 ///
 /// Visual: the OS launch screen is now plain warm paper (the
 /// flutter_native_splash config carries a color only, no image), so this
-/// screen owns the whole launch moment — the logo springs in, the tagline
+/// screen owns the whole launch moment, the logo springs in, the tagline
 /// staggers in letter by letter, and three dots bounce while the session
 /// restores. Rendering the logo here is safe precisely because the native
 /// splash no longer shows it: the logo still appears exactly once, it just
@@ -83,7 +83,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   /// On cold start [FirebaseAuth.currentUser] is briefly null while the SDK
   /// reads the token from disk, so this awaits the first
   /// [FirebaseAuth.authStateChanges] event instead of reading it
-  /// synchronously — otherwise every restart would look "signed out" and
+  /// synchronously, otherwise every restart would look "signed out" and
   /// drop the user back at onboarding. The splash stays up at least 2
   /// seconds so the entrance animation can play out.
   Future<void> _route() async {
@@ -91,7 +91,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final results = await Future.wait([
       auth.authStateChanges().first,
       Future<void>.delayed(const Duration(seconds: 2)),
-      // A shared-listing link can resolve after routing has started — wait for
+      // A shared-listing link can resolve after routing has started, wait for
       // the launch link (bounded) before reading the stash, or the link is
       // silently lost and the app just lands on home.
       launchDeepLink
@@ -106,7 +106,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (user == null) {
       next = OnboardingScreen.routeName;
     } else {
-      // Signed in — mirror the post-OTP routing: a missing display name
+      // Signed in, mirror the post-OTP routing: a missing display name
       // means the profile was never completed.
       final profile =
           await ref.read(firestoreServiceProvider).getUser(user.uid);
@@ -118,7 +118,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // Capture the cold-start target BEFORE replacing: pushReplacementNamed
     // disposes this State synchronously, so everything after it must avoid
-    // `context` and `mounted` — the old code checked `mounted` here and
+    // `context` and `mounted`, the old code checked `mounted` here and
     // silently dropped the target every single time.
     final pending = pendingNotificationTarget;
     pendingNotificationTarget = null;
@@ -126,7 +126,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(next);
     if (pending != null) {
-      // The splash route is gone — its context is defunct. Route on the next
+      // The splash route is gone, its context is defunct. Route on the next
       // frame through the root navigator key instead.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         tregaNavigatorKey.currentState
@@ -146,7 +146,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             final logoP =
                 Curves.easeOutCubic.transform(_interval(t, 0.0, 0.45));
             final logoScale = 0.82 + 0.18 * logoP;
-            // Subtle breathing once settled — amplitude is tiny on purpose.
+            // Subtle breathing once settled, amplitude is tiny on purpose.
             final breath =
                 1 + 0.012 * math.sin(_pulse.value * math.pi * 2) * logoP;
             final dotsP = _interval(t, 0.62, 0.82);
@@ -243,7 +243,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
-  /// Three dots bouncing in sequence — brown, brown, brand yellow.
+  /// Three dots bouncing in sequence, brown, brown, brand yellow.
   Widget _dots() {
     final v = _pulse.value;
     return Row(

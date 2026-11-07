@@ -18,7 +18,7 @@ import 'order_tracking_screen.dart';
 
 /// Buyer's order history, streamed from Firestore (`orders` where
 /// `buyerId` == uid). Orders are created server-side by the
-/// `createCashfreeOrder` callable — the app never writes order docs.
+/// `createCashfreeOrder` callable, the app never writes order docs.
 class OrdersScreen extends ConsumerStatefulWidget {
   static const String routeName = '/orders';
 

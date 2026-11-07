@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 /// Trega brand palette, derived from the official logo.
 ///
-/// - Primary brown  `#8B3A1C` — logo wordmark
-/// - Dark brown     `#6E2E16` — pressed / emphasis states
-/// - Accent yellow  `#F7B600` — logo dot, CTAs highlights, badges
-/// - Background     `#FFFBF7` — warm paper
-/// - Surface        `#FFFFFF` — cards, sheets
+/// - Primary brown  `#8B3A1C`, logo wordmark
+/// - Dark brown     `#6E2E16`, pressed / emphasis states
+/// - Accent yellow  `#F7B600`, logo dot, CTAs highlights, badges
+/// - Background     `#FFFBF7`, warm paper
+/// - Surface        `#FFFFFF`, cards, sheets
 ///
 /// The extended tokens below (gradient stops, glass tints, espresso)
 /// power the modern theme: soft gradients, soft-3D depth and liquid
-/// glass surfaces. They are additive — every original value is unchanged.
+/// glass surfaces. They are additive, every original value is unchanged.
 abstract final class AppColors {
   static const Color primary = Color(0xFF8B3A1C);
   static const Color primaryDark = Color(0xFF6E2E16);

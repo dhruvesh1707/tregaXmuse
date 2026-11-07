@@ -31,7 +31,7 @@ service cloud.firestore {
       // ── users/{uid}/private/{docId} ────────────────────────────
       // Owner-only private data: saved pickup addresses
       // (`address_<id>` docs with `kind: 'address'`) and the payout UPI ID
-      // (`payout` doc). Never readable by other users — only the owner
+      // (`payout` doc). Never readable by other users, only the owner
       // (and admins, for payout release / support).
       match /private/{docId} {
         allow read: if signedIn()
@@ -55,7 +55,7 @@ service cloud.firestore {
 
     // ── listings/{listingId} ─────────────────────────────────────
     // Clients create drafts; onListingCreate flips them to live
-    // immediately (reactive moderation — the team flags suspicious
+    // immediately (reactive moderation, the team flags suspicious
     // listings after the fact). Clients never write `status` directly.
     // Only Aadhaar-verified users may sell (verified via BulkPe KYC).
     match /listings/{listingId} {
@@ -75,7 +75,7 @@ service cloud.firestore {
         ||
         // Anyone liking: only like counters may change, and likedBy may
         // only gain/lose the caller's own uid. Views are server-only
-        // (recordListingView callable) — clients can't touch viewCount.
+        // (recordListingView callable), clients can't touch viewCount.
         (request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['likedBy', 'likesCount'])
          && request.resource.data.likedBy.toSet()
@@ -91,7 +91,7 @@ service cloud.firestore {
 
       // ── listings/{listingId}/private/{docId} ───────────────────
       // Owner-only listing data (pickup address). Never on the public
-      // listing doc — readable only by the seller and admins.
+      // listing doc, readable only by the seller and admins.
       match /private/{docId} {
         function isListingOwner() {
           return signedIn()
@@ -146,8 +146,8 @@ service cloud.firestore {
     // ── aadhaarIndex/{fingerprint} ───────────────────────────────
     // Duplicate-KYC guard: doc ID is the salted HMAC-SHA256 fingerprint of
     // an Aadhaar number (the number itself is never stored). Written ONLY
-    // by the verifyAadhaarOtp callable inside a transaction. No client —
-    // not even the owning user — may read or write it.
+    // by the verifyAadhaarOtp callable inside a transaction. No client,
+    // not even the owning user, may read or write it.
     match /aadhaarIndex/{fingerprint} {
       allow read, write: if false;
     }
@@ -193,7 +193,7 @@ service cloud.firestore {
     // + cutoff hour + enabled flag). Written only via the Firebase
     // console by the team; the app falls back to bundled defaults when
     // the doc is missing.
-    // `config/rateLimits` is EXCLUDED from public reads — rate-limit
+    // `config/rateLimits` is EXCLUDED from public reads, rate-limit
     // thresholds are server-only (functions read them via the Admin SDK,
     // which bypasses rules, so clients can never game the exact limits).
     match /config/{docId} {
@@ -211,7 +211,7 @@ service cloud.firestore {
 
     // ── reviews/{reviewId} ───────────────────────────────────────
     // Written server-side only (no client writer exists in the app or
-    // admin panel — the reviewListing callable moderates listings, it does
+    // admin panel, the reviewListing callable moderates listings, it does
     // not write here). Clients must not be able to forge seller reviews.
     match /reviews/{reviewId} {
       allow read: if true;

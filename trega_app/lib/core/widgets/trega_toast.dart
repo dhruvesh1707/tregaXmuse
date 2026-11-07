@@ -4,13 +4,13 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:trega/core/theme/app_theme.dart';
 import 'package:trega/core/widgets/motion.dart';
 
-/// Toast severity — controls the icon, accent color and haptic.
+/// Toast severity, controls the icon, accent color and haptic.
 enum TregaToastKind { success, error, info }
 
 /// Trega's floating toast: dark glass, top-anchored, swipe-to-dismiss.
 ///
 /// This is the app-wide replacement for raw SnackBars on user-facing
-/// success / error / info feedback. Presentation only — call sites keep
+/// success / error / info feedback. Presentation only, call sites keep
 /// their existing logic and just swap the display call.
 ///
 /// When [actionLabel] is given, tapping it dismisses the toast and then

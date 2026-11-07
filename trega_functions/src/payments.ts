@@ -14,7 +14,7 @@ import {
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED" | "USER_DROPPED";
 
 /**
- * Public URL of the `cashfreeWebhook` function — Cashfree POSTs payment
+ * Public URL of the `cashfreeWebhook` function, Cashfree POSTs payment
  * updates here. NOTE: v2 (Cloud Run) functions live at the REGIONAL
  * cloudfunctions.net host. The old `https://<project>.cloudfunctions.net`
  * pattern does NOT route to them, so webhooks sent there silently never
@@ -88,7 +88,7 @@ async function assertExpressEligible(
 // The console-owned `config/fees` doc (public read, like `config/delivery`)
 // is the single source of truth for marketplace pricing:
 //   { promoActive, sellerPct, buyerPct, deliveryFlat, gstPct }
-// Launch month ("Zero Fee Launch"): sellerPct = 0, buyerPct = 0 — the only
+// Launch month ("Zero Fee Launch"): sellerPct = 0, buyerPct = 0, the only
 // thing charged is the fixed delivery fee, split 50-50 between buyer and
 // seller. Month 2+: sellerPct = 3, buyerPct = 5.
 // gstPct is GST on the platform fees (18%). TDS u/s 194O (1% of the gross
@@ -97,7 +97,7 @@ export interface FeeConfig {
   promoActive: boolean;
   sellerPct: number;
   buyerPct: number;
-  /** Fixed delivery fee in INR — split 50-50 buyer/seller. */
+  /** Fixed delivery fee in INR, split 50-50 buyer/seller. */
   deliveryFlat: number;
   gstPct: number;
 }
@@ -144,13 +144,13 @@ export interface FeeBreakdown {
   tds: number;
   /** What the seller receives. */
   sellerPayout: number;
-  /** What the buyer pays — the Cashfree order_amount. */
+  /** What the buyer pays, the Cashfree order_amount. */
   buyerTotal: number;
 }
 
 /**
  * Pure fee math. The app mirrors this for display only; the server is the
- * authority — the client can never set or alter a fee.
+ * authority, the client can never set or alter a fee.
  */
 export function quoteFees(price: number, cfg: FeeConfig): FeeBreakdown {
   const sellerCommission = Math.round((price * cfg.sellerPct) / 100);
@@ -221,10 +221,10 @@ function cashfreeHeaders(): Record<string, string> {
 }
 
 /**
- * Creates a Cashfree order for an accepted bid — the ONLY way to buy on
+ * Creates a Cashfree order for an accepted bid, the ONLY way to buy on
  * Trega. There is no direct purchase: the buyer makes an offer, the seller
  * accepts, and only the winning buyer can check out (at the accepted
- * price). The amount is ALWAYS read from Firestore — the client-supplied
+ * price). The amount is ALWAYS read from Firestore, the client-supplied
  * value, if any, is ignored.
  */
 /** Delivery address collected at checkout (buyer-side). */
@@ -232,7 +232,7 @@ export type DeliveryAddress = Record<string, string>;
 
 /**
  * Strict delivery-address schema: every field type/length/format checked,
- * and the result is reduced to the KNOWN fields only — stray client keys
+ * and the result is reduced to the KNOWN fields only, stray client keys
  * are dropped, never stored on the order.
  */
 function sanitizeDeliveryAddress(addr: unknown): DeliveryAddress {
@@ -326,7 +326,7 @@ export async function createCashfreeOrderHandler(
   }
 
   // Delivery speed. `express` is only honored when the courier network can
-  // actually do next-day — validated server-side; anything else (or a
+  // actually do next-day, validated server-side; anything else (or a
   // missing/invalid value) falls back to `standard`.
   let deliveryType: "standard" | "express" = "standard";
   if (input.deliveryType === "express") {
@@ -336,12 +336,12 @@ export async function createCashfreeOrderHandler(
 
   // ── Fee engine: the buyer pays price + protection fee (+GST) + half the
   // fixed delivery fee; the seller nets price − commission (−GST) − half the
-  // delivery fee − 1% TDS. All of it is computed here — the client-supplied
+  // delivery fee − 1% TDS. All of it is computed here, the client-supplied
   // numbers, if any, are ignored.
   const fees = quoteFees(amount, await readFeeConfig(db));
   if (!(fees.buyerTotal > 0) || !(fees.sellerPayout > 0)) {
     // Honest, specific message: with the flat delivery fee split 50-50,
-    // an item this cheap cannot cover the seller's delivery share — the
+    // an item this cheap cannot cover the seller's delivery share, the
     // seller would lose money on the order. The fee model is working as
     // designed; the listing price is simply below the economic floor.
     // The app surfaces this string verbatim via functionsErrorMessage.
@@ -372,7 +372,7 @@ export async function createCashfreeOrderHandler(
   });
 
   // 2. Create the Cashfree order.
-  // NOTE: when CASHFREE_ENV is unset this silently targets SANDBOX — a
+  // NOTE: when CASHFREE_ENV is unset this silently targets SANDBOX, a
   // classic cause of "production keys don't work". The env is echoed in
   // the client error below so a mismatch is visible without console access.
   const cfEnv = CASHFREE_ENV.value() || "sandbox";
@@ -400,7 +400,7 @@ export async function createCashfreeOrderHandler(
   if (!res.ok) {
     const text = await res.text();
     // The raw provider response is logged server-side; the client gets a
-    // generic message — never raw provider internals.
+    // generic message, never raw provider internals.
     logger.error("createCashfreeOrder: Cashfree order creation failed", {
       orderId,
       status: res.status,
@@ -433,7 +433,7 @@ export async function createCashfreeOrderHandler(
     // Merchant order id the SDK needs (echoed so the app never hardcodes
     // the `trega_` prefix itself).
     cfOrderRef: cfOrderIdStr,
-    // Authoritative totals — the app displays these, never its own math.
+    // Authoritative totals, the app displays these, never its own math.
     buyerTotal: fees.buyerTotal,
     fees,
   };
@@ -446,7 +446,7 @@ export async function createCashfreeOrderHandler(
  * `x-webhook-timestamp` header and the raw body:
  * base64(HMAC_SHA256(secretKey, timestamp + rawBody)). The original
  * implementation verified the raw body only, which rejects every real
- * event Cashfree sends today — found 2026-11-05 during webhook
+ * event Cashfree sends today, found 2026-11-05 during webhook
  * registration. Both schemes are accepted (current first, legacy
  * fallback) so the check does not depend on the dashboard's selected
  * webhook version.
@@ -520,7 +520,7 @@ export async function handleCashfreeWebhook(
  * paidAt, listing → sold, every other open bid on the listing → rejected.
  *
  * Idempotent: if the order is already SUCCESS this is a no-op, so the
- * webhook and `verifyPayment` can safely race — whichever arrives first
+ * webhook and `verifyPayment` can safely race, whichever arrives first
  * wins.
  *
  * The open-bids lookup uses a single-field query + in-code status filter.
@@ -565,7 +565,7 @@ interface CashfreeOrderStatusResponse {
 }
 
 /**
- * Server-side payment verification — the ONLY thing the app trusts before
+ * Server-side payment verification, the ONLY thing the app trusts before
  * treating an order as paid.
  *
  * Why this exists: the Cashfree SDK's on-device success callback only means
@@ -573,7 +573,7 @@ interface CashfreeOrderStatusResponse {
  * money moved, and a tampered client could claim it without paying. This
  * callable asks Cashfree's Orders API directly (secret key, server-side) for
  * the authoritative order status, then applies the same SUCCESS side-effects
- * as the webhook (idempotent — whichever arrives first wins).
+ * as the webhook (idempotent, whichever arrives first wins).
  *
  * The buyer calls this right after the SDK reports success; the app shows
  * its success UI only when this returns paymentStatus === "SUCCESS".
@@ -597,7 +597,7 @@ export async function verifyPaymentHandler(
   }
 
   // A terminal status written by the webhook (or an earlier verify) is
-  // authoritative — never downgrade it from a later poll.
+  // authoritative, never downgrade it from a later poll.
   const current = order.paymentStatus as PaymentStatus | undefined;
   if (current === "SUCCESS" || current === "FAILED" || current === "USER_DROPPED") {
     return { paymentStatus: current, orderId };
@@ -611,7 +611,7 @@ export async function verifyPaymentHandler(
     );
   }
 
-  // Ask Cashfree directly — the authoritative source of truth.
+  // Ask Cashfree directly, the authoritative source of truth.
   const base = cashfreeBase(CASHFREE_ENV.value() || "sandbox");
   const res = await fetch(`${base}/orders/${encodeURIComponent(cfOrderRef)}`, {
     method: "GET",
@@ -640,7 +640,7 @@ export async function verifyPaymentHandler(
     });
     return { paymentStatus: "FAILED", orderId };
   }
-  // ACTIVE or anything else: the payment hasn't completed. Don't guess —
+  // ACTIVE or anything else: the payment hasn't completed. Don't guess,
   // the webhook may still deliver, or the buyer can retry.
   return { paymentStatus: "PENDING", orderId };
 }

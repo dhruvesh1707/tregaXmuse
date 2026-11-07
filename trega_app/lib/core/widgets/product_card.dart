@@ -19,7 +19,7 @@ import 'motion.dart';
 /// (tag `listing-photo-<id>`), and the heart toggles the wishlist via
 /// Firestore with a springy pop + haptic.
 ///
-/// Minimal glass pass: the card is a [GlassCard] (radius 18) — frosted
+/// Minimal glass pass: the card is a [GlassCard] (radius 18), frosted
 /// fill, hairline border and the one shadow replace the old bordered
 /// gradient surface.
 class ProductCard extends ConsumerWidget {

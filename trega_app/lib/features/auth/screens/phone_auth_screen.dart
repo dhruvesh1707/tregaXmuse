@@ -117,7 +117,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
       },
       onAutoVerified: (credential) => _signInWithCredential(credential, phone),
       onError: (message) {
-        // The attempt is dead (Firebase rejected it) — don't offer a retry
+        // The attempt is dead (Firebase rejected it), don't offer a retry
         // banner for it on next launch.
         AuthService.clearPendingVerification();
         if (!mounted) return;
@@ -184,7 +184,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   void _routeAfterSignIn(String name, bool isNewUser) {
     if (!mounted) return;
     if (isNewUser || name.trim().isEmpty) {
-      // Clear the auth stack — there's no going back to the OTP screen
+      // Clear the auth stack, there's no going back to the OTP screen
       // once the number is verified.
       Navigator.of(context).pushNamedAndRemoveUntil(
         ProfileSetupScreen.routeName,
@@ -215,7 +215,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 fontWeight: FontWeight.w700,
               ),
       decoration: BoxDecoration(
-        // NOTE: not const — Border.all has no const constructor.
+        // NOTE: not const, Border.all has no const constructor.
         borderRadius: BorderRadius.circular(16),
         color: AppColors.surface,
         border: Border.all(color: border, width: 1.5),
@@ -333,7 +333,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 ),
                 Center(
                   child: TextButton(
-                    // Wrong number typed? Go back and edit it — the
+                    // Wrong number typed? Go back and edit it, the
                     // pending attempt is discarded.
                     onPressed: _loading
                         ? null

@@ -43,7 +43,7 @@ import '../../home/providers/listing_providers.dart';
 ///
 /// The bottom bar shows exactly one action, driven by state:
 /// - buyer, no offer yet -> "Make an Offer"
-/// - buyer, offer open -> "Offer sent — awaiting the seller" (disabled)
+/// - buyer, offer open -> "Offer sent, awaiting the seller" (disabled)
 /// - buyer, offer rejected -> "Offer again"
 /// - buyer, offer accepted -> "Buy Now at ₹X" -> checkout with address
 /// - seller -> "Manage Offers"
@@ -69,7 +69,7 @@ class ListingDetailScreen extends ConsumerStatefulWidget {
 
   final String? listingId;
 
-  /// The listing object the caller already had, if any — used to paint the
+  /// The listing object the caller already had, if any, used to paint the
   /// first frame instantly while the live document streams in.
   final Listing? initialListing;
 
@@ -86,7 +86,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
 
   /// Instagram-style view counting: a view is recorded only after the
   /// detail screen has been continuously visible for [_viewDwell]
-  /// (IG's ~3s video-view threshold) — never on plain screen open.
+  /// (IG's ~3s video-view threshold), never on plain screen open.
   /// The timer is cancelled if the app is backgrounded first, and the
   /// server ignores seller self-views plus a 1h per-viewer cooldown.
   static const _viewDwell = Duration(seconds: 3);
@@ -155,7 +155,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
     if (amount == null || amount <= 0) return;
     if (!context.mounted) return;
     // Instant feedback: the sheet is gone and the server round-trip can
-    // take seconds on a cold start — show progress NOW, not after.
+    // take seconds on a cold start, show progress NOW, not after.
     final dismissProgress =
         showBlockingProgress(context, 'Sending your offer…');
     try {
@@ -436,7 +436,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
                   ),
                   if (listing.negotiable)
                     Text(
-                      'Negotiable — make an offer below',
+                      'Negotiable, make an offer below',
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
@@ -515,7 +515,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
 
   /// Single state-driven action bar for the offer flow.
   ///
-  /// One button, one meaning — the state comes from the caller's own offers
+  /// One button, one meaning, the state comes from the caller's own offers
   /// on this listing plus the listing's reservation flag.
   Widget _buildBottomBar(BuildContext context, Listing listing) {
     final uid = ref.watch(currentUidProvider);
@@ -569,7 +569,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
         }
 
         // Winner: the only buyer who gets a Buy Now button, at the
-        // accepted price — goes to checkout to enter the delivery address.
+        // accepted price, goes to checkout to enter the delivery address.
         if (accepted != null) {
           final amount = accepted.amount;
           return bar(
@@ -587,7 +587,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
         if (listing.acceptedBidId != null) {
           return bar(
             const TregaButton(
-              label: 'Offer accepted — sale in progress',
+              label: 'Offer accepted: sale in progress',
               onPressed: null,
             ),
           );
@@ -597,7 +597,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
         if (open != null) {
           return bar(
             TregaButton(
-              label: 'Offer of ${formatINR(open.amount)} sent — '
+              label: 'Offer of ${formatINR(open.amount)} sent, '
                   'awaiting the seller',
               secondary: true,
               onPressed: null,
@@ -622,7 +622,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
   }
 
   /// Shares the listing marketplace-style: title, price, condition and a
-  /// link that opens the listing — in the app when Trega is installed
+  /// link that opens the listing, in the app when Trega is installed
   /// (Android App Links for listings.trega.in, trega:// deep link),
   /// otherwise the public web listing page on listings.trega.in.
   Future<void> _shareListing(
@@ -634,7 +634,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
     final link = 'https://listings.trega.in/l/${listing.id}';
     final text = StringBuffer()
       ..writeln(
-        '${listing.product.title} — ${formatINR(listing.price)} on Trega',
+        '${listing.product.title}, ${formatINR(listing.price)} on Trega',
       )
       ..writeln('Condition: ${listing.product.condition.label}'
           '${city.isNotEmpty ? ' · $city' : ''}'
@@ -643,9 +643,9 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
     try {
       // share_plus 10.x on iOS throws PlatformException
       // ("sharePositionOrigin: argument must be set") unless the sheet is
-      // anchored to a non-zero rect inside the source view — anchor it to
+      // anchored to a non-zero rect inside the source view, anchor it to
       // the share button itself.
-      // NOTE: never pass `subject` either — share_plus 10.1.4's iOS code
+      // NOTE: never pass `subject` either, share_plus 10.1.4's iOS code
       // does setValue:forKey:@"subject" on UIActivityViewController, which
       // throws and kills the share sheet. The title is already the first
       // line of the shared text, so nothing is lost.
@@ -656,7 +656,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
             box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       );
     } catch (e) {
-      // Last-resort fallback — the sheet still failed: surface what iOS
+      // Last-resort fallback, the sheet still failed: surface what iOS
       // said, and copy the link so the user can paste it into any chat
       // instead of hitting a dead end.
       debugPrint('Share failed: $e');
@@ -667,7 +667,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
         title: 'Share sheet unavailable',
         kind: TregaToastKind.error,
       );
-      // Fallback: the listing link is still useful on its own — copy it
+      // Fallback: the listing link is still useful on its own, copy it
       // so the user can paste it into any chat instead of hitting a dead
       // end.
       await Clipboard.setData(ClipboardData(text: link));
@@ -725,7 +725,7 @@ class _SellerInfo extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
               children: [
-                // The seller's profile photo when set — previously this
+                // The seller's profile photo when set, previously this
                 // always showed the placeholder icon even though
                 // `avatarUrl` was already on the profile.
                 CircleAvatar(
@@ -770,7 +770,7 @@ class _SellerInfo extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // NOTE: no chat affordance — negotiation happens via bids/offers.
+                // NOTE: no chat affordance, negotiation happens via bids/offers.
 
               ],
             ),
@@ -802,7 +802,7 @@ class _OfferSheetState extends State<_OfferSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // Content for showGlassSheet — the sheet provides the drag pill,
+    // Content for showGlassSheet, the sheet provides the drag pill,
     // outer padding and keyboard inset handling.
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -813,7 +813,7 @@ class _OfferSheetState extends State<_OfferSheet> {
         const SizedBox(height: 4),
         Text(
           'Asking price: ${formatINR(widget.price)}. The seller can '
-          'accept or reject — no chat needed.',
+          'accept or reject, no chat needed.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 16),

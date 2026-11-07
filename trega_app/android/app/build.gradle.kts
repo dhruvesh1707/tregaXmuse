@@ -65,7 +65,7 @@ android {
             // R8: obfuscate + shrink the release build so decompiling the
             // APK/AAB doesn't hand over class names, method names, and
             // strings on a plate. Test the release build on-device after
-            // enabling — ProGuard can strip reflection-used plugin code.
+            // enabling, ProGuard can strip reflection-used plugin code.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

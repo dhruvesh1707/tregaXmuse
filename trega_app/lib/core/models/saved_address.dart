@@ -1,6 +1,6 @@
 /// A seller's saved pickup address, stored owner-only under
 /// `users/{uid}/private/address_<id>` (see `firestore.rules`).
-/// Never shown to buyers — reused across listings in the sell flow.
+/// Never shown to buyers, reused across listings in the sell flow.
 class SavedAddress {
   final String id;
   final String label;

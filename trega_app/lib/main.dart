@@ -30,7 +30,7 @@ import 'firebase_options.dart';
 ///
 /// Observability: Firebase Crashlytics (crash reporting) + Firebase
 /// Performance Monitoring (app-start, screen & network traces) ride on the
-/// existing tregaxmuse project — no keys, no extra accounts, no build flags.
+/// existing tregaxmuse project, no keys, no extra accounts, no build flags.
 /// Crash collection is disabled in debug builds.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -39,7 +39,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   );
 }
 
-/// Local notifications — Android foreground display. FCM presents pushes
+/// Local notifications, Android foreground display. FCM presents pushes
 /// itself when the app is backgrounded or killed, but a push that arrives
 /// while the app is OPEN is handed to Dart and never shown; this plugin
 /// turns it into a banner. The channel id must match the manifest's
@@ -74,7 +74,7 @@ Future<void> _showForegroundPush(RemoteMessage message) async {
   if (notification == null) return;
   // Rich pushes (campaigns) carry an image URL in the data payload:
   // download it and show the big-picture style. Any failure falls back
-  // to the plain banner — a push must never be lost over a photo.
+  // to the plain banner, a push must never be lost over a photo.
   var details = _androidDetails();
   final imageUrl = message.data['imageUrl']?.toString();
   if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -136,7 +136,7 @@ void _onLocalNotificationTap(NotificationResponse response) {
 /// throws an ArgumentError on iOS when no Darwin settings are supplied,
 /// so the plugin must not be touched at all off Android. This runs
 /// before runApp, so throwing here would strand the app on a blank
-/// screen — the guard is load-bearing, not cosmetic.
+/// screen, the guard is load-bearing, not cosmetic.
 Future<void> _initLocalNotifications() async {
   if (defaultTargetPlatform != TargetPlatform.android) return;
   await _localNotifications.initialize(
@@ -172,11 +172,11 @@ void _routePushMessage(RemoteMessage message) {
 
 /// Deep links from shared listings:
 ///   - trega://listing/<id> (custom scheme), and
-///   - https://listings.trega.in/l/<id> (Android App Links — the manifest
+///   - https://listings.trega.in/l/<id> (Android App Links, the manifest
 ///     declares autoVerify for this host/path, and assetlinks.json proves
 ///     ownership). The old https://tregaxmuse.web.app/l/<id> form is still
 ///     accepted for links shared before the domain migration.
-/// Cold start: stashed for the splash screen (navigator isn't up yet) —
+/// Cold start: stashed for the splash screen (navigator isn't up yet),
 /// same mechanism as a tapped push on a terminated app.
 /// Warm (app already running): routed immediately like a tapped push.
 void _handleDeepLink(Uri uri, {required bool cold}) {
@@ -235,7 +235,7 @@ Future<void> main() async {
   // Tapping a push while the app is backgrounded: the navigator is already
   // up, so route straight away.
   FirebaseMessaging.onMessageOpenedApp.listen(_routePushMessage);
-  // Tapping a push while the app is terminated: stash the target — the
+  // Tapping a push while the app is terminated: stash the target, the
   // splash screen pushes it once initial routing settles.
   FirebaseMessaging.instance.getInitialMessage().then((message) {
     if (message == null) return;

@@ -4,7 +4,7 @@ import 'firestore_convert.dart';
 ///
 /// Written server-side by Cloud Functions (bid accepted/rejected, order
 /// status changes, listing review decisions, price drops). Clients only
-/// ever flip `read` — see `firestore.rules`.
+/// ever flip `read`, see `firestore.rules`.
 class AppNotification {
   final String id;
   final String title;
@@ -14,7 +14,7 @@ class AppNotification {
   final DateTime? createdAt;
 
   /// Deep-link payload written server-side (`listingId` / `bidId` /
-  /// `orderId`) — tells the app which screen a tap should open.
+  /// `orderId`), tells the app which screen a tap should open.
   final Map<String, dynamic> data;
 
   const AppNotification({

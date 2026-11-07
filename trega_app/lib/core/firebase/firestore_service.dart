@@ -13,20 +13,20 @@ import '../models/user.dart';
 ///
 /// Field names match the canonical Cloud Functions data model
 /// (`~/workspace/trega/trega_functions/FIRESTORE_MODEL.md`). The legacy
-/// REST client in `core/api/` is DEPRECATED and kept only as a reference —
+/// REST client in `core/api/` is DEPRECATED and kept only as a reference,
 /// all UI flows go through here.
 ///
 /// Write rules of thumb (enforced by `firestore.rules`):
 /// - Listings are created as `draft` via [createListingDraft]; the
-///   `onListingCreate` trigger flips them to `live` immediately — listings
+///   `onListingCreate` trigger flips them to `live` immediately, listings
 ///   go public on publish, and the team flags suspicious ones after the
 ///   fact (reactive moderation). Clients never write `status` directly.
 /// - Bids and orders are written ONLY by Cloud Functions callables
-///   ([FunctionsService]) — never `set()`/`add()` from the client.
+///   ([FunctionsService]), never `set()`/`add()` from the client.
 /// - User docs are created once on sign-in; `role`/`verifiedSeller`/`kycStatus`
 ///   are server-managed.
 /// - `listings/{id}/private/details` holds owner-only data (pickup address)
-///   — never on the public listing doc.
+///  never on the public listing doc.
 class FirestoreService {
   FirestoreService(this._db);
 
@@ -95,7 +95,7 @@ class FirestoreService {
   /// Owner-only private data under `users/{uid}/private/{docId}`
   /// (see `firestore.rules`): the payout UPI ID (`payout` doc) and saved
   /// pickup addresses (`address_<id>` docs with `kind: 'address'`).
-  /// Never readable by other users — only the owner (and admins).
+  /// Never readable by other users, only the owner (and admins).
   CollectionReference<Map<String, dynamic>> _private(String uid) =>
       _users.doc(uid).collection('private');
 
@@ -207,7 +207,7 @@ class FirestoreService {
 
   /// Stores/refreshes the device's FCM push token on the user doc so
   /// Cloud Functions can target this device with notifications.
-  /// Tokens are kept in an array — one user can have several devices.
+  /// Tokens are kept in an array, one user can have several devices.
   Future<void> saveFcmToken(String uid, String token) async {
     await _users.doc(uid).set({
       'fcmTokens': FieldValue.arrayUnion([token]),
@@ -333,7 +333,7 @@ class FirestoreService {
   }
 
   /// Streams the `config/delivery` doc (Trega Express: enabled flag,
-  /// expressCities, cutoffHour). Null when the doc doesn't exist — callers
+  /// expressCities, cutoffHour). Null when the doc doesn't exist, callers
   /// fall back to [ExpressDeliveryConfig.defaults].
   Stream<Map<String, dynamic>?> watchDeliveryConfig() {
     return _db
@@ -343,9 +343,9 @@ class FirestoreService {
         .map((doc) => doc.data());
   }
 
-  /// Console-owned `config/fees` doc (public read): marketplace pricing —
+  /// Console-owned `config/fees` doc (public read): marketplace pricing,
   /// seller/buyer fee percents, fixed delivery fee, GST. Null when the doc
-  /// doesn't exist — callers fall back to [FeeConfig.defaults].
+  /// doesn't exist, callers fall back to [FeeConfig.defaults].
   Stream<Map<String, dynamic>?> watchFeeConfig() {
     return _db
         .collection('config')
@@ -361,7 +361,7 @@ class FirestoreService {
   }
 
   /// Owner-only listing data (pickup address). Stored under
-  /// `listings/{id}/private/details` — readable only by the seller and
+  /// `listings/{id}/private/details`, readable only by the seller and
   /// admins (see `firestore.rules`), never by the public.
   ///
   /// The address is a structured map: `line1`, `line2` (optional landmark),
@@ -458,7 +458,7 @@ class FirestoreService {
   ///
   /// Composite index: bids (buyerId ASC, listingId ASC). Used by the
   /// listing detail screen to decide between "Make an Offer",
-  /// "Offer sent — awaiting seller" and the winner's "Buy Now".
+  /// "Offer sent, awaiting seller" and the winner's "Buy Now".
   Stream<List<Bid>> watchMyBidsForListing(String uid, String listingId) {
     return _bids
         .where('buyerId', isEqualTo: uid)

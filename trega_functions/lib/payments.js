@@ -55,7 +55,7 @@ function cashfreeHeaders() {
 }
 /**
  * Creates a Cashfree order for a live listing (or an accepted bid).
- * The amount is ALWAYS read from Firestore — the client-supplied value,
+ * The amount is ALWAYS read from Firestore, the client-supplied value,
  * if any, is ignored.
  */
 async function createCashfreeOrderHandler(uid, input) {

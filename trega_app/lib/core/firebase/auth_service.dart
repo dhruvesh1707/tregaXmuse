@@ -11,9 +11,9 @@ import 'firestore_service.dart';
 /// Phone-OTP authentication backed by Firebase Auth.
 ///
 /// Flow:
-///  1. [sendOtp] — Firebase sends an SMS to `+91 <phone>`. The returned
+///  1. [sendOtp], Firebase sends an SMS to `+91 <phone>`. The returned
 ///     verificationId is held by the UI (or this service) for step 2.
-///  2. [verifyOtp] — builds a [PhoneAuthCredential] from verificationId + the
+///  2. [verifyOtp], builds a [PhoneAuthCredential] from verificationId + the
 ///     6-digit SMS code and signs in. On first sign-in a `users/{uid}` doc is
 ///     created via [FirestoreService.ensureUser].
 ///
@@ -44,7 +44,7 @@ class AuthService {
   /// live ~2 minutes; we allow a generous window for slow round-trips).
   static const _pendingTtl = Duration(minutes: 10);
 
-  /// Persists the phone number the moment the user taps "Send OTP" —
+  /// Persists the phone number the moment the user taps "Send OTP",
   /// *before* Firebase runs. On iOS the reCAPTCHA can appear immediately,
   /// and if the OS kills the app while it is up there is no verificationId
   /// yet; the persisted phone still lets the UI offer a one-tap retry.
@@ -129,7 +129,7 @@ class AuthService {
         onCodeSent(verificationId, resendToken);
       },
       codeAutoRetrievalTimeout: (verificationId) {
-        // SMS not auto-retrieved in time — user types the code manually.
+        // SMS not auto-retrieved in time, user types the code manually.
         debugPrint('Trega auto-retrieval timeout for $verificationId');
       },
     );
@@ -193,7 +193,7 @@ class AuthService {
   }
 
   /// Saves the FCM device token to the user doc. Skipped on web (needs a
-  /// VAPID key) — push targets Android/iOS in v1.
+  /// VAPID key), push targets Android/iOS in v1.
   static bool _fcmRefreshHooked = false;
 
   Future<void> _registerFcmToken(String uid) async {
@@ -232,7 +232,7 @@ class AuthService {
       case 'operation-not-allowed':
         // Thrown when the Firebase console's SMS region policy blocks the
         // destination region (Authentication → Settings → SMS region
-        // policy). Nothing the app can do — the region must be allowlisted.
+        // policy). Nothing the app can do, the region must be allowlisted.
         return 'SMS sign-in is blocked for this region in the Firebase console. Please contact support.';
       default:
         return 'Could not send OTP (${e.code}). Please try again.';

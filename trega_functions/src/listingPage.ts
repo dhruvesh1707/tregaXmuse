@@ -8,11 +8,11 @@ import * as logger from "firebase-functions/logger";
  * trega.in; listing pages live on its subdomain listings.trega.in.
  * tregaxmuse.web.app is internal and must never appear in a canonical,
  * OG tag, sitemap or shared link produced here. Every public URL below
- * is built from this single constant — change it here only.
+ * is built from this single constant, change it here only.
  */
 export const PUBLIC_BASE_URL = "https://listings.trega.in";
 
-/** Apex marketing site — Phase 1 category pages live here, not on the
+/** Apex marketing site, Phase 1 category pages live here, not on the
  * listings subdomain, so category cross-links use this base. */
 const SITE_BASE_URL = "https://trega.in";
 
@@ -140,7 +140,7 @@ function conditionLabel(raw: unknown, product: Record<string, unknown>): string 
  * Handles BOTH the canonical FIRESTORE_MODEL shape (top-level title /
  * description / condition / categoryId) and the legacy `product` map the
  * old share-preview page was written against. Only fields the public
- * preview already exposes are read — never sellerId, addresses or
+ * preview already exposes are read, never sellerId, addresses or
  * anything private.
  */
 export function normalizeListing(
@@ -309,7 +309,7 @@ ${firstPhoto ? `<meta property="og:image" content="${esc(firstPhoto)}">` : ""}
       ${metaBits ? `<div class="meta">${metaBits}</div>` : ""}
       ${vm.description ? `<p class="desc">${esc(vm.description)}</p>` : ""}
       <p class="trust">The seller of this listing is KYC (Aadhaar) verified on Trega.
-      Trega has no chat — buyers place offers in the app, and the seller accepts the one they like.
+      Trega has no chat, buyers place offers in the app, and the seller accepts the one they like.
       Payment goes through Cashfree when a deal is accepted.</p>
     </div>
   </div>
@@ -318,7 +318,7 @@ ${firstPhoto ? `<meta property="og:image" content="${esc(firstPhoto)}">` : ""}
   <a class="play" href="${PLAY_URL}">No app yet? Get Trega on Google Play</a>
   ${similar.length ? `<h2 class="more">Similar live listings</h2><div class="simgrid">${simCards}</div>` : ""}
   <p><a class="catlink" href="${categoryPageUrl(vm.categoryId)}">Browse more pre-owned listings on Trega</a></p>
-  <p class="hint">Trega — pre-owned gear, verified sellers, offers only.</p>
+  <p class="hint">Trega, pre-owned gear, verified sellers, offers only.</p>
 </main>
 <script>
 (function () {

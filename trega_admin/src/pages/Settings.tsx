@@ -34,7 +34,7 @@ export default function Settings() {
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        Edited via Firebase console — the admin panel cannot write config (firestore.rules).
+        Edited via Firebase console, the admin panel cannot write config (firestore.rules).
       </div>
 
       {error && (
@@ -50,7 +50,7 @@ export default function Settings() {
               <div className="space-y-3">
                 <p className="rounded-lg bg-trega-50 px-4 py-3 text-sm font-medium text-trega-800">
                   {fees.promoActive
-                    ? `Zero Fee Launch is ACTIVE — only the ${formatINR(fees.deliveryFlat)} delivery fee applies`
+                    ? `Zero Fee Launch is ACTIVE: only the ${formatINR(fees.deliveryFlat)} delivery fee applies`
                     : `Standard pricing: ${fees.sellerPct}% seller + ${fees.buyerPct}% buyer`}
                 </p>
                 <div>
@@ -68,7 +68,7 @@ export default function Settings() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-stone-500">Not set — the app uses bundled defaults.</p>
+              <p className="text-sm text-stone-500">Not set. The app uses bundled defaults.</p>
             )}
           </Section>
 
@@ -104,7 +104,7 @@ export default function Settings() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-stone-500">Not set — the app uses bundled defaults.</p>
+              <p className="text-sm text-stone-500">Not set. The app uses bundled defaults.</p>
             )}
           </Section>
         </>

@@ -8,7 +8,7 @@ import '../theme/app_colors.dart';
 
 /// Scaffold with the minimal Trega backdrop: flat warm paper.
 ///
-/// Drop-in replacement for [Scaffold] on full-screen pages — the
+/// Drop-in replacement for [Scaffold] on full-screen pages, the
 /// constructor mirrors the commonly used [Scaffold] parameters. Pass
 /// [backgroundColor] to opt a screen out to a different solid fill.
 class TregaScaffold extends StatelessWidget {
@@ -65,10 +65,10 @@ class TregaScaffold extends StatelessWidget {
             endDrawer: endDrawer,
             bottomSheet: bottomSheet,
           ),
-          // Floating offline pill — overlays every screen while the
+          // Floating offline pill, overlays every screen while the
           // device has no connectivity, vanishes when back online.
           // Pure overlay: it never shifts the screen's layout.
-          // NOTE: Row, not Center — Center would expand to the Stack's
+          // NOTE: Row, not Center, Center would expand to the Stack's
           // full height here (finite-loose constraints).
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,

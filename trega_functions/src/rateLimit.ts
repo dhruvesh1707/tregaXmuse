@@ -9,7 +9,7 @@ import * as logger from "firebase-functions/logger";
  * - auth tier (`kycOtp`, `kycVerify`, `bootstrap`): OTP issuance, OTP
  *   verification, and the one-shot admin bootstrap. Per-account AND per-IP,
  *   with exponential backoff. (Trega's actual sign-in is Firebase phone
- *   auth, which Google rate-limits itself — these are our auth-adjacent
+ *   auth, which Google rate-limits itself, these are our auth-adjacent
  *   routes: Aadhaar OTP is the abuse-sensitive one since BulkPe bills per
  *   OTP and OTP guessing is a real attack.)
  * - moderate (`webhook`, `adminOps`): the Cashfree webhook (per-IP) and
@@ -26,7 +26,7 @@ import * as logger from "firebase-functions/logger";
  * permanent lockout.
  *
  * Thresholds are configurable at runtime via the `config/rateLimits` doc
- * (console-only; clients cannot read it — see firestore.rules):
+ * (console-only; clients cannot read it, see firestore.rules):
  *   { "<tier>": { limit, windowSec, blockBaseSec, blockMaxSec } }
  * Missing/invalid entries fall back to the bundled defaults below. The doc
  * is cached in memory for 60s so the hot path costs one Firestore
@@ -168,7 +168,7 @@ async function checkBucket(
       );
       return;
     }
-    // Over the limit — exponential backoff, capped.
+    // Over the limit, exponential backoff, capped.
     const nextViolations = violations + 1;
     const blockMs =
       Math.min(rule.blockBaseSec * 2 ** (nextViolations - 1), rule.blockMaxSec) *

@@ -113,7 +113,7 @@ class Bid {
 ///
 /// Canonical fields: `listingId`, `buyerId`, `sellerId`, `amount`,
 /// `status` (`open`|`accepted`|`rejected`|`expired`|`countered`),
-/// `counterAmount?`, `createdAt`. Clients never write bid docs directly —
+/// `counterAmount?`, `createdAt`. Clients never write bid docs directly,
 /// bids are created via the `placeBid` callable and resolved via
 /// `acceptBid`; see [FunctionsService].
 extension BidFirestore on Bid {

@@ -130,7 +130,7 @@ export default function Campaigns() {
           ? 'A listing'
           : c.linkType === 'category'
             ? (c.categoryName ?? 'A category')
-            : '—',
+            : '-',
     },
     {
       key: 'delivery',
@@ -264,7 +264,7 @@ export default function Campaigns() {
               <option value="">Pick a live listing…</option>
               {liveListings.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.title} — {formatINR(l.price)}
+                  {l.title}: {formatINR(l.price)}
                 </option>
               ))}
             </select>

@@ -74,9 +74,9 @@ export default function Users() {
     {
       key: 'note',
       header: 'KYC note',
-      render: (u) => <span className="max-w-xs truncate text-xs text-stone-500">{u.kycNote ?? '—'}</span>,
+      render: (u) => <span className="max-w-xs truncate text-xs text-stone-500">{u.kycNote ?? '-'}</span>,
     },
-    { key: 'joined', header: 'Joined', render: (u) => <span className="text-stone-600">{u.createdAt ? formatDate(u.createdAt) : '—'}</span> },
+    { key: 'joined', header: 'Joined', render: (u) => <span className="text-stone-600">{u.createdAt ? formatDate(u.createdAt) : '-'}</span> },
     {
       key: 'actions',
       header: 'Actions',
@@ -173,7 +173,7 @@ export default function Users() {
       />
 
       {rejectUser && (
-        <Modal title={`Reject KYC — ${rejectUser.name}`} onClose={() => setRejectUser(null)}>
+        <Modal title={`Reject KYC: ${rejectUser.name}`} onClose={() => setRejectUser(null)}>
           <form onSubmit={rejectSubmit} className="space-y-4">
             <textarea
               value={note}

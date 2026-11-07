@@ -143,7 +143,7 @@ class Order {
 /// `currency`, `paymentStatus`, `status`, `cfOrderId?`, `trackingNote?`,
 /// `paidAt?`, `createdAt`.
 ///
-/// Orders are created server-side by the `createCashfreeOrder` callable —
+/// Orders are created server-side by the `createCashfreeOrder` callable,
 /// clients never write order docs directly. The order doc carries no listing
 /// snapshot, so the nested [Listing] is a minimal placeholder (id only);
 /// UI resolves the title/photo via the listing doc when needed.

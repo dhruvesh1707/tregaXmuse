@@ -23,7 +23,7 @@ function queueNotification(
     type: string;
     title: string;
     body: string;
-    /** Deep-link payload — the app opens the matching screen on tap. */
+    /** Deep-link payload, the app opens the matching screen on tap. */
     data?: { listingId?: string; bidId?: string; orderId?: string };
   }
 ): void {
@@ -67,7 +67,7 @@ type PushJob = {
 };
 const pushOutbox: PushJob[] = [];
 
-/** Sends one push via FCM. Never throws — a push must not fail the callable. */
+/** Sends one push via FCM. Never throws, a push must not fail the callable. */
 async function sendPush(job: PushJob): Promise<void> {
   try {
     const snap = await admin.firestore().collection("users").doc(job.uid).get();
@@ -120,7 +120,7 @@ async function flushPushOutbox(): Promise<void> {
 }
 
 /** Commits the batch, then delivers any queued pushes. If the commit
- * fails, queued pushes are dropped — the inbox write failed too. */
+ * fails, queued pushes are dropped, the inbox write failed too. */
 async function commitAndNotify(
   batch: admin.firestore.WriteBatch
 ): Promise<void> {
@@ -138,7 +138,7 @@ function formatINR(amount: number): string {
 }
 
 /** Runs on every new listing: flips it live immediately (reactive
- * moderation — the team reviews new listings and flags suspicious ones
+ * moderation, the team reviews new listings and flags suspicious ones
  * after the fact) and notifies the admin inbox. */
 export async function onListingCreateHandler(
   listingId: string,
@@ -151,7 +151,7 @@ export async function onListingCreateHandler(
   const listingRef = db.collection("listings").doc(listingId);
   // Price floor: with the flat delivery fee split 50-50, a listing below
   // the seller's delivery share can never be checked out (the seller would
-  // lose money). Reject it at creation instead of letting it go live —
+  // lose money). Reject it at creation instead of letting it go live,
   // the app blocks this in the sell flow, this covers direct writes.
   const minPrice = minListPrice(await readFeeConfig(db));
   if (typeof data.price === "number" && data.price < minPrice) {
@@ -170,7 +170,7 @@ export async function onListingCreateHandler(
       type: "listing_review",
       listingId,
       title: data.title ?? "New listing",
-      message: `New listing "${data.title ?? listingId}" is live — review and flag if suspicious.`,
+      message: `New listing "${data.title ?? listingId}" is live. Review and flag if suspicious.`,
       read: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -181,7 +181,7 @@ export async function onListingCreateHandler(
 /**
  * Admin-only: flag/takedown flow for the reactive moderation model.
  * Listings go live on publish; this callable lets the team pull a
- * suspicious live listing (`reject`) — `approve` is a no-op on listings
+ * suspicious live listing (`reject`), `approve` is a no-op on listings
  * that are already live.
  */
 export async function reviewListingHandler(
@@ -237,13 +237,13 @@ export async function reviewListingHandler(
 }
 
 /**
- * Permanent admin delete — the hard counterpart to reviewListing's reject.
+ * Permanent admin delete, the hard counterpart to reviewListing's reject.
  * Removes the listing doc (recursiveDelete also clears its `private`
  * subcollection), every bid placed on it, and its Storage media under
  * `listingMedia/{listingId}/`. Sold listings are refused: an order
  * references them, so their record must stay. The seller is notified via
  * the same listing_flagged inbox type the app already renders for
- * takedowns — only the wording says the removal is permanent.
+ * takedowns, only the wording says the removal is permanent.
  */
 export async function deleteListingHandler(
   isAdmin: boolean,
@@ -263,13 +263,13 @@ export async function deleteListingHandler(
   if ((data.status as ListingStatus | undefined) === "sold") {
     throw new HttpsError(
       "failed-precondition",
-      "Sold listings can't be deleted — an order references them."
+      "Sold listings can't be deleted. An order references them."
     );
   }
   const sellerId = data.sellerId as string | undefined;
   const title = (data.title as string | undefined) ?? "Your listing";
 
-  // Bids on this listing (single-field query — no composite index needed).
+  // Bids on this listing (single-field query, no composite index needed).
   // Deleted in batch-sized chunks; bid counts per listing are small, but
   // the loop keeps a pathological case under the 500-write batch limit.
   const bidsSnap = await db
@@ -283,7 +283,7 @@ export async function deleteListingHandler(
   }
 
   // Notify the seller (same commitAndNotify pattern as the review
-  // takedown). No deep-link data — the listing is about to not exist.
+  // takedown). No deep-link data, the listing is about to not exist.
   if (sellerId) {
     const batch = db.batch();
     queueNotification(batch, sellerId, {
@@ -336,7 +336,7 @@ export async function onBidCreateHandler(
     (listingSnap.data()?.title as string | undefined) ?? "your listing";
   const ownerId = (listingSnap.data()?.sellerId as string | undefined) ?? sellerId;
 
-  // Previous open bids on this listing (single-field query — no composite
+  // Previous open bids on this listing (single-field query, no composite
   // index needed; bid counts per listing are small).
   const othersSnap = await db
     .collection("bids")
@@ -359,7 +359,7 @@ export async function onBidCreateHandler(
       type: NotificationType.bidReceived,
       data: { listingId, bidId },
       title: "New bid on your listing",
-      body: `${formatINR(amount)} offered on “${listingTitle}” — review it in Bids & offers.`,
+      body: `${formatINR(amount)} offered on “${listingTitle}”. Review it in Bids & offers.`,
     });
   }
   if (prevHighest && amount > prevHighest.amount) {
@@ -367,7 +367,7 @@ export async function onBidCreateHandler(
       type: NotificationType.outbid,
       data: { listingId, bidId },
       title: "You've been outbid",
-      body: `Someone bid ${formatINR(amount)} on “${listingTitle}” — place a higher bid to stay in the race.`,
+      body: `Someone bid ${formatINR(amount)} on “${listingTitle}”. Place a higher bid to stay in the race.`,
     });
   }
   await commitAndNotify(batch);
@@ -469,7 +469,7 @@ export async function acceptBidHandler(
       throw new HttpsError("failed-precondition", "Listing is not available.");
     }
 
-    // Firestore transactions require ALL reads before ALL writes — the
+    // Firestore transactions require ALL reads before ALL writes, the
     // other-bids query must run before the updates below, or the
     // transaction throws (surfaced to the app as INTERNAL).
     // Single-field query (no composite index needed); the "open" filter
@@ -506,14 +506,14 @@ export async function acceptBidHandler(
     type: NotificationType.bidAccepted,
     data: { listingId: acceptedListingId, bidId },
     title: "Your offer was accepted!",
-    body: `The seller accepted your ${formatINR(winnerAmount)} offer on “${listingTitle}” — open the listing to pay ${formatINR(winnerAmount)} and complete your purchase.`,
+    body: `The seller accepted your ${formatINR(winnerAmount)} offer on “${listingTitle}”. Open the listing to pay ${formatINR(winnerAmount)} and complete your purchase.`,
   });
   for (const loser of losers) {
     queueNotification(batch, loser.buyerId, {
       type: NotificationType.bidRejected,
       data: { listingId: acceptedListingId, bidId: loser.bidId },
       title: "Bid not accepted",
-      body: `Your ${formatINR(loser.amount)} bid on “${listingTitle}” wasn't accepted — the item went to someone else.`,
+      body: `Your ${formatINR(loser.amount)} bid on “${listingTitle}” wasn't accepted. The item went to someone else.`,
     });
   }
   await commitAndNotify(batch);
@@ -562,7 +562,7 @@ export async function rejectBidHandler(
     type: NotificationType.bidRejected,
     data: { listingId: bid.listingId as string, bidId },
     title: "Offer not accepted",
-    body: `Your ${formatINR(bid.amount as number)} offer on “${listingTitle}” wasn't accepted — you can send a new offer.`,
+    body: `Your ${formatINR(bid.amount as number)} offer on “${listingTitle}” wasn't accepted. You can send a new offer.`,
   });
   await commitAndNotify(batch);
   return { rejected: true as const };
@@ -624,7 +624,7 @@ export async function cancelAcceptanceHandler(
     type: NotificationType.bidRejected,
     data: { listingId: cancelledListingId, bidId },
     title: "Accepted offer cancelled",
-    body: `The seller cancelled your accepted offer on “${listingTitle}” — the listing is open for offers again.`,
+    body: `The seller cancelled your accepted offer on “${listingTitle}”. The listing is open for offers again.`,
   });
   await commitAndNotify(batch);
   return { cancelled: true as const };
@@ -635,10 +635,10 @@ export async function cancelAcceptanceHandler(
  *
  * A view counts only after the client proves real attention: the app calls
  * this after the detail screen has been continuously visible for 3 seconds
- * (IG's documented video-view threshold) — never on plain screen open.
+ * (IG's documented video-view threshold), never on plain screen open.
  *
  * - The seller's own views never count. (IG counts self-views; we
- *   deliberately don't — sellers could otherwise inflate their listings.)
+ *   deliberately don't, sellers could otherwise inflate their listings.)
  * - Replays count like IG, but a 1-hour per-viewer-per-listing cooldown
  *   stops open → back → open tap-spam from gaming the counter.
  * - Atomic via a transaction (reads before writes); per-viewer state lives

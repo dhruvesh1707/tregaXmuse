@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Plain warm paper (#FFFBF7) — the Flutter splash owns the launch
+<!-- Plain warm paper (#FFFBF7), the Flutter splash owns the launch
      animation now; the native screen is just the brand background. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>

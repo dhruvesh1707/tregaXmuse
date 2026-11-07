@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../firebase/firebase_providers.dart';
 
-/// Trega Express — next-day delivery within the same city.
+/// Trega Express, next-day delivery within the same city.
 ///
 /// This is the marketing name users see. The courier partners behind it are
 /// never named anywhere in the app; copy only ever says "Trega Express".
@@ -12,7 +12,7 @@ import '../firebase/firebase_providers.dart';
 /// counts as express when the buyer's delivery city matches the listing's
 /// city. The city list and cutoff hour ship as bundled defaults and can be
 /// overridden remotely via the `config/delivery` Firestore doc (public read,
-/// console-only write) — no app release needed to add a city.
+/// console-only write), no app release needed to add a city.
 class ExpressDeliveryConfig {
   final bool enabled;
   final List<String> cities;
@@ -24,7 +24,7 @@ class ExpressDeliveryConfig {
     required this.cutoffHour,
   });
 
-  /// Bundled defaults — used until (and unless) `config/delivery` exists.
+  /// Bundled defaults, used until (and unless) `config/delivery` exists.
   /// City names are stored normalized (lowercase, trimmed).
   static const ExpressDeliveryConfig defaults = ExpressDeliveryConfig(
     enabled: true,

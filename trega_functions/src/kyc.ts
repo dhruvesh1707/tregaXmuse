@@ -43,7 +43,7 @@ async function bulkpePost(
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    // BulkPe usually returns a JSON {message} even on errors — surface it
+    // BulkPe usually returns a JSON {message} even on errors, surface it
     // instead of a generic failure so the app can tell the user what
     // actually happened (bad number, provider outage, bad token, ...).
     let detail = "";
@@ -81,7 +81,7 @@ const OTP_THROTTLE_MS = 60_000;
  *
  * HMAC with the KYC_SALT secret when set; falls back to a domain-separated
  * plain hash (with a loud warning) so verification keeps working if the
- * secret was never configured — dedupe still works, hashes are just weaker
+ * secret was never configured, dedupe still works, hashes are just weaker
  * against offline brute force.
  */
 export function aadhaarFingerprint(aadhaar: string): string {
@@ -190,7 +190,7 @@ export async function verifyAadhaarOtpHandler(
   // verifications with the same Aadhaar can't both succeed; the loser gets
   // a clear "already verified on another account" error.
   // NOTE: the check runs at VERIFY time (not OTP-request time) so typing an
-  // Aadhaar number alone can't be used to probe whether it's taken — you
+  // Aadhaar number alone can't be used to probe whether it's taken, you
   // need the OTP from the Aadhaar-linked mobile too.
   const db = admin.firestore();
   const kycRef = db.collection("kycVerifications").doc(uid);

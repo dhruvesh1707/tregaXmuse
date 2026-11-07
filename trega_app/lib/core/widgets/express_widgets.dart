@@ -9,7 +9,7 @@ import '../theme/app_shadows.dart';
 
 /// Small "Express" pill overlaid on listing photos in the feed cards.
 ///
-/// Solid [AppColors.accent] with [AppColors.primaryDark] text/icon — the
+/// Solid [AppColors.accent] with [AppColors.primaryDark] text/icon, the
 /// contrast pair is deliberate, do not re-theme it to glass.
 class ExpressBadge extends StatelessWidget {
   const ExpressBadge({super.key});
@@ -49,7 +49,7 @@ class ExpressBadge extends StatelessWidget {
 
 /// Countdown banner for the listing detail page.
 ///
-/// "Order in the next 2h 14m — arrives tomorrow in Mumbai." Ticks every 30
+/// "Order in the next 2h 14m, arrives tomorrow in Mumbai." Ticks every 30
 /// seconds so the countdown stays live. Rendered only when the listing's
 /// city is express-eligible (the caller checks that).
 class ExpressBanner extends StatefulWidget {
@@ -130,7 +130,7 @@ class _ExpressBannerState extends State<ExpressBanner> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$headline — arrives ${config.deliveryDayLabel(now)} in ${widget.city}.',
+                  '$headline, arrives ${config.deliveryDayLabel(now)} in ${widget.city}.',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.88),
                     fontSize: 12.5,

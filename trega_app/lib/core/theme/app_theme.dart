@@ -6,14 +6,14 @@ import 'app_colors.dart';
 /// Builds the app-wide [ThemeData] for Trega.
 ///
 /// Minimal glass pass: warm paper stays flat, surfaces stay flat and
-/// solid — no gradient washes, no glow blobs, no specular sheens. Depth
+/// solid, no gradient washes, no glow blobs, no specular sheens. Depth
 /// comes only from the single frosted-glass recipe (translucent white +
 /// backdrop blur + hairline border + one warm shadow), applied by the
 /// widgets in `core/widgets`.
 ///
 /// Element pass: text fields, dialogs, bottom sheets, snackbars and
 /// progress indicators are themed here, so EVERY screen gets the look
-/// automatically — no per-screen work needed for these elements.
+/// automatically, no per-screen work needed for these elements.
 ThemeData buildTregaTheme() {
   final baseScheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
@@ -260,7 +260,7 @@ ThemeData buildTregaTheme() {
     ),
     snackBarTheme: SnackBarThemeData(
       // Dark-glass fallback toast: espresso at 0.78 alpha, floating.
-      // NOTE: no `margin` here — this SDK's SnackBarThemeData has no such
+      // NOTE: no `margin` here, this SDK's SnackBarThemeData has no such
       // named parameter; the floating behavior still offsets from edges.
       backgroundColor: AppColors.espresso.withValues(alpha: 0.78),
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),

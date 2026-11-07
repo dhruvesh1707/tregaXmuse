@@ -3,7 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 /// Extracts a human-readable message from a callable failure.
 ///
 /// Firebase wraps server `HttpsError`s in [FirebaseFunctionsException]
-/// carrying the exact message the function threw — surface that instead of
+/// carrying the exact message the function threw, surface that instead of
 /// a generic "try again" so the user knows what actually went wrong.
 String functionsErrorMessage(Object e, {String fallback = 'Something went wrong. Please try again.'}) {
   if (e is FirebaseFunctionsException) {
@@ -15,7 +15,7 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 
 /// Secure bridge to server-side integrations.
 ///
-/// The app NEVER talks to BulkPe or Cashfree directly — API tokens/secrets
+/// The app NEVER talks to BulkPe or Cashfree directly, API tokens/secrets
 /// live only in Cloud Functions secrets (`firebase functions:secrets:set`:
 /// `BULKPE_API_TOKEN`, `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`,
 /// `CASHFREE_ENV`). These callables invoke the deployed functions in
@@ -24,15 +24,15 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// Callable names (exact, must match `trega_functions/src/index.ts`):
 /// - `requestAadhaarOtp` ({aadhaarNumber}) -> {success, refId, message}
 /// - `verifyAadhaarOtp`  ({refId, otp}) -> {success, verified, name?, dob?, ...}
-/// - `createCashfreeOrder` ({bidId, customerPhone, deliveryAddress?, deliveryType?}) — bid-only: the buyer can check out only after the seller accepts their offer
+/// - `createCashfreeOrder` ({bidId, customerPhone, deliveryAddress?, deliveryType?}), bid-only: the buyer can check out only after the seller accepts their offer
 ///   -> {success, paymentSessionId, cfOrderId, orderId}
 /// - `placeBid` ({listingId, amount}) -> {success, bidId}
 /// - `acceptBid` ({bidId}) -> {success}
 /// - `rejectBid` ({bidId}) -> {success}
 /// - `cancelAcceptance` ({bidId}) -> {success}
-/// - `recordListingView` ({listingId}) -> {counted, viewCount} — IG-style
+/// - `recordListingView` ({listingId}) -> {counted, viewCount}, IG-style
 ///   view counter: call only after 3s of continuous detail visibility
-/// - `deleteAccount` () -> {deleted} — wipes the account completely
+/// - `deleteAccount` () -> {deleted}, wipes the account completely
 /// - `reviewListing` ({listingId, approve, reason?}) -> {success, status}
 ///   (admin custom claim only)
 class FunctionsService {
@@ -88,7 +88,7 @@ class FunctionsService {
   }
 
   /// Verifies a payment server-side. Call after the Cashfree SDK reports
-  /// success — the app must treat the order as paid ONLY when this returns
+  /// success, the app must treat the order as paid ONLY when this returns
   /// `paymentStatus: 'SUCCESS'`. The server asks Cashfree's Orders API
   /// directly with the secret key; the SDK's on-device callback alone is
   /// never proof that money moved.
@@ -137,7 +137,7 @@ class FunctionsService {
 
   /// Records a listing view, Instagram-style. Call this ONLY after the
   /// detail screen has been continuously visible for 3 seconds (IG's
-  /// video-view threshold) — never on plain screen open. The server
+  /// video-view threshold), never on plain screen open. The server
   /// ignores seller self-views and enforces a 1-hour per-viewer cooldown,
   /// so replays count like IG but tap-spam can't game the counter.
   /// Fire-and-forget: never block UI on the result.
@@ -151,7 +151,7 @@ class FunctionsService {
 
   /// Deletes the caller's account and every record tied to it, server-side:
   /// profile, listings (+ photos), bids, orders, reviews, reports,
-  /// notifications, KYC, and the Auth user itself. No undo — the UI
+  /// notifications, KYC, and the Auth user itself. No undo, the UI
   /// confirms explicitly before calling this.
   Future<void> deleteAccount() async {
     await _functions.httpsCallable('deleteAccount').call();

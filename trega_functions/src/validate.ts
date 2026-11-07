@@ -4,12 +4,12 @@ import { HttpsError } from "firebase-functions/v2/https";
  * Strict input validation for every callable.
  *
  * Every external value is checked against a schema (type, length, format)
- * and REJECTED when it doesn't match — never sanitized-and-hoped. All
+ * and REJECTED when it doesn't match, never sanitized-and-hoped. All
  * failures throw `invalid-argument` with a user-safe message.
  */
 
 /**
- * Firestore document IDs. Rejects anything that isn't a plain ID —
+ * Firestore document IDs. Rejects anything that isn't a plain ID,
  * notably `/`, `.` and whitespace, so path-traversal style values like
  * `../../users/x` can never reach `collection().doc()`.
  */
@@ -56,7 +56,7 @@ export function assertText(
  * Money amounts: finite, positive, capped. The cap keeps absurd values
  * (typos, tampered clients) away from Cashfree and the order ledger.
  */
-const MAX_AMOUNT = 100_000_000; // ₹10 crore — above any real listing
+const MAX_AMOUNT = 100_000_000; // ₹10 crore, above any real listing
 export function assertAmount(n: unknown, name = "amount"): number {
   if (
     typeof n !== "number" ||

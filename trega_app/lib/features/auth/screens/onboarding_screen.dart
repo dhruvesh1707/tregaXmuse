@@ -26,7 +26,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       icon: PhosphorIconsRegular.sealCheck,
       title: 'Video-verified listings',
       body:
-          'See the actual product working — every listing is reviewed by our team before it goes live.',
+          'See the actual product working. Every listing is reviewed by our team before it goes live.',
     ),
     (
       icon: PhosphorIconsRegular.lightning,

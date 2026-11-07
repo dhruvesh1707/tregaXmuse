@@ -19,7 +19,7 @@ import '../../../core/widgets/trega_toast.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 
-/// "My Listings" — everything the signed-in user is selling, across all
+/// "My Listings", everything the signed-in user is selling, across all
 /// statuses (live → sold, plus draft/flagged edge cases).
 ///
 /// Also the only place the seller can see their private pickup address
@@ -143,7 +143,7 @@ class MyListingsScreen extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Only you and the Trega team can see this — buyers never see your address.',
+                        'Only you and the Trega team can see this, buyers never see your address.',
                         style:
                             Theme.of(context).textTheme.bodySmall,
                       ),
@@ -190,7 +190,7 @@ class MyListingsScreen extends ConsumerWidget {
                     icon: PhosphorIconsRegular.package,
                     title: 'No listings yet',
                     subtitle:
-                        'Sell your pre-owned gear in 30 seconds — photos, details, price, done.',
+                        'Sell your pre-owned gear in 30 seconds, photos, details, price, done.',
                     actionLabel: 'Sell an item',
                     onAction: () => Navigator.of(context)
                         .pushNamed(SellFlowScreen.routeName),
@@ -364,8 +364,8 @@ class MyListingsScreen extends ConsumerWidget {
           if (city.isNotEmpty) city,
           if (state.isNotEmpty) state,
         ].join(', ') +
-            (pin.isNotEmpty ? ' — $pin' : ''),
-      ].where((l) => l.trim().isNotEmpty && l.trim() != '—').toList();
+            (pin.isNotEmpty ? ', $pin' : ''),
+      ].where((l) => l.trim().isNotEmpty && l.trim() != ',').toList();
       if (lines.isNotEmpty) return lines.join('\n');
     } else if (raw is String && raw.trim().isNotEmpty) {
       return raw.trim();

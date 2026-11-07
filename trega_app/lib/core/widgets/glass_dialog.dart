@@ -5,10 +5,10 @@ import 'liquid_glass.dart';
 /// A dialog whose surface is light glass instead of flat white.
 ///
 /// Keeps [AlertDialog]'s layout contract (title / content / actions) but
-/// renders it as a frosted panel — radius 26, blur 24 — so every
+/// renders it as a frosted panel, radius 26, blur 24, so every
 /// confirmation and prompt in the app matches the minimal theme.
 ///
-/// Content gets unbounded height — never put a vertical
+/// Content gets unbounded height, never put a vertical
 /// Expanded/Flexible inside it.
 class GlassDialog extends StatelessWidget {
   final Widget? title;

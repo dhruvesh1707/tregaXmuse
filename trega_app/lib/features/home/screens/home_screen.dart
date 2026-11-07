@@ -36,7 +36,7 @@ import '../widgets/promo_banner_carousel.dart';
 ///
 /// Data comes from Firestore (`listings` where `status == live`,
 /// `categories` where `active == true`). Errors surface an inline error
-/// state — no demo data is ever shown.
+/// state, no demo data is ever shown.
 class HomeScreen extends ConsumerWidget {
   static const String routeName = '/home';
 
@@ -306,7 +306,7 @@ class _CategoryRail extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.all(Radius.circular(18)),
                   color: AppColors.surface,
-                  // NOTE: not const — Border.all has no const constructor.
+                  // NOTE: not const, Border.all has no const constructor.
                   border: Border.all(color: AppColors.divider),
                   boxShadow: AppShadows.card,
                 ),

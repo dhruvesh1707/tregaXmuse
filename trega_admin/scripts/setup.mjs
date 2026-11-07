@@ -21,9 +21,9 @@ const REPO_ROOT = join(ROOT, "..");
 const ENV_PATH = join(ROOT, ".env");
 
 function fb(args) {
-  // On Windows the CLI is firebase.cmd — it only resolves through a shell.
+  // On Windows the CLI is firebase.cmd, it only resolves through a shell.
   // If firebase isn't on PATH at all, fall back to npx (one-time download).
-  // NOTE: stdin must NOT be "ignore" — on Windows that makes Node-based
+  // NOTE: stdin must NOT be "ignore", on Windows that makes Node-based
   // CLIs abort on exit with "Assertion failed: !(handle->flags &
   // UV_HANDLE_CLOSING)". A piped stdin that is immediately EOF'd is safe.
   const shell = process.platform === "win32";
@@ -37,7 +37,7 @@ function fb(args) {
       const err = msg.split("\n").slice(0, 4).join("\n");
       throw new Error(`firebase ${args.join(" ")} failed:\n${err}`);
     }
-    console.log("Firebase CLI not on PATH — using npx firebase-tools instead…");
+    console.log("Firebase CLI not on PATH, using npx firebase-tools instead…");
     try {
       return execFileSync("npx", ["--yes", "firebase-tools", ...args, "--project", PROJECT], opts);
     } catch (e2) {
@@ -61,7 +61,7 @@ function configFromCli() {
   const web = apps.find((a) => String(a.platform || "").toUpperCase() === "WEB");
   let appId = web?.appId || null;
   if (!appId) {
-    console.log("No web app registered — creating 'Trega Admin'…");
+    console.log("No web app registered, creating 'Trega Admin'…");
     const created = parseJson(fb(["apps:create", "WEB", "Trega Admin", "--json"]));
     appId = created?.result?.appId || created?.appId || null;
   }
@@ -149,4 +149,4 @@ if (!cfg) {
 }
 
 writeFileSync(ENV_PATH, Object.entries(cfg).map(([k, v]) => `${k}=${v}`).join("\n") + "\n");
-console.log(`Done — wrote ${ENV_PATH} (source: ${used}). Run: npm run dev`);
+console.log(`Done, wrote ${ENV_PATH} (source: ${used}). Run: npm run dev`);

@@ -11,7 +11,7 @@ const PAGE_SIZE = 20;
 
 /** User-submitted listing reports. Reports themselves are write-protected
  *  (firestore.rules denies update/delete, even for admins), so there is no
- *  dismiss action — moderation happens on the reported listing. */
+ *  dismiss action, moderation happens on the reported listing. */
 export default function Reports() {
   const [page, setPage] = useState(1);
   const { rows, total, loading, error, refresh } = useReports(page, PAGE_SIZE);
@@ -87,7 +87,7 @@ export default function Reports() {
         <h1 className="text-2xl font-bold text-stone-900">Listing Reports</h1>
         <p className="text-sm text-stone-500">
           Listings flagged by users. Reports can't be dismissed or deleted from this
-          panel — if a report has no merit, take no action.
+          panel, if a report has no merit, take no action.
         </p>
       </div>
 

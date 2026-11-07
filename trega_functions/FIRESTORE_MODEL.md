@@ -2,7 +2,7 @@
 
 Project: `tregaxmuse`. Status enums use **lowercase** strings to match the
 admin panel (`~/workspace/trega/trega_admin/`). There is **no chat** collection
-by design — negotiation happens through structured bids/offers.
+by design, negotiation happens through structured bids/offers.
 
 ## Collections
 
@@ -20,7 +20,7 @@ by design — negotiation happens through structured bids/offers.
 | kycDob | string? | from Aadhaar (on verified) |
 | createdAt | timestamp | |
 
-### `users/{uid}/private/{docId}` — owner-only private data
+### `users/{uid}/private/{docId}`, owner-only private data
 
 | Field | Type | Notes |
 |---|---|---|
@@ -31,13 +31,13 @@ by design — negotiation happens through structured bids/offers.
 | (address doc) createdAt | string | ISO-8601 |
 
 Rules: only the owning user (and admins) may read; only the owner may
-write. Buyers never see this — pickup addresses are copied per-listing into
+write. Buyers never see this, pickup addresses are copied per-listing into
 `listings/{id}/private/details` (which also snapshots the `payoutUpi` used
 at publish time, so payouts stay correct even if the seller changes it
 later). The sell flow auto-saves new pickup addresses here (deduped) and
 prefills the payout UPI field from the saved value; Profile → Settings
 manages both. Checkout reuses the same collection for the buyer's delivery
-address (one-tap picker + auto-save on order creation, deduped) — manual
+address (one-tap picker + auto-save on order creation, deduped), manual
 entry always stays available on both flows.
 
 Client-only notes (no schema change, 2026-10-24): the sell flow keeps a
@@ -65,7 +65,7 @@ Seed: Gaming, Mobiles, Laptops, Cameras, Music, Fashion, Furniture, Home Applian
 ### `config/delivery`
 
 Single doc. Public read, console-only write (see `firestore.rules`).
-Overrides the app's bundled Trega Express defaults — add a city here and
+Overrides the app's bundled Trega Express defaults, add a city here and
 the app picks it up without a release.
 
 | Field | Type | Notes |
@@ -77,27 +77,27 @@ the app picks it up without a release.
 ### `config/fees`
 
 Single doc. Public read, console-only write (see `firestore.rules`).
-The single source of truth for marketplace pricing — the server
+The single source of truth for marketplace pricing, the server
 (`createCashfreeOrder`) recomputes every fee from this; the app mirrors it
 for display only via `FeeConfig`.
 
 | Field | Type | Notes |
 |---|---|---|
-| promoActive | bool | `true` during the Zero Fee Launch — marketing flag for banners |
-| sellerPct | number | seller commission % — `0` launch month, `3` standard |
-| buyerPct | number | buyer protection fee % — `0` launch month, `5` standard |
-| deliveryFlat | number | fixed delivery fee in INR — `99`, split 50-50 buyer/seller |
-| gstPct | number | GST % on the platform fees — `18` |
+| promoActive | bool | `true` during the Zero Fee Launch, marketing flag for banners |
+| sellerPct | number | seller commission %, `0` launch month, `3` standard |
+| buyerPct | number | buyer protection fee %, `0` launch month, `5` standard |
+| deliveryFlat | number | fixed delivery fee in INR, `99`, split 50-50 buyer/seller |
+| gstPct | number | GST % on the platform fees, `18` |
 
-Launch month: `promoActive: true, sellerPct: 0, buyerPct: 0` — only the
+Launch month: `promoActive: true, sellerPct: 0, buyerPct: 0`, only the
 fixed delivery fee is charged. Month 2: flip to `sellerPct: 3`,
-`buyerPct: 5` (keep `promoActive: false`) from the console — no app
+`buyerPct: 5` (keep `promoActive: false`) from the console, no app
 update, no function deploy. TDS u/s 194O (1% of the gross sale amount)
 always applies on the seller side regardless of these values.
 
 ### `config/rateLimits`
 
-Single doc. **Server-only** (clients cannot read it — excluded from the
+Single doc. **Server-only** (clients cannot read it, excluded from the
 public `config/{docId}` read in `firestore.rules`; functions read it via
 the Admin SDK). Live-overridable rate-limit thresholds per tier; any
 missing/invalid tier falls back to the bundled defaults in
@@ -147,7 +147,7 @@ false` for clients).
 
 Write rule of thumb: clients create with `status: "draft"`; the
 `onListingCreate` trigger flips it to `live` immediately and notifies
-admins (reactive moderation — the team reviews new listings and flags
+admins (reactive moderation, the team reviews new listings and flags
 suspicious ones after the fact). `reviewListing` (admin claim) may set
 `live`/`rejected` from `live` or legacy `pending`.
 
@@ -165,9 +165,9 @@ write: if false` for clients; written by `recordListingView` via Admin SDK).
 
 View-counting rules (mirrors how Instagram counts reel views):
 - A view counts only after the detail screen has been **continuously
-  visible for 3 seconds** (IG's video-view threshold) — never on screen open.
+  visible for 3 seconds** (IG's video-view threshold), never on screen open.
 - The **seller's own views never count** (IG counts self-views; we
-  deliberately don't — sellers could otherwise inflate their listings).
+  deliberately don't, sellers could otherwise inflate their listings).
 - **Replays count** like IG, but a **1-hour per-viewer-per-listing cooldown**
   stops open → back → open tap-spam.
 - The increment is **atomic** (transaction) and **server-side**; the old
@@ -190,7 +190,7 @@ Never on the public listing doc. Readable only by the seller and admins
 | buyerId | string | |
 | sellerId | string | |
 | amount | number | INR |
-| status | string | `open` \| `accepted` \| `rejected` \| `expired` \| `countered` — a `rejected` buyer may send a new offer (only one `open` offer per buyer+listing) |
+| status | string | `open` \| `accepted` \| `rejected` \| `expired` \| `countered`, a `rejected` buyer may send a new offer (only one `open` offer per buyer+listing) |
 | counterAmount | number? | seller counter-offer |
 | createdAt / acceptedAt | timestamp? | |
 
@@ -200,8 +200,8 @@ Never on the public listing doc. Readable only by the seller and admins
 | listingId | string | |
 | bidId | string? | set when the order came from an accepted bid |
 | buyerId / sellerId | string | |
-| amount | number | INR — always set server-side |
-| buyerTotal | number | INR — what the buyer pays (item price + buyer fee + GST + delivery buyer-share); the Cashfree `order_amount` |
+| amount | number | INR, always set server-side |
+| buyerTotal | number | INR, what the buyer pays (item price + buyer fee + GST + delivery buyer-share); the Cashfree `order_amount` |
 | fees | map | full breakdown, all INR, computed server-side by `quoteFees`: `promoActive`, `sellerPct`, `buyerPct`, `gstPct`, `sellerCommission`, `sellerCommissionGst`, `buyerFee`, `buyerFeeGst`, `deliveryFlat`, `deliveryBuyerShare`, `deliverySellerShare`, `tds` (1% of gross), `sellerPayout` (what the seller receives), `buyerTotal` |
 | currency | string | `INR` |
 | paymentStatus | string | `PENDING` \| `SUCCESS` \| `FAILED` \| `USER_DROPPED` |
@@ -210,7 +210,7 @@ Never on the public listing doc. Readable only by the seller and admins
 | cfOrderRef | string? | our `trega_<orderId>` reference |
 | paymentSessionId | string? | for the Cashfree SDK |
 | deliveryAddress | map? | buyer delivery address from checkout: `name`, `phone`, `line1`, `line2?`, `city`, `state`, `pincode` (required when the order came from an accepted bid) |
-| deliveryType | string | `standard` \| `express` — set server-side; `express` only when same-city express eligibility validates |
+| deliveryType | string | `standard` \| `express`, set server-side; `express` only when same-city express eligibility validates |
 | trackingNote | string? | latest fulfillment note |
 | paidAt | timestamp? | |
 | createdAt | timestamp | |
@@ -223,7 +223,7 @@ Never on the public listing doc. Readable only by the seller and admins
 | name / dob / gender / careOf | string? | from Aadhaar on VALID |
 | address / yearOfBirth | string? | from Aadhaar on VALID |
 | requestedAt / verifiedAt / failedAt | timestamp? | |
-| consentAt | timestamp? | set on OTP request — the app gates the Aadhaar field behind an explicit consent checkbox, so requesting the OTP means consent was given |
+| consentAt | timestamp? | set on OTP request, the app gates the Aadhaar field behind an explicit consent checkbox, so requesting the OTP means consent was given |
 | aadhaarFingerprint | string? | salted HMAC-SHA256 of the Aadhaar (never the number); used for the duplicate-KYC check |
 | method | string? | `manual` when verified/rejected by an admin via `setUserKycStatus` (absent for Aadhaar flow) |
 | verifiedBy | string? | admin uid who manually verified/rejected |
@@ -241,7 +241,7 @@ Duplicate-KYC guard. Doc ID is the salted fingerprint of an Aadhaar number; the 
 | uid | string | the account that verified this Aadhaar |
 | verifiedAt | timestamp | |
 
-`verifyAadhaarOtp` claims the fingerprint in a transaction: if the doc already exists under a **different** uid, verification is rejected with `already-exists` ("already verified on another Trega account"). The check runs at verify time (not OTP-request time) so a bare Aadhaar number can't be used to probe whether it's taken. Client access is fully denied in `firestore.rules` — only the callable (Admin SDK) touches it. Same uid re-verifying is idempotent and allowed.
+`verifyAadhaarOtp` claims the fingerprint in a transaction: if the doc already exists under a **different** uid, verification is rejected with `already-exists` ("already verified on another Trega account"). The check runs at verify time (not OTP-request time) so a bare Aadhaar number can't be used to probe whether it's taken. Client access is fully denied in `firestore.rules`, only the callable (Admin SDK) touches it. Same uid re-verifying is idempotent and allowed.
 
 Never store `photo_link` / XML blobs here.
 
@@ -286,7 +286,7 @@ Writers (in `trega_functions/src/admin.ts`):
 | Field | Type | Notes |
 |---|---|---|
 | listingId | string | |
-| reporterId | string | users/{uid} — must equal the writer's uid |
+| reporterId | string | users/{uid}, must equal the writer's uid |
 | reason | string | fixed set: Spam or misleading / Fraud or scam / Inappropriate content / Wrong category |
 | createdAt | timestamp | |
 
@@ -306,7 +306,7 @@ create; reads are admin-only (`firestore.rules`).
 | createdAt | timestamp | |
 
 Written only by the `sendCampaign` callable; admin-read only in rules.
-One doc per broadcast — this is the admin panel's campaign history.
+One doc per broadcast, this is the admin panel's campaign history.
 
 ### `reviews/{id}`
 | Field | Type | Notes |
@@ -321,48 +321,48 @@ One doc per broadcast — this is the admin panel's campaign history.
 
 Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
 
-- `placeBid({listingId, amount})` — guards: listing must be `live`; buyer must
+- `placeBid({listingId, amount})`, guards: listing must be `live`; buyer must
   not be the seller; at most **one open offer per buyer per listing** (a
   rejected buyer may offer again). No Aadhaar gate for buyers since
   2026-11-04 (KYC is sellers-only; buyers are phone-OTP verified). Writes the bid (`status: open`) and bumps
   `highestBid`/`bidCount` when appropriate.
-- `acceptBid({bidId})` — seller only; the listing must be `live` and have no
+- `acceptBid({bidId})`, seller only; the listing must be `live` and have no
   `acceptedBidId` yet (accepting is exclusive). Marks the bid `accepted`,
   sets `listings/{id}.acceptedBidId` (reserves the listing for the winner
   until they pay), rejects the other open bids. The winner's listing page
   then shows the single "Buy Now at ₹X" button → checkout.
-- `rejectBid({bidId})` — seller only; bid must be `open`. Marks it
+- `rejectBid({bidId})`, seller only; bid must be `open`. Marks it
   `rejected`; the buyer is notified and may send a new offer.
-- `cancelAcceptance({bidId})` — seller only; bid must be `accepted` and the
+- `cancelAcceptance({bidId})`, seller only; bid must be `accepted` and the
   listing still `live`. Marks the bid `rejected`, clears
   `listings/{id}.acceptedBidId`, notifies the buyer; the listing is open for
   offers again (used when the winner never pays).
 - `createCashfreeOrder({listingId?, bidId?, customerPhone, deliveryAddress?})`
-  — `deliveryAddress` is required when `bidId` is set (accepted-offer
+ `deliveryAddress` is required when `bidId` is set (accepted-offer
   checkout), validated server-side and stored on the order; the `bidId` path
   charges exactly the accepted bid amount.
-- `verifyPayment({orderId})` — server-side payment verification. The app
+- `verifyPayment({orderId})`, server-side payment verification. The app
   calls this after the Cashfree SDK reports success and shows its success UI
   ONLY when this returns `paymentStatus: "SUCCESS"`. The server asks
   the Cashfree Orders API directly (secret key) and applies the same sale
   side-effects as the webhook (order → SUCCESS, listing → sold, other open
-  bids rejected) — idempotent, so the webhook and the verifier can safely
+  bids rejected), idempotent, so the webhook and the verifier can safely
   race. The on-device SDK callback alone is never treated as proof of
   payment (a user pressing back / a failed payment surfaces through the
   SDK error callback, never as success).
 
-KYC (`kyc.ts`): `requestAadhaarOtp` / `verifyAadhaarOtp` — provider errors
+KYC (`kyc.ts`): `requestAadhaarOtp` / `verifyAadhaarOtp`, provider errors
 are surfaced with their real message (invalid Aadhaar, throttled, provider
 outage) instead of a generic failure.
 
 Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
 
-- `bootstrapAdmin()` — one-shot self-service bootstrap. Grants
+- `bootstrapAdmin()`, one-shot self-service bootstrap. Grants
   `{admin: true}` to the caller **only** when their verified phone number
   matches the `ADMIN_BOOTSTRAP_PHONE` secret (E.164). After it returns, the
   client refreshes its ID token. The admin panel's login flow exposes this
   as "Claim admin access" on the access-denied screen.
-- `setUserKycStatus({uid, status: "verified" | "rejected", note?})` —
+- `setUserKycStatus({uid, status: "verified" | "rejected", note?})`,
   manual KYC verification from the admin panel's Users page. Sets
   `users/{uid}` (`kycStatus`, `verifiedSeller`, `kycNote`), merges a
   `kycVerifications/{uid}` audit record (`method: "manual"`, `verifiedBy`,
@@ -370,11 +370,11 @@ Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
   `kyc_rejected`). A manually-verified user passes the same seller gate as
   an Aadhaar-verified one (listing creation reads `users/{uid}.kycStatus`;
   making offers needs no KYC since 2026-11-04).
-- `updateOrderFulfillment({orderId, status?, trackingNote?})` — advances
+- `updateOrderFulfillment({orderId, status?, trackingNote?})`, advances
   order fulfillment from the admin panel's Orders page. Payment status is
   owned by the Cashfree webhook and cannot be set here.
 - `sendCampaign({title, body, imageUrl?, linkType?, listingId?, categoryId?})`
-  — broadcasts a custom campaign push to every user with a saved FCM
+ broadcasts a custom campaign push to every user with a saved FCM
   token (batched multicast, dead tokens pruned). `linkType: "listing"`
   requires a live listing; `"category"` resolves the category name
   server-side. Writes one `campaigns/{id}` history doc with delivery
@@ -382,7 +382,7 @@ Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
 
 Account (`trega_functions/src/account.ts`):
 
-- `deleteAccount()` — wipes the caller's account completely: `users/{uid}`
+- `deleteAccount()`, wipes the caller's account completely: `users/{uid}`
   and all its subcollections, the user's listings (+ private details, media
   in Storage, bids on them), bids placed, orders as buyer or seller, reviews
   by/about the user, reports filed, `kycVerifications/{uid}`, the user's
@@ -390,8 +390,8 @@ Account (`trega_functions/src/account.ts`):
   and finally the Firebase Auth user. No undo; the app confirms explicitly.
 
 ## Storage
-`listingMedia/{listingId}/{filename}` — listing photos and videos.
-`avatars/{uid}.jpg` — profile pictures.
+`listingMedia/{listingId}/{filename}`, listing photos and videos.
+`avatars/{uid}.jpg`, profile pictures.
 
 ## Composite indexes (`firestore.indexes.json`, deployed with `firebase deploy`)
 
@@ -400,7 +400,7 @@ Account (`trega_functions/src/account.ts`):
 - `listings`: `sellerId` ASC + `createdAt` DESC (my listings)
 - `bids`: `listingId` ASC + `createdAt` DESC (bids on a listing)
 - `bids`: `buyerId` ASC + `createdAt` DESC (my bids)
-- `bids`: `buyerId` ASC + `listingId` ASC (my offers on one listing — the listing detail action bar)
+- `bids`: `buyerId` ASC + `listingId` ASC (my offers on one listing, the listing detail action bar)
 - `bids`: `sellerId` ASC + `createdAt` DESC (offers received)
 - `orders`: `buyerId` ASC + `createdAt` DESC (my purchases)
 - `orders`: `sellerId` ASC + `createdAt` DESC (my sales)

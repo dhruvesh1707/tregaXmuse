@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 /// No API key, no account: `GET api.postalpincode.in/pincode/<pin>`
 /// returns the post offices for that PIN; the first office's `District`
 /// is the city and `State` is the state. Returns null for an unknown PIN
-/// or any failure (no network, bad response) — callers keep the fields
+/// or any failure (no network, bad response), callers keep the fields
 /// manually editable in that case, so a failed lookup never blocks the
 /// form.
 Future<({String city, String state})?> lookupCityState(

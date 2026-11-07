@@ -12,7 +12,7 @@ import '../../../core/models/user.dart';
 
 /// Live marketplace feed with stale-while-revalidate local cache.
 ///
-/// Shows the last-known listings instantly — even on a cold start — then
+/// Shows the last-known listings instantly, even on a cold start, then
 /// refreshes from Firestore in the background. Every fresh snapshot is
 /// persisted to disk, so going back to the feed (or reopening the app)
 /// never flashes an empty state again.
@@ -40,7 +40,7 @@ class LiveListingsNotifier extends AsyncNotifier<List<Listing>> {
             .map(_listingFromCacheJson)
             .toList();
       } catch (_) {
-        // Corrupt cache — start empty and let the stream refill it.
+        // Corrupt cache, start empty and let the stream refill it.
       }
     }
 
@@ -159,7 +159,7 @@ final categoryListingsProvider =
 /// Unread in-app notification count for the app-bar bell badge.
 ///
 /// Reads the live inbox (`users/{uid}/notifications`) so the badge always
-/// matches reality — 0 (or signed out) means no badge at all.
+/// matches reality, 0 (or signed out) means no badge at all.
 final unreadNotificationsProvider = StreamProvider<int>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value(0);

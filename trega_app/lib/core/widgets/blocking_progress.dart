@@ -9,7 +9,7 @@ import '../theme/app_colors.dart';
 /// Call the returned function in a `finally` block.
 ///
 /// Why this exists: Cloud Functions cold-start in seconds, and a tap that
-/// hits the server with no immediate feedback feels broken — the user
+/// hits the server with no immediate feedback feels broken, the user
 /// can't tell the tap registered. This makes the tap visibly land first.
 ///
 /// Dark glass: espresso at 0.78 alpha + blur 16 + hairline white-at-0.14
@@ -80,7 +80,7 @@ Future<void> Function() showBlockingProgress(
     try {
       Navigator.of(context, rootNavigator: true).pop();
     } catch (_) {
-      // The page went away first — nothing to dismiss.
+      // The page went away first, nothing to dismiss.
     }
   };
 }

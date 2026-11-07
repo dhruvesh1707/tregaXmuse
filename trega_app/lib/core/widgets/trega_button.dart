@@ -4,15 +4,15 @@ import '../theme/app_colors.dart';
 import 'liquid_glass.dart';
 import 'motion.dart';
 
-/// Primary / secondary / accent button — flat and solid.
+/// Primary / secondary / accent button, flat and solid.
 ///
 /// - Primary: solid [AppColors.primary] fill, white label.
-/// - Accent: solid [AppColors.accent] fill, dark label — the loudest CTA
+/// - Accent: solid [AppColors.accent] fill, dark label, the loudest CTA
 ///   on a screen.
 /// - Secondary: true light-glass pill, [AppColors.primary] label.
 ///
 /// Radius 16 everywhere. Press feedback (scale + haptic) comes from
-/// [PressScale]; the label centers via a full-width Row — never
+/// [PressScale]; the label centers via a full-width Row, never
 /// Center/Align, which expand to max height under finite-loose
 /// constraints (Scaffold.bottomSheet, dialogs) and blow the button up
 /// full-screen.

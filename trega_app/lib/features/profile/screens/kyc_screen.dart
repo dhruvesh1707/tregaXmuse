@@ -22,7 +22,7 @@ import '../../../core/widgets/trega_toast.dart';
 /// Flow: read the consent notice and tick the consent checkbox → enter
 /// 12-digit Aadhaar → [requestAadhaarOtp] sends an OTP to the Aadhaar-linked
 /// mobile → enter OTP → [verifyAadhaarOtp] completes verification. The
-/// Aadhaar number is never stored anywhere — it travels only to our Cloud
+/// Aadhaar number is never stored anywhere, it travels only to our Cloud
 /// Function over TLS, and the consent timestamp is recorded when the OTP
 /// is requested.
 ///
@@ -214,7 +214,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             fontWeight: FontWeight.w700,
           ),
       decoration: BoxDecoration(
-        // NOTE: not const — Border.all has no const constructor.
+        // NOTE: not const, Border.all has no const constructor.
         borderRadius: BorderRadius.circular(16),
         color: AppColors.surface,
         border: Border.all(color: border, width: 1.5),
@@ -253,7 +253,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         const SizedBox(height: 8),
         Text(
           'Verify your Aadhaar with an OTP. First, please read and accept '
-          'the consent notice below — only then can you enter your Aadhaar '
+          'the consent notice below, only then can you enter your Aadhaar '
           'number. Verification is required to sell items and to make '
           'offers, and verified sellers get a badge buyers trust. Your '
           'Aadhaar number is never stored.',
@@ -378,7 +378,7 @@ class _ConsentCard extends StatelessWidget {
           _bullet(theme,
               'Trega will use your Aadhaar number only to verify your identity, by sending an OTP to your Aadhaar-linked mobile number.',),
           _bullet(theme,
-              'Your Aadhaar number is never stored — it is used once for this verification and discarded.',),
+              'Your Aadhaar number is never stored. It is used once for this verification and discarded.',),
           _bullet(theme,
               'Verification is required to sell items and to make offers on Trega, and verified sellers get a trust badge.',),
           const SizedBox(height: 8),

@@ -8,7 +8,7 @@ import 'error_state.dart';
 /// [TregaErrorState] (fade-slide entrance, icon medallion, retry button)
 /// with offline-specific copy.
 ///
-/// Never construct this directly in a load-failure branch — use
+/// Never construct this directly in a load-failure branch, use
 /// [errorStateFor] so non-network errors keep the screen's own message.
 class NoInternetState extends StatelessWidget {
   final VoidCallback onRetry;
@@ -31,7 +31,7 @@ class NoInternetState extends StatelessWidget {
 /// [TregaErrorState] with the screen's own [title].
 ///
 /// Drop-in replacement for
-/// `error: (_, __) => TregaErrorState(title: ..., onRetry: ...)` —
+/// `error: (_, __) => TregaErrorState(title: ..., onRetry: ...)`,
 /// just capture the error and pass it in:
 /// `error: (e, _) => errorStateFor(e, title: ..., onRetry: ...)`.
 Widget errorStateFor(

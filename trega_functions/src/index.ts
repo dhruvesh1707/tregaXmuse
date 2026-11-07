@@ -104,7 +104,7 @@ export const createCashfreeOrder = onCall({ secrets }, async (request) => {
 /**
  * Server-side payment verification. The app calls this after the Cashfree
  * SDK reports success and treats the order as paid ONLY when this returns
- * `paymentStatus: "SUCCESS"` — the SDK's on-device callback alone is never
+ * `paymentStatus: "SUCCESS"`, the SDK's on-device callback alone is never
  * trusted (it only means the sheet reported success on that phone).
  */
 export const verifyPayment = onCall({ secrets }, async (request) => {
@@ -240,7 +240,7 @@ export const recordListingView = onCall(async (request) => {
 /**
  * One-shot self-service admin bootstrap. The founder signs in to the admin
  * panel with their phone number, claims admin access, and this grants the
- * `admin` custom claim — but ONLY when the caller's verified phone number
+ * `admin` custom claim, but ONLY when the caller's verified phone number
  * matches the ADMIN_BOOTSTRAP_PHONE secret. Set it with:
  *   firebase functions:secrets:set ADMIN_BOOTSTRAP_PHONE   # e.g. +919876543210
  */
@@ -302,7 +302,7 @@ export const updateOrderFulfillment = onCall(async (request) => {
 /**
  * Deletes the caller's account and EVERY record tied to it (listings,
  * bids, orders, reviews, reports, notifications, KYC, media, the Auth
- * user itself). No undo — the app gates this behind an explicit
+ * user itself). No undo, the app gates this behind an explicit
  * confirmation dialog.
  */
 export const deleteAccount = onCall(async (request) => {
@@ -318,7 +318,7 @@ export const deleteAccount = onCall(async (request) => {
 // this closes the fake-content-type hole. See storageCheck.ts.)
 export const validateUpload = onObjectFinalized(
   {
-    // The Storage bucket lives in us-east1 — Eventarc requires the
+    // The Storage bucket lives in us-east1, Eventarc requires the
     // trigger in the same region as the bucket. (The global default
     // stays asia-south1 for everything else.)
     region: "us-east1",
@@ -332,7 +332,7 @@ export const validateUpload = onObjectFinalized(
 // SEO Phase 3: server-rendered listing pages + dynamic listings sitemap.
 // Public GET endpoints (NOT callables, so no callable rate limiter); all
 // canonical / sitemap URLs are built on https://trega.in inside
-// listingPage.ts (PUBLIC_BASE_URL) — tregaxmuse.web.app stays internal.
+// listingPage.ts (PUBLIC_BASE_URL), tregaxmuse.web.app stays internal.
 export const listingPage = onRequest(async (req, res) => {
   await listingPageHandler(req, res);
 });

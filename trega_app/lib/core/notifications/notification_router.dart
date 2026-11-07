@@ -24,7 +24,7 @@ class NotificationTarget {
 NotificationTarget? pendingNotificationTarget;
 
 /// Resolves a notification (inbox doc or FCM data payload) to the screen it
-/// is about. Returns null when there is no sensible destination — the tap
+/// is about. Returns null when there is no sensible destination, the tap
 /// then just marks the notification read.
 ///
 /// Mapping:

@@ -5,7 +5,7 @@ import * as logger from "firebase-functions/logger";
 /**
  * Deletes a user account and EVERY record tied to it, completely:
  *
- * Firestore —
+ * Firestore,
  *   `users/{uid}` and ALL its subcollections (notifications inbox,
  *   private payout/addresses, wishlist, …),
  *   listings where `sellerId == uid` (+ their `private/details` doc),
@@ -15,11 +15,11 @@ import * as logger from "firebase-functions/logger";
  *   reports filed by the user,
  *   `kycVerifications/{uid}`,
  *   `aadhaarIndex` docs claimed by the uid (frees the Aadhaar number so it
- *   can verify a future account — only the one-way fingerprint is stored,
+ *   can verify a future account, only the one-way fingerprint is stored,
  *   never the number itself).
- * Storage — `avatars/{uid}.jpg`, `listingMedia/{listingId}/…` for the
+ * Storage, `avatars/{uid}.jpg`, `listingMedia/{listingId}/…` for the
  * user's listings.
- * Auth — the Firebase Auth user itself, deleted last.
+ * Auth, the Firebase Auth user itself, deleted last.
  *
  * There is no undo. The app gates this behind an explicit confirmation
  * dialog with a checklist of what disappears.
@@ -39,7 +39,7 @@ export async function deleteAccountHandler(
   const userRef = db.collection("users").doc(uid);
 
   // 1. All subcollections under users/{uid} (notifications, private,
-  //    wishlist, …) — enumerated generically so nothing is missed.
+  //    wishlist, …), enumerated generically so nothing is missed.
   const subcollections = await userRef.listCollections();
   for (const col of subcollections) {
     await collect(col);
@@ -81,7 +81,7 @@ export async function deleteAccountHandler(
   // 8. The user doc itself, last among Firestore writes.
   docRefs.push(userRef);
 
-  // De-dupe (a bid can match two queries above) and delete in chunks —
+  // De-dupe (a bid can match two queries above) and delete in chunks,
   // Firestore batches cap at 500 writes.
   const seen = new Set<string>();
   const unique = docRefs.filter((r) => {

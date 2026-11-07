@@ -13,7 +13,7 @@ import '../theme/app_theme.dart';
 /// - Route transitions: fade + gentle rise (see `_TregaPageRoute` in app.dart).
 /// - Celebrations (like, bid placed): springy scale pop + haptic.
 ///
-/// Durations are deliberately short — motion should feel snappy on
+/// Durations are deliberately short, motion should feel snappy on
 /// low-end devices, never decorative-slow.
 
 /// Fades + rises its child in once, the first time it is built.
@@ -239,7 +239,7 @@ class _PressScaleState extends State<PressScale> {
   }
 }
 
-/// The canonical press-feedback wrapper — the intent-revealing name for
+/// The canonical press-feedback wrapper, the intent-revealing name for
 /// [PressScale].
 ///
 /// Scales to [pressedScale] (default 0.96) on tap-down, springs back on
@@ -247,7 +247,7 @@ class _PressScaleState extends State<PressScale> {
 ///
 /// Constraint-transparent: a [GestureDetector] + [AnimatedScale] around
 /// [child] with no [Center]/[Align] inside, so parent constraints pass
-/// through unchanged — safe under finite-loose constraints (bottom
+/// through unchanged, safe under finite-loose constraints (bottom
 /// sheets, dialogs, [ListTile] trailing slots, horizontal lists).
 class Pressable extends PressScale {
   const Pressable({
@@ -320,7 +320,7 @@ class _LikeButtonState extends State<LikeButton>
   }
 }
 
-/// Semantic haptics — a single place to tune or disable.
+/// Semantic haptics, a single place to tune or disable.
 abstract final class TregaHaptics {
   static void tap() {
     try {
@@ -340,7 +340,7 @@ abstract final class TregaHaptics {
 ///
 /// Pass the item [index] inside lists/grids for the signature staggered
 /// cascade. The per-item [baseDelay] step is small (55ms) so the first
-/// items appear almost immediately — lists feel alive, never slow.
+/// items appear almost immediately, lists feel alive, never slow.
 ///
 /// This is the standard entrance for feed cards, list rows and grid tiles.
 /// [FadeSlideIn] is kept for one-off entrances that predate this helper.
@@ -379,7 +379,7 @@ class Entrance extends StatelessWidget {
 /// the tick draws itself. Fires a success haptic on completion.
 ///
 /// A lightweight, dependency-free moment for order-placed, payment-success,
-/// bid-accepted and KYC-verified celebrations — no Lottie asset needed.
+/// bid-accepted and KYC-verified celebrations, no Lottie asset needed.
 class SuccessCheck extends StatefulWidget {
   final double size;
   final Color color;

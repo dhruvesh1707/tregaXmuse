@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CASHFREE_API_VERSION = exports.BULKPE_BASE = exports.BULKPE_API_TOKEN = exports.CASHFREE_ENV = exports.CASHFREE_SECRET_KEY = exports.CASHFREE_APP_ID = void 0;
 exports.cashfreeBase = cashfreeBase;
 const params_1 = require("firebase-functions/params");
-// Firebase secrets — set with:
+// Firebase secrets, set with:
 //   firebase functions:secrets:set CASHFREE_APP_ID
 //   firebase functions:secrets:set CASHFREE_SECRET_KEY
 //   firebase functions:secrets:set CASHFREE_ENV          # "sandbox" | "production"

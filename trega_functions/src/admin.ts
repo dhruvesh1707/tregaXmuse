@@ -28,7 +28,7 @@ const ORDER_STATUSES = [
 
 /**
  * One-shot self-service admin bootstrap. Grants `{admin: true}` to the
- * caller when — and only when — their verified Firebase Auth phone number
+ * caller when, and only when, their verified Firebase Auth phone number
  * matches the ADMIN_BOOTSTRAP_PHONE secret (E.164, e.g. +919876543210).
  *
  * The phone number comes from the verified ID token, so it cannot be
@@ -63,7 +63,7 @@ export async function bootstrapAdminHandler(
  * - `users/{uid}`: kycStatus, verifiedSeller, kycNote (shown in the panel)
  * - `kycVerifications/{uid}` (merge): method 'manual' audit trail so the
  *   panel can tell a manual verification apart from an Aadhaar one
- * - `users/{uid}/notifications`: tells the user what happened — this is
+ * - `users/{uid}/notifications`: tells the user what happened, this is
  *   what unlocks selling / making offers in the app, so they get told.
  */
 export async function setUserKycStatusHandler(
@@ -100,7 +100,7 @@ export async function setUserKycStatusHandler(
     verifiedSeller: status === "verified",
     kycNote: cleanNote ?? admin.firestore.FieldValue.delete(),
   });
-  // Audit trail (merge — never clobbers an Aadhaar fingerprint if one exists).
+  // Audit trail (merge, never clobbers an Aadhaar fingerprint if one exists).
   batch.set(
     db.collection("kycVerifications").doc(uid),
     {
@@ -177,7 +177,7 @@ export async function updateOrderFulfillmentHandler(
 /**
  * Admin-only: broadcast a custom campaign push (Zomato-style) to every
  * user with at least one saved FCM token. Text + optional image +
- * optional deep link (a live listing, or a category) — the app routes
+ * optional deep link (a live listing, or a category), the app routes
  * the tap through its notification_router (`campaign` type). One
  * `campaigns` doc is written per send as the admin history; the push is
  * deliberately NOT copied into user inboxes (promos are tray-only).

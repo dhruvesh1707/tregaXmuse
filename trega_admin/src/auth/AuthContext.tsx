@@ -15,7 +15,7 @@ interface AuthContextValue {
   loading: boolean;
   /** Signed in, but the account lacks the `admin` custom claim. */
   denied: boolean;
-  /** Raw Firebase user — present while signed in, even when denied. */
+  /** Raw Firebase user, present while signed in, even when denied. */
   fbUser: User | null;
   /** One-shot bootstrap: claims the `admin` custom claim for the founder's
    * number (the backend only grants it to ADMIN_BOOTSTRAP_PHONE). */
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = await u.getIdTokenResult(true);
       applyClaims(u, token.claims.admin === true);
       if (token.claims.admin !== true) {
-        setClaimError('Claim granted but not visible yet — sign out and back in.');
+        setClaimError('Claim granted but not visible yet. Sign out and back in.');
       }
     } catch (e) {
       setClaimError(e instanceof Error ? e.message : 'Could not claim admin access.');

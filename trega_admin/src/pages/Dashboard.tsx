@@ -30,44 +30,44 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Pending review"
-          value={loading || !stats ? '—' : String(stats.pendingReview)}
+          value={loading || !stats ? '-' : String(stats.pendingReview)}
           sub="Listings waiting for approval"
           icon="✓"
           accent
         />
         <StatCard
           label="Live listings"
-          value={loading || !stats ? '—' : String(stats.liveListings)}
+          value={loading || !stats ? '-' : String(stats.liveListings)}
           sub="Currently visible in the app"
           icon="▤"
         />
         <StatCard
           label="Sold this month"
-          value={loading || !stats ? '—' : String(stats.soldThisMonth)}
+          value={loading || !stats ? '-' : String(stats.soldThisMonth)}
           sub="Completed sales"
           icon="◈"
         />
         <StatCard
           label="GMV this month"
-          value={loading || !stats ? '—' : formatINR(stats.gmvThisMonth)}
+          value={loading || !stats ? '-' : formatINR(stats.gmvThisMonth)}
           sub="Paid orders (Cashfree)"
           icon="₹"
         />
         <StatCard
           label="Total users"
-          value={loading || !stats ? '—' : String(stats.totalUsers)}
+          value={loading || !stats ? '-' : String(stats.totalUsers)}
           sub="Buyers + sellers"
           icon="◉"
         />
         <StatCard
           label="Orders in transit"
-          value={loading || !stats ? '—' : String(stats.ordersInTransit)}
+          value={loading || !stats ? '-' : String(stats.ordersInTransit)}
           sub="Pickup / delivery in progress"
           icon="▣"
         />
         <StatCard
           label="Bids today"
-          value={loading || !stats ? '—' : String(stats.bidsToday)}
+          value={loading || !stats ? '-' : String(stats.bidsToday)}
           sub="Bids & offers placed today"
           icon="◈"
         />

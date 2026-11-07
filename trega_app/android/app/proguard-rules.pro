@@ -1,4 +1,4 @@
-# Trega ProGuard rules — hardened for no-device-testing safety.
+# Trega ProGuard rules, hardened for no-device-testing safety.
 # Firebase SDKs ship their own consumer-rules.pro (auto-applied); these cover
 # the Flutter embedding, all plugins, and reflection-heavy SDKs.
 
@@ -47,5 +47,5 @@
 }
 
 # --- Play Core (referenced by Flutter's deferred-component manager; not used
-# --- by Trega — silence R8's missing-class errors) ---
+# --- by Trega, silence R8's missing-class errors) ---
 -dontwarn com.google.android.play.core.**

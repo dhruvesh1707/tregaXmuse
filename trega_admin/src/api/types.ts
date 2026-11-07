@@ -3,7 +3,7 @@
  *  ~/workspace/trega/trega_functions/FIRESTORE_MODEL.md (snake_case fields,
  *  lowercase status enums). The admin panel reads them via Firestore
  *  listeners and performs privileged writes through Cloud Functions
- *  callables — never through the old REST API (removed). */
+ *  callables, never through the old REST API (removed). */
 
 export type ListingStatus = 'draft' | 'pending' | 'live' | 'sold' | 'rejected';
 export type ConditionGrade = 'brand_new' | 'like_new' | 'good' | 'fair';
@@ -25,7 +25,7 @@ export interface MediaItem {
   type: 'image' | 'video';
 }
 
-/** Minimal user summary — users/{uid} in Firestore. */
+/** Minimal user summary, users/{uid} in Firestore. */
 export interface UserLite {
   id: string;
   name: string;
@@ -124,7 +124,7 @@ export type ReportReason =
 
 /** Listing report row (reports/{id}), enriched client-side.
  *  Reports are write-protected (firestore.rules denies update/delete, even
- *  for admins) — the panel can only read them and act on the listing itself. */
+ *  for admins), the panel can only read them and act on the listing itself. */
 export interface Report {
   id: string;
   listingId: string;
@@ -135,7 +135,7 @@ export interface Report {
   createdAt: string; // ISO
 }
 
-/** config/fees — marketplace pricing. Console-only writes (firestore.rules). */
+/** config/fees, marketplace pricing. Console-only writes (firestore.rules). */
 export interface FeeConfig {
   promoActive: boolean;
   sellerPct: number;
@@ -144,7 +144,7 @@ export interface FeeConfig {
   gstPct: number;
 }
 
-/** config/delivery — Trega Express settings. Console-only writes. */
+/** config/delivery, Trega Express settings. Console-only writes. */
 export interface DeliveryConfig {
   enabled: boolean;
   expressCities: string[];
@@ -157,7 +157,7 @@ export interface AppConfig {
   delivery: DeliveryConfig | null;
 }
 
-/** campaigns/{id} — one broadcast push, written by the sendCampaign callable. */
+/** campaigns/{id}, one broadcast push, written by the sendCampaign callable. */
 export interface Campaign {
   id: string;
   title: string;

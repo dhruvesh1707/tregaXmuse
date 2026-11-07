@@ -10,7 +10,7 @@ type Step = 'phone' | 'otp';
 
 /** Admin sign-in via Firebase phone OTP.
  *  Only phone numbers whose Firebase user carries the `admin` custom claim
- *  can proceed — everyone else sees an access-denied message. */
+ *  can proceed, everyone else sees an access-denied message. */
 export default function Login() {
   const { user, denied, loading, claimAdmin, claimError } = useAuth();
   const [claiming, setClaiming] = useState(false);

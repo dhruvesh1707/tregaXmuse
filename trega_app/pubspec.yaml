@@ -1,5 +1,5 @@
 name: trega
-description: Trega — India's peer-to-peer marketplace for pre-owned gear. Buy, sell & bid on gaming, mobiles, laptops, cameras and music gear.
+description: Trega: India's peer-to-peer marketplace for pre-owned gear. Buy, sell & bid on gaming, mobiles, laptops, cameras and music gear.
 publish_to: 'none'
 version: 1.0.0+8
 
@@ -13,7 +13,7 @@ dependencies:
   # State management
   flutter_riverpod: ^2.5.1
 
-  # Firebase (primary backend — project: tregaxmuse)
+  # Firebase (primary backend, project: tregaxmuse)
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
@@ -31,9 +31,9 @@ dependencies:
 
   # Media
   image_picker: ^1.1.2
-  image_cropper: ^12.2.1 # profile photo crop only — gallery stays out of the sell flow
+  image_cropper: ^12.2.1 # profile photo crop only, gallery stays out of the sell flow
 
-  # iOS-style UI: Phosphor icon set (vendored — phosphor_flutter 2.0.x can't
+  # iOS-style UI: Phosphor icon set (vendored, phosphor_flutter 2.0.x can't
   # compile on current Flutter stable because IconData is now final; the same
   # OFL glyphs live in lib/core/icons/phosphor_icons.dart + assets/fonts/)
   # and iOS-animated modal bottom sheets.
@@ -50,13 +50,13 @@ dependencies:
   # Deep links: trega://listing/<id> from shared listing links.
   app_links: ^6.4.1
 
-  # Observability — Firebase Crashlytics (crash reporting) + Firebase
+  # Observability, Firebase Crashlytics (crash reporting) + Firebase
   # Performance Monitoring (app-start, screen & network traces). Zero-config:
   # both ride on the existing tregaxmuse Firebase project, no keys needed.
   firebase_crashlytics: ^4.1.0
   firebase_performance: ^0.10.0
 
-  # Premium UI/UX — presentation layer only. These packages must never
+  # Premium UI/UX, presentation layer only. These packages must never
   # change workflows, routes, Firestore fields or callable names.
   # All pinned exact (like the Cashfree SDK): UI packages have broken
   # release builds on surprise minor updates before.
@@ -71,12 +71,12 @@ dependencies:
   easy_refresh: 3.5.1 # spring-physics pull-to-refresh
   timelines_plus: 2.0.1 # order-tracking stepper timeline
 
-  # Payments — Cashfree PG drop checkout (Android/iOS).
+  # Payments, Cashfree PG drop checkout (Android/iOS).
   # NOTE: the SDK environment below (PRODUCTION) must match the backend
   # `CASHFREE_ENV` secret in trega_functions.
   # IMPORTANT: the package is `flutter_cashfree_pg_sdk` (Cashfree's current
   # SDK). The old `cashfree_pg` package is discontinued (2022, Dart 2-only)
-  # and has a completely different Dart API — do NOT switch back.
+  # and has a completely different Dart API, do NOT switch back.
   # Pinned exact: Cashfree has replaced SDK packages before, so never let
   # this float on ^.
   flutter_cashfree_pg_sdk: 2.4.0+52

@@ -68,7 +68,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           .read(firestoreServiceProvider)
           .updateProfile(uid, name: name, email: email);
       if (!mounted) return;
-      // Profile done — home becomes the root of the stack.
+      // Profile done, home becomes the root of the stack.
       Navigator.of(context).pushNamedAndRemoveUntil(
         HomeScreen.routeName,
         (route) => false,

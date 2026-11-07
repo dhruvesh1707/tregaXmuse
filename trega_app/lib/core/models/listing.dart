@@ -5,7 +5,7 @@ import 'user.dart';
 /// Lifecycle of a listing, matching the Cloud Functions data model.
 ///
 /// Clients create listings as [draft]; the `onListingCreate` trigger flips
-/// them to [live] immediately (reactive moderation — the team flags
+/// them to [live] immediately (reactive moderation, the team flags
 /// suspicious listings after the fact). [pending] is kept only for legacy
 /// docs; [rejected] is now the flag/takedown state. Clients never write
 /// status directly.
@@ -53,7 +53,7 @@ class Listing {
   final bool negotiable;
   final bool biddingEnabled;
   final ListingStatus status;
-  /// Set when the seller accepts a buyer's offer — the listing is reserved
+  /// Set when the seller accepts a buyer's offer, the listing is reserved
   /// for that buyer until they pay (then it flips to `sold`).
   final String? acceptedBidId;
   /// Denormalized from the seller's pickup address at publish time.
@@ -191,7 +191,7 @@ extension ListingFirestore on Listing {
     );
   }
 
-  /// Writes a new listing document. Callers must set `status: 'draft'` —
+  /// Writes a new listing document. Callers must set `status: 'draft'`,
   /// the `onListingCreate` trigger moves it to `pending` for review.
   /// Use [FirestoreService.createListingDraft] instead of calling this
   /// directly so server timestamps and the draft status are enforced.

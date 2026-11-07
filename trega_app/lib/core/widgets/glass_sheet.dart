@@ -10,11 +10,11 @@ import 'liquid_glass.dart';
 /// blurring whatever is behind it.
 ///
 /// The [builder] returns the sheet's content, laid out in a min-height
-/// column below the pill — return a Column with mainAxisSize.min (or a
+/// column below the pill, return a Column with mainAxisSize.min (or a
 /// scrollable with a bounded height) from the builder. If the sheet holds
 /// text fields, wrap the content in a SingleChildScrollView at the call
 /// site so the keyboard never covers it. Never return a vertical
-/// Expanded/Flexible from the builder — the sheet hands its content
+/// Expanded/Flexible from the builder, the sheet hands its content
 /// unbounded height.
 Future<T?> showGlassSheet<T>({
   required BuildContext context,

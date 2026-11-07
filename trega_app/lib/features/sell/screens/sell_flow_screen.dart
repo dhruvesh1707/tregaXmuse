@@ -33,11 +33,11 @@ import '../../profile/screens/kyc_screen.dart';
 /// Steps: 1) Category  2) Photos & video  3) Details  4) Price
 /// 5) Pickup address  6) Review & publish.
 ///
-/// Media is captured with the camera only — gallery uploads are disabled by
+/// Media is captured with the camera only, gallery uploads are disabled by
 /// policy (trust & safety). Media uploads to Firebase Storage
 /// (`listingMedia/{listingId}/…`), then the URLs are attached to the
 /// listing document in Firestore, which the `onListingCreate` trigger flips
-/// to `live` immediately — no pre-review gate. The team monitors new
+/// to `live` immediately, no pre-review gate. The team monitors new
 /// listings and flags/removes suspicious ones after the fact.
 ///
 /// The pickup address is captured as structured fields (street, landmark,
@@ -94,7 +94,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     'Review',
   ];
 
-  /// Local draft (SharedPreferences) — restored when the seller returns
+  /// Local draft (SharedPreferences), restored when the seller returns
   /// mid-flow, cleared on publish or discard. Photos survive only while
   /// their camera files still exist on disk.
   static const _draftKey = 'sell_draft_v1';
@@ -116,14 +116,14 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   // Structured pickup address (India): house/street, landmark, city,
-  // state, PIN — separate fields like other marketplace apps, so the
+  // state, PIN, separate fields like other marketplace apps, so the
   // team can actually route a pickup from it.
   final _addrLine1Controller = TextEditingController();
   final _addrLine2Controller = TextEditingController();
   final _addrCityController = TextEditingController();
   final _addrStateController = TextEditingController();
   final _addrPinController = TextEditingController();
-  // Payout UPI ID — prefilled from the seller's saved value, saved back
+  // Payout UPI ID, prefilled from the seller's saved value, saved back
   // on publish. Owner-only, like the pickup address.
   final _upiController = TextEditingController();
   String? _selectedSavedAddressId;
@@ -150,7 +150,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     super.dispose();
   }
 
-  /// Camera-only capture (policy: no gallery uploads). One photo per tap —
+  /// Camera-only capture (policy: no gallery uploads). One photo per tap,
   /// tapping "Add" again captures another.
   Future<void> _pickMedia() async {
     final file = await ImagePicker()
@@ -216,7 +216,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
             .minListPrice;
         if (price < minPrice) {
           setState(() => _error =
-              'Minimum listing price is ${formatINR(minPrice)} — the shared delivery fee needs covering.',);
+              'Minimum listing price is ${formatINR(minPrice)}. The shared delivery fee needs covering.',);
           return false;
         }
         return true;
@@ -396,7 +396,7 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   /// PIN → city/state autofill (India Post). Fires only when the PIN
   /// changes to a new valid 6-digit code, so manual edits to city/state
   /// after a lookup stick until the PIN itself changes. A failed lookup
-  /// leaves both fields editable — it never blocks the form.
+  /// leaves both fields editable, it never blocks the form.
   Future<void> _onSellPinChanged(String value) async {
     final pin = value.trim();
     if (pin == _lastFetchedPin ||
@@ -483,7 +483,7 @@ static bool _isValidUpi(String upi) =>
             .minListPrice;
     if (price < minPrice) {
       setState(() => _error =
-          'Minimum listing price is ${formatINR(minPrice)} — the shared delivery fee needs covering.',);
+          'Minimum listing price is ${formatINR(minPrice)}. The shared delivery fee needs covering.',);
       return;
     }
     if (_categoryId == null) {
@@ -547,7 +547,7 @@ static bool _isValidUpi(String upi) =>
       final storage = ref.read(storageServiceProvider);
 
       // 1) Create the listing doc (status = draft). The
-      //    `onListingCreate` trigger flips it to `live` immediately —
+      //    `onListingCreate` trigger flips it to `live` immediately,
       //    listings go public on publish; the team flags suspicious ones
       //    after the fact.
       final listingId = await firestore.createListingDraft(
@@ -568,7 +568,7 @@ static bool _isValidUpi(String upi) =>
         await firestore.updateListingMedia(listingId, imageUrls);
       }
 
-      // 3) Owner-only pickup address — never on the public listing doc.
+      // 3) Owner-only pickup address, never on the public listing doc.
       // The payout UPI rides along so the team can release this sale's
       // payout even if the seller changes it later.
       await firestore.saveListingPrivateDetails(
@@ -675,7 +675,7 @@ static bool _isValidUpi(String upi) =>
                   children: [
                     const Expanded(
                       child: Text(
-                        'Draft restored — pick up where you left off.',
+                        'Draft restored, pick up where you left off.',
                       ),
                     ),
                     TextButton(
@@ -820,7 +820,7 @@ static bool _isValidUpi(String upi) =>
                                   name: c.name,
                                   icon: c.icon,
                                   selected: c.id == _categoryId,
-                                  // One tap picks AND advances — with 13
+                                  // One tap picks AND advances, with 13
                                   // categories the list used to push the
                                   // Continue button below the fold.
                                   onTap: () {
@@ -913,7 +913,7 @@ static bool _isValidUpi(String upi) =>
                               width: 96,
                               height: 96,
                               decoration: BoxDecoration(
-                                // NOTE: not const — Border.all has no const constructor.
+                                // NOTE: not const, Border.all has no const constructor.
                                 borderRadius: BorderRadius.circular(12),
                                 color: AppColors.surface,
                                 border: Border.all(
@@ -943,7 +943,7 @@ static bool _isValidUpi(String upi) =>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Use your camera to capture the real product — clear, well-lit photos sell faster. Gallery uploads are disabled for trust & safety.',
+                        'Use your camera to capture the real product: clear, well-lit photos sell faster. Gallery uploads are disabled for trust & safety.',
                         style:
                             Theme.of(context).textTheme.bodySmall,
                       ),
@@ -1038,7 +1038,7 @@ static bool _isValidUpi(String upi) =>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Minimum ${formatINR(minPrice)} — the ${formatINR(feeCfg.deliveryFlat)} delivery fee is split with the buyer, so your price must cover your half.',
+                        'Minimum ${formatINR(minPrice)}, the ${formatINR(feeCfg.deliveryFlat)} delivery fee is split with the buyer, so your price must cover your half.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -1188,7 +1188,7 @@ static bool _isValidUpi(String upi) =>
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              'Only you and the Trega team can see this — buyers never see your address.',
+                              'Only you and the Trega team can see this, buyers never see your address.',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall,
@@ -1274,7 +1274,7 @@ class _CategoryGridTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          // NOTE: not const — Border.all has no const constructor.
+          // NOTE: not const, Border.all has no const constructor.
           borderRadius: BorderRadius.circular(14),
           color: selected ? AppColors.primarySoft : AppColors.surface,
           border: Border.all(
@@ -1349,7 +1349,7 @@ class _ReviewSummary extends StatelessWidget {
             ),
             Expanded(
               child: Text(
-                value.isEmpty ? '—' : value,
+                value.isEmpty ? '-' : value,
                 style: (highlight
                         ? textTheme.titleMedium
                         : textTheme.bodyLarge)
@@ -1461,7 +1461,7 @@ class _StepTransition extends StatelessWidget {
 /// "Listing is live" celebration shown after a successful publish.
 ///
 /// Auto-dismisses after the check draws itself; the screen pops the flow
-/// once it closes. Pure presentation — the listing is already live.
+/// once it closes. Pure presentation, the listing is already live.
 class _PublishedCelebration extends StatefulWidget {
   const _PublishedCelebration();
 

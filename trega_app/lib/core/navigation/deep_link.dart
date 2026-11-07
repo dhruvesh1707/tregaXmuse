@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 /// The app's root navigator key (MaterialApp's key).
 ///
-/// Lives here — not in app.dart — so early-startup code like the splash
+/// Lives here, not in app.dart, so early-startup code like the splash
 /// screen can route through it without importing the app widget (which would
 /// be a circular import: app.dart imports the splash screen).
 final tregaNavigatorKey = GlobalKey<NavigatorState>();

@@ -5,7 +5,7 @@ String formatINR(num amount) {
   return '₹${amount.toStringAsFixed(0)}';
 }
 
-/// Like [formatINR] but keeps paise — for split amounts like the ₹49.50
+/// Like [formatINR] but keeps paise, for split amounts like the ₹49.50
 /// delivery share. Trailing zero paise are trimmed (₹50, not ₹50.00).
 String formatINRPaise(num amount) {
   final s = amount.toStringAsFixed(2);

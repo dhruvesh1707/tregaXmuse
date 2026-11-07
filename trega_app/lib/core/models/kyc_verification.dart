@@ -34,7 +34,7 @@ extension KycStatusWire on KycStatus {
 
 /// Aadhaar verification record.
 ///
-/// The Aadhaar number itself is NEVER stored — only the BulkPe `refId` and
+/// The Aadhaar number itself is NEVER stored, only the BulkPe `refId` and
 /// the verified demographic fields returned after OTP validation. The actual
 /// BulkPe calls happen in Cloud Functions (which hold the API token); the app
 /// only invokes the `requestAadhaarOtp` / `verifyAadhaarOtp` callables via

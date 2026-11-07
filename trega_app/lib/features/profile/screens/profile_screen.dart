@@ -80,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
               builder: (context, userSnap) {
                 final user = userSnap.data;
                 // While the profile loads, shimmer the real header layout
-                // instead of a spinner — data just fades in when ready.
+                // instead of a spinner, data just fades in when ready.
                 final profileLoading =
                     userSnap.connectionState ==
                             ConnectionState.waiting &&
@@ -334,7 +334,7 @@ class _MenuTile extends StatelessWidget {
     final tile = Container(
         margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         decoration: BoxDecoration(
-          // NOTE: not const — Border.all has no const constructor.
+          // NOTE: not const, Border.all has no const constructor.
           borderRadius: BorderRadius.circular(16),
           color: AppColors.surface,
           border: Border.all(color: AppColors.divider),
@@ -360,7 +360,7 @@ class _MenuTile extends StatelessWidget {
       );
     return Entrance(
       index: index,
-      // Press feedback only when tappable — never a tap target of its own.
+      // Press feedback only when tappable, never a tap target of its own.
       child: onTap == null ? tile : Pressable(child: tile),
     );
   }
@@ -368,7 +368,7 @@ class _MenuTile extends StatelessWidget {
 
 
 /// Profile photo editor: tap the camera badge to take a photo or choose
-/// one from the gallery (the ONLY place gallery upload is allowed — the
+/// one from the gallery (the ONLY place gallery upload is allowed, the
 /// sell flow stays camera-only), crop it square, upload to Firebase
 /// Storage, and save the URL on the user doc. Cloud-stored, so the photo
 /// survives reinstalls.
@@ -470,7 +470,7 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
       color: AppColors.primary,
     );
     // A dead avatar URL (deleted object, revoked token, blocked read)
-    // must fall back to the default icon — CircleAvatar's backgroundImage
+    // must fall back to the default icon, CircleAvatar's backgroundImage
     // has no error slot and renders a broken tile instead.
     return Stack(
       children: [

@@ -8,7 +8,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 /// swipe between photos, animated page indicator.
 ///
 /// Opened by tapping any photo on the listing detail screen with a soft
-/// fade — no Hero involved (the feed→detail Hero already owns the shared
+/// fade, no Hero involved (the feed→detail Hero already owns the shared
 /// photo tag while both routes are alive).
 class GalleryViewer extends StatefulWidget {
   final List<String> imageUrls;
@@ -61,7 +61,7 @@ class _GalleryViewerState extends State<GalleryViewer> {
           PhotoViewGallery.builder(
             itemCount: widget.imageUrls.length,
             builder: (context, i) => PhotoViewGalleryPageOptions(
-              // Reuses the feed's image cache — no re-download.
+              // Reuses the feed's image cache, no re-download.
               imageProvider:
                   CachedNetworkImageProvider(widget.imageUrls[i]),
               minScale: PhotoViewComputedScale.contained,

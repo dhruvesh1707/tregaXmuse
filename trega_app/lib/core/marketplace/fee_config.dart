@@ -3,27 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../firebase/firebase_providers.dart';
 
 /// Marketplace pricing, owned by the console `config/fees` doc
-/// (public read) over bundled defaults — mirroring `config/delivery`.
+/// (public read) over bundled defaults, mirroring `config/delivery`.
 ///
 /// Launch month ("Zero Fee Launch"): 0% seller commission + 0% buyer
 /// protection fee. The only charge is the fixed delivery fee (₹99),
 /// split 50-50 between buyer and seller. Month 2+: 3% seller / 5% buyer.
 ///
 /// The server recomputes everything authoritatively inside
-/// `createCashfreeOrder`; [quote] is display-only — the app never sends
+/// `createCashfreeOrder`; [quote] is display-only, the app never sends
 /// money based on its own math.
 class FeeConfig {
   final bool promoActive;
   final double sellerPct;
   final double buyerPct;
 
-  /// Fixed delivery fee in INR — split 50-50 buyer/seller.
+  /// Fixed delivery fee in INR, split 50-50 buyer/seller.
   final double deliveryFlat;
 
   /// GST percent applied on the platform fees (18%).
   final double gstPct;
 
-  /// Bundled defaults — used until (and unless) `config/fees` exists.
+  /// Bundled defaults, used until (and unless) `config/fees` exists.
   /// Mirrors the server fallback: the Zero Fee Launch.
   static const FeeConfig defaults = FeeConfig(
     promoActive: true,
@@ -61,7 +61,7 @@ class FeeConfig {
     // Any odd paise of the 50-50 split goes to the buyer.
     final deliveryBuyerShare = (deliveryFlat * 50).ceilToDouble() / 100;
     final total = price + buyerFee + buyerFeeGst + deliveryBuyerShare;
-    // Seller-side mirror of the server's quoteFees — lets checkout detect
+    // Seller-side mirror of the server's quoteFees, lets checkout detect
     // up front when an order can never be placed: with the flat delivery
     // fee split 50-50, a price below the seller's delivery share (+TDS)
     // would leave the seller with a negative payout.
@@ -89,7 +89,7 @@ class FeeConfig {
   }
 
   /// Smallest whole-rupee listing price at which the seller's payout stays
-  /// positive — i.e. the price covers the seller's delivery share,
+  /// positive, i.e. the price covers the seller's delivery share,
   /// commission and TDS. Computed from the live config so it stays correct
   /// when the console flips pricing (Zero Fee Launch → standard fees).
   /// Listings below this can never be checked out.
@@ -114,11 +114,11 @@ class FeeQuote {
   final double deliverySellerShare;
 
   /// What the seller would receive after commission, GST, delivery share
-  /// and TDS. When this is <= 0 the order can never be placed — the item
+  /// and TDS. When this is <= 0 the order can never be placed, the item
   /// price doesn't cover the delivery split.
   final double sellerPayout;
 
-  /// What the buyer pays — the Cashfree order_amount.
+  /// What the buyer pays, the Cashfree order_amount.
   final double buyerTotal;
 
   const FeeQuote({

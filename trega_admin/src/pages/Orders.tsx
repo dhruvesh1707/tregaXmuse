@@ -244,7 +244,7 @@ export default function Orders() {
               <div className="mt-1 text-xs">
                 {editing.deliveryType === 'express' ? (
                   <span className="font-semibold text-amber-700">
-                    ⚡ Express delivery — book same-day courier for this order
+                    ⚡ Express delivery: book same-day courier for this order
                   </span>
                 ) : (
                   <span className="text-stone-500">Delivery: Standard</span>

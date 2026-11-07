@@ -239,7 +239,7 @@ class SavedAddressesScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            'Save the places you ship from — pick one '
+                            'Save the places you ship from, pick one '
                             'with a tap when you list an item.',
                             textAlign: TextAlign.center,
                           ),

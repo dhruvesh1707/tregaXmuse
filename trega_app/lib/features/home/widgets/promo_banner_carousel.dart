@@ -37,7 +37,7 @@ class _PromoSlide {
   final String subtitle;
   final String cta;
 
-  /// Named route to open on tap. Null makes the card informational — tap
+  /// Named route to open on tap. Null makes the card informational, tap
   /// shows [infoBody] in a dialog instead.
   final String? routeName;
   final String? infoBody;
@@ -56,7 +56,7 @@ const List<_PromoSlide> _slides = [
   _PromoSlide(
     icon: PhosphorIconsRegular.truck,
     title: 'Trega Express is here',
-    subtitle: 'Order today, get it tomorrow — in select cities.',
+    subtitle: 'Order today, get it tomorrow, in select cities.',
     cta: 'How it works',
     infoBody:
         'Look for the Express badge on listings. When you and the seller are in the same select city, order before 9 PM and the item arrives the next day.',
@@ -64,7 +64,7 @@ const List<_PromoSlide> _slides = [
   _PromoSlide(
     icon: PhosphorIconsRegular.camera,
     title: 'Turn gear into cash',
-    subtitle: 'List in under a minute — just your camera.',
+    subtitle: 'List in under a minute, just your camera.',
     cta: 'Start selling',
     routeName: SellFlowScreen.routeName,
   ),
@@ -393,7 +393,7 @@ class _Blob extends StatelessWidget {
 /// Headline text with a single gentle sheen sweep: a narrow warm band
 /// glides across the white text once per [_PromoCardState._sheen] run.
 /// When the animation is idle the band sits off-text, so the title renders
-/// plain white — no strobing.
+/// plain white, no strobing.
 class _SheenTitle extends StatelessWidget {
   final String text;
 

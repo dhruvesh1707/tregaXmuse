@@ -184,7 +184,7 @@ function mapAdminUser(id: string, d: DocumentData): AdminUser {
   };
 }
 
-/** Listing title for a report row — falls back to the raw listing ID when the
+/** Listing title for a report row, falls back to the raw listing ID when the
  *  listing doc is missing (e.g. already removed), so the row still renders. */
 async function fetchListingTitle(id: string): Promise<string> {
   if (!id) return '';
@@ -454,7 +454,7 @@ export function useBids(status: string, page: number, pageSize: number): Paged<B
 }
 
 /** User-submitted listing reports, newest first. Reports are read-only
- *  (firestore.rules denies update/delete, even for admins) — moderation
+ *  (firestore.rules denies update/delete, even for admins), moderation
  *  acts on the listing itself via the reviewListing callable. */
 export function useReports(page: number, pageSize: number): Paged<Report> {
   return usePagedQuery<Report>('reports', [], `reports|${page}`, mapReport, {
@@ -491,7 +491,7 @@ export function useCampaigns(page: number, pageSize: number): Paged<Campaign> {
 }
 
 /** App config (config/fees + config/delivery), real-time. Writes are
- *  console-only (firestore.rules) — this hook reads only. */
+ *  console-only (firestore.rules), this hook reads only. */
 export function useAppConfig(): AppConfig & { loading: boolean; error: string | null } {
   const [fees, setFees] = useState<FeeConfig | null>(null);
   const [delivery, setDelivery] = useState<DeliveryConfig | null>(null);

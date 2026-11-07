@@ -142,14 +142,14 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-/// Small frosted pill — filter chips, badges, counts, overlay labels.
+/// Small frosted pill, filter chips, badges, counts, overlay labels.
 ///
 /// Unselected: light glass (white 0.70 + blur 14 + hairline border).
 /// Selected: solid [AppColors.primary]; the fill animates via an
-/// [AnimatedContainer]. Label color is the caller's job — white when
+/// [AnimatedContainer]. Label color is the caller's job, white when
 /// selected, [AppColors.textPrimary] when not.
 ///
-/// NOTE: the inner container sets `alignment: Alignment.center` — a
+/// NOTE: the inner container sets `alignment: Alignment.center`, a
 /// horizontal ListView hands chips a tight height, and without it labels
 /// sit high in the pill (real user-reported bug, do not regress).
 class GlassChip extends StatelessWidget {
@@ -209,7 +209,7 @@ class GlassChip extends StatelessWidget {
         ),
       ),
     );
-    // Press feedback only when tappable — never a tap target of its own.
+    // Press feedback only when tappable, never a tap target of its own.
     // Tappable chips also get the HIG 44pt minimum touch target; the
     // inner alignment keeps the label centered at the larger size.
     if (onTap == null) return chip;
@@ -222,7 +222,7 @@ class GlassChip extends StatelessWidget {
   }
 }
 
-/// Frosted circular icon button — overlays on photos, headers, maps.
+/// Frosted circular icon button, overlays on photos, headers, maps.
 class GlassIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;

@@ -61,7 +61,7 @@ export default function Bids() {
       <div>
         <h1 className="text-2xl font-bold text-stone-900">Bids & Offers</h1>
         <p className="text-sm text-stone-500">
-          Structured bids are created by the app through Cloud Functions — no chat, no manual bids here.
+          Structured bids are created by the app through Cloud Functions, no chat, no manual bids here.
         </p>
       </div>
 

@@ -6,9 +6,9 @@ import 'package:image_picker/image_picker.dart';
 /// Uploads media to Firebase Storage for Trega.
 ///
 /// Paths (see `storage.rules`):
-/// - `listingMedia/{listingId}/{timestamp}_{index}.jpg` — listing photos,
+/// - `listingMedia/{listingId}/{timestamp}_{index}.jpg`, listing photos,
 ///   publicly readable once the listing is live.
-/// - `avatars/{uid}.jpg` — user profile photos.
+/// - `avatars/{uid}.jpg`, user profile photos.
 ///
 /// The legacy REST media upload in `core/api/` is DEPRECATED.
 class StorageService {

@@ -1,6 +1,6 @@
 import { defineSecret } from "firebase-functions/params";
 
-// Firebase secrets — set with:
+// Firebase secrets, set with:
 //   firebase functions:secrets:set CASHFREE_APP_ID
 //   firebase functions:secrets:set CASHFREE_SECRET_KEY
 //   firebase functions:secrets:set CASHFREE_ENV          # "sandbox" | "production"

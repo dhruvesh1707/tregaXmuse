@@ -164,7 +164,7 @@ class _NotificationsScreenState
                           margin: const EdgeInsets.fromLTRB(
                               16, 6, 16, 6),
                           decoration: BoxDecoration(
-                            // NOTE: not const — Border.all has no const constructor.
+                            // NOTE: not const, Border.all has no const constructor.
                             borderRadius:
                                 BorderRadius.circular(16),
                             color: AppColors.surface,

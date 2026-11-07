@@ -33,7 +33,7 @@ class CheckoutArgs {
 
 /// Checkout for a seller-accepted offer.
 ///
-/// The winner — and only the winner — lands here from the listing page's
+/// The winner, and only the winner, lands here from the listing page's
 /// "Buy Now at ₹X" button. The screen shows the order summary (accepted
 /// price), collects the buyer's delivery address, then creates the Cashfree
 /// order server-side (`createCashfreeOrder` with `bidId` + `deliveryAddress`)
@@ -136,7 +136,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (address == null) return;
     // Re-check express eligibility server-side inputs: the listing's city
     // against the buyer's typed delivery city. The callable validates again
-    // before honoring 'express' — the client can never force it.
+    // before honoring 'express', the client can never force it.
     final listing = await ref
         .read(firestoreServiceProvider)
         .watchListing(bid.listingId)
@@ -167,7 +167,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (sessionId == null || orderId == null) {
         throw StateError('no session');
       }
-      // Remember this delivery address for next time (deduped) — the
+      // Remember this delivery address for next time (deduped), the
       // buyer never has to type it again, but can still edit or enter
       // a new one at every checkout.
       try {
@@ -199,7 +199,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         onVerified: (_) async {
           if (!mounted) return;
           // The SDK callback only means the sheet reported success on this
-          // device — NOT that money moved. Verify with the server (which
+          // device, NOT that money moved. Verify with the server (which
           // asks Cashfree directly) before celebrating or navigating.
           // A failed payment or a back-press surfaces through onError and
           // never reaches here.
@@ -225,8 +225,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _placing = false;
                 _confirmingPayment = false;
                 _error = status == 'FAILED'
-                    ? 'The payment did not go through. No money was debited — please try again.'
-                    : 'We could not confirm your payment yet. If money was debited it will reflect shortly — please check Orders before paying again.';
+                    ? 'The payment did not go through. No money was debited. Please try again.'
+                    : 'We could not confirm your payment yet. If money was debited it will reflect shortly, please check Orders before paying again.';
               });
             }
           } catch (e) {
@@ -261,7 +261,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(currentUidProvider);
-    // Live marketplace pricing (Zero Fee Launch → standard fees) — the
+    // Live marketplace pricing (Zero Fee Launch → standard fees), the
     // server recomputes authoritatively; this is for display only.
     final feeCfg =
         ref.watch(feeConfigProvider).valueOrNull ?? FeeConfig.defaults;
@@ -301,7 +301,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           // disables Pay immediately.
           // Up-front guard mirroring the server: with the flat delivery fee
           // split 50-50, an item priced below the seller's delivery share
-          // can never be placed — disable Pay instead of letting the tap
+          // can never be placed, disable Pay instead of letting the tap
           // fail server-side with a cryptic error.
           final quote = feeCfg.quote(bid.amount);
           final placeable = quote.sellerPayout > 0;
@@ -591,7 +591,7 @@ _buildPriceBreakdown(context, bid),
     });
   }
   /// Buyer-side price breakdown: item price, protection fee (+GST),
-  /// delivery split, and the all-in total. Display only — the server
+  /// delivery split, and the all-in total. Display only, the server
   /// computes the authoritative numbers inside `createCashfreeOrder`.
   Widget _buildPriceBreakdown(BuildContext context, Bid bid) {
     final textTheme = Theme.of(context).textTheme;
@@ -673,7 +673,7 @@ _buildPriceBreakdown(context, bid),
           padding: const EdgeInsets.all(12),
           borderRadius: 12,
           child: Text(
-            "This order can't be placed — at ${formatINR(q.price)} the seller's ${formatINRPaise(q.deliverySellerShare)} delivery share is more than the sale price, so the seller would lose money on it.",
+            "This order can't be placed: at ${formatINR(q.price)} the seller's ${formatINRPaise(q.deliverySellerShare)} delivery share is more than the sale price, so the seller would lose money on it.",
             style: textTheme.bodySmall?.copyWith(color: AppColors.error),
           ),
         ),
@@ -692,7 +692,7 @@ _buildPriceBreakdown(context, bid),
     ];
     if (feeCfg.promoActive) {
       // What the buyer would have paid in protection fee at standard
-      // pricing — the launch-month saving, shown as a nudge.
+      // pricing, the launch-month saving, shown as a nudge.
       final stdFee = (q.price * 5 / 100).roundToDouble();
       final stdGst = (stdFee * feeCfg.gstPct / 100).roundToDouble();
       children.addAll([
@@ -701,7 +701,7 @@ _buildPriceBreakdown(context, bid),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           borderRadius: 12,
           child: Text(
-            'Zero Fee Launch — you save ${formatINR(stdFee + stdGst)} in fees.',
+            'Zero Fee Launch: you save ${formatINR(stdFee + stdGst)} in fees.',
             style: textTheme.bodySmall?.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.w600,
@@ -718,7 +718,7 @@ _buildPriceBreakdown(context, bid),
   }
 
   /// Delivery-speed selector. Express is offered only when the listing's
-  /// city is express-eligible AND the buyer's typed city matches it —
+  /// city is express-eligible AND the buyer's typed city matches it,
   /// anything else would be a promise we can't keep.
   Widget _buildDeliveryOptions(
     BuildContext context, {
@@ -783,7 +783,7 @@ _buildPriceBreakdown(context, bid),
 /// "Payment successful" celebration shown after Cashfree verifies payment.
 ///
 /// Auto-dismisses once the check draws itself; the screen then replaces
-/// itself with Orders. Pure presentation — the order is already placed.
+/// itself with Orders. Pure presentation, the order is already placed.
 class _PaymentCelebration extends StatefulWidget {
   const _PaymentCelebration();
 
@@ -859,7 +859,7 @@ class _DeliveryOptionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            // NOTE: not const — Border.all has no const constructor.
+            // NOTE: not const, Border.all has no const constructor.
             borderRadius: BorderRadius.circular(16),
             color: AppColors.surface,
             border: Border.all(

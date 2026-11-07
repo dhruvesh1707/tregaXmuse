@@ -35,16 +35,16 @@ class BidsOffersArgs {
 /// The offer ecosystem, in two tabs:
 ///
 /// - **My Offers** (buyer): every offer the user sent, with the next action
-///   per state — waiting (open), offer again (rejected), pay now (accepted).
+///   per state, waiting (open), offer again (rejected), pay now (accepted).
 /// - **Offers Received** (seller): offers grouped by listing, so a seller
 ///   with many listings sees one section per listing with its open offers
 ///   sorted newest-first and Accept / Reject on each.
 ///
-/// Accepting is exclusive — once one offer is accepted the listing is
+/// Accepting is exclusive, once one offer is accepted the listing is
 /// reserved for that buyer until they pay. The seller can cancel the
 /// acceptance if the buyer never pays, reopening the listing for offers.
 ///
-/// Negotiation is structured (accept / reject) — there is intentionally no
+/// Negotiation is structured (accept / reject), there is intentionally no
 /// buyer↔seller chat in Trega.
 class BidsOffersScreen extends ConsumerStatefulWidget {
   static const String routeName = '/bids';
@@ -152,7 +152,7 @@ void _openListing(BuildContext context, String listingId) {
 
 /// The other party's display name on an offer card.
 ///
-/// Bid docs carry only ids — names are joined client-side from the public
+/// Bid docs carry only ids, names are joined client-side from the public
 /// profile. While loading (or if the profile has no name) the fallback
 /// shows, so a card never renders a blank name.
 class _CounterpartyName extends ConsumerWidget {
@@ -191,7 +191,7 @@ class _CounterpartyName extends ConsumerWidget {
 
 /// The listing's real title on an offer card.
 ///
-/// Bid docs carry only the listing id — the title is joined client-side
+/// Bid docs carry only the listing id, the title is joined client-side
 /// from the listing doc, exactly like the counterparty name above.
 /// Falls back to 'Listing' while loading or if the listing is gone, so
 /// a card never renders blank. (Bid.listingTitle was never populated by
@@ -357,13 +357,13 @@ class _MyOfferCard extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-              // Rejected — the buyer may offer again on the listing.
+              // Rejected, the buyer may offer again on the listing.
               BidStatus.rejected => TregaButton(
                   label: 'Offer again',
                   secondary: true,
                   onPressed: () => _openListing(context, bid.listingId),
                 ),
-              // Accepted — only this buyer gets to buy, at this price.
+              // Accepted, only this buyer gets to buy, at this price.
               BidStatus.accepted => TregaButton(
                   label: 'Pay ${formatINR(bid.amount)} now',
                   onPressed: () => Navigator.of(context).pushNamed(
@@ -386,7 +386,7 @@ class _MyOfferCard extends StatelessWidget {
 
 // ── Seller tab ────────────────────────────────────────────────────────────
 
-/// Offers received, grouped by listing — one section per listing with its
+/// Offers received, grouped by listing, one section per listing with its
 /// offers sorted newest-first, so multiple listings stay easy to manage.
 class _OffersReceivedTab extends ConsumerWidget {
   final Stream<List<Bid>>? stream;
@@ -482,7 +482,7 @@ class _ListingOffersGroup extends ConsumerStatefulWidget {
 
 class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
   /// Bid ids with a server call in flight. Their buttons flip to a spinner
-  /// and swallow taps — the tap visibly registers the instant it lands,
+  /// and swallow taps, the tap visibly registers the instant it lands,
   /// even when the function cold-starts and takes seconds.
   final Set<String> _busyIds = {};
 
@@ -863,7 +863,7 @@ class _OfferRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    // Swipe right to accept, left to reject — the buttons stay for
+    // Swipe right to accept, left to reject, the buttons stay for
     // explicit taps; both paths show the same confirm dialog.
     return Slidable(
       key: ValueKey(bid.id),
@@ -898,7 +898,7 @@ class _OfferRow extends StatelessWidget {
       child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        // NOTE: not const — Border.all has no const constructor.
+        // NOTE: not const, Border.all has no const constructor.
         color: AppColors.surface,
         border: Border.all(color: AppColors.divider),
         borderRadius: BorderRadius.circular(12),

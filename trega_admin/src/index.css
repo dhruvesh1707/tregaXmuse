@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Trega brand palette — derived from the Trega logo */
+  /* Trega brand palette, derived from the Trega logo */
   --color-trega-50: #faf6f3;
   --color-trega-100: #f2e7df;
   --color-trega-200: #e3c9b8;

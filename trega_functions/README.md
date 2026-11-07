@@ -1,4 +1,4 @@
-# Trega Cloud Functions — `tregaxmuse`
+# Trega Cloud Functions, `tregaxmuse`
 
 TypeScript (Node 20) Cloud Functions backend for the Trega marketplace.
 Replaces the earlier Node/Express scaffold; the Flutter app talks to these
@@ -12,7 +12,7 @@ callables + Firestore directly. Region: `asia-south1`.
 | `verifyAadhaarOtp` | callable | user | BulkPe `verifyAadharOtp` → on VALID writes `kycVerifications/{uid}` + `users/{uid}.kycStatus=verified` |
 | `createCashfreeOrder` | callable | user | Server-side amount from Firestore → Cashfree order → returns `{paymentSessionId, orderId, cfOrderId}`; creates `orders/{id}` PENDING |
 | `cashfreeWebhook` | https | signature | Verifies HMAC-SHA256 signature → SUCCESS marks order paid + listing `sold` |
-| `onListingCreate` | firestore trigger | — | New listing → `pending` + `adminNotifications` entry |
+| `onListingCreate` | firestore trigger | - | New listing → `pending` + `adminNotifications` entry |
 | `reviewListing` | callable | admin claim | `approve` → `live`, `reject` (reason required) → `rejected` |
 | `setUserKycStatus` | callable | admin claim | `{uid, status: verified\|rejected, note?}` → updates `users/{uid}.kycStatus` + `verifiedSeller` badge |
 | `updateOrderFulfillment` | callable | admin claim | `{orderId, status?, trackingNote?}` → fulfillment updates (payment status stays owned by the Cashfree webhook) |
@@ -26,13 +26,13 @@ Set these with the Firebase CLI (values never go in the repo):
 ```bash
 cd ~/workspace/trega/trega_functions
 
-# Cashfree PG — from the Cashfree dashboard (use sandbox keys first)
+# Cashfree PG, from the Cashfree dashboard (use sandbox keys first)
 firebase functions:secrets:set CASHFREE_APP_ID
 firebase functions:secrets:set CASHFREE_SECRET_KEY
 # "sandbox" or "production"
 firebase functions:secrets:set CASHFREE_ENV
 
-# BulkPe Aadhaar OKYC token — from the BulkPe dashboard
+# BulkPe Aadhaar OKYC token, from the BulkPe dashboard
 firebase functions:secrets:set BULKPE_API_TOKEN
 ```
 

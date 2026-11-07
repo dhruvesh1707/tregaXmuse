@@ -130,7 +130,7 @@ class SettingsScreen extends ConsumerWidget {
     emailController.dispose();
   }
 
-  /// Edits the seller's payout UPI ID. Owner-only — never shown to
+  /// Edits the seller's payout UPI ID. Owner-only, never shown to
   /// other users; used to release payouts after successful transactions.
   Future<void> _editPayoutUpi(
       BuildContext context, WidgetRef ref, String uid,) async {
@@ -328,7 +328,7 @@ class SettingsScreen extends ConsumerWidget {
                                 color: AppColors.primary,),
                             title: const Text('Payout UPI ID'),
                             subtitle: Text(
-                              upi ?? 'Not set — add it to receive payouts',),
+                              upi ?? 'Not set, add it to receive payouts',),
                             trailing: const Icon(PhosphorIconsRegular.caretRight,
                                 color: AppColors.textSecondary,),
                             onTap: () =>

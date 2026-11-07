@@ -12,7 +12,7 @@ import '../../../core/widgets/trega_toast.dart';
 
 /// Help centre: how Trega works + how to reach support.
 ///
-/// Support inbox — matches the Contact page (contact@trega.in).
+/// Support inbox, matches the Contact page (contact@trega.in).
 class HelpScreen extends StatelessWidget {
   static const String routeName = '/profile/help';
 
@@ -31,7 +31,7 @@ class HelpScreen extends StatelessWidget {
     } else if (context.mounted) {
       await showTregaToast(
         context,
-        'Write to $_supportEmail — we reply within a day.',
+        'Write to $_supportEmail, we reply within a day.',
         title: 'Contact support',
         kind: TregaToastKind.info,
       );
@@ -51,7 +51,7 @@ class HelpScreen extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 20),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              // NOTE: not const — BoxShadow list + gradient are fine, but
+              // NOTE: not const, BoxShadow list + gradient are fine, but
               // this stays non-const to match the card recipe.
               borderRadius: BorderRadius.circular(20),
               color: AppColors.surface,
@@ -99,7 +99,7 @@ class HelpScreen extends StatelessWidget {
             index: 0,
             question: 'How does selling work?',
             answer:
-                'Tap Sell, capture your item with the camera, add details and a price, and publish — '
+                'Tap Sell, capture your item with the camera, add details and a price, and publish, '
                 'your listing goes live immediately. Once it sells, we collect the item from the '
                 'pickup address you provided.',
           ),
@@ -122,7 +122,7 @@ class HelpScreen extends StatelessWidget {
             index: 3,
             question: 'How do bids & offers work?',
             answer:
-                'Every listing has bidding switched on — there are no chats on Trega. '
+                'Every listing has bidding switched on, there are no chats on Trega. '
                 'Tap “Place bid” on a listing, enter your offer, and the seller can accept or decline. '
                 'If your bid is accepted, you’ll be guided to payment within 24 hours.',
           ),
@@ -132,7 +132,7 @@ class HelpScreen extends StatelessWidget {
             question: 'Why was my listing flagged or removed?',
             answer:
                 'Listings get flagged for misleading or blurry photos, prohibited items, a price far from '
-                'market value, or missing details. Fix the issue and publish again — or write to us below.',
+                'market value, or missing details. Fix the issue and publish again, or write to us below.',
           ),
           const _FaqTile(
             index: 5,
@@ -167,7 +167,7 @@ class HelpScreen extends StatelessWidget {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
-                  'Write to us — we reply within a day.',
+                  'Write to us, we reply within a day.',
                   style: textTheme.bodySmall,
                 ),
               ),
@@ -233,13 +233,13 @@ class _FaqTile extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          // NOTE: not const — Border.all has no const constructor.
+          // NOTE: not const, Border.all has no const constructor.
           borderRadius: BorderRadius.circular(16),
           color: AppColors.surface,
           border: Border.all(color: AppColors.divider),
           boxShadow: AppShadows.soft,
         ),
-        // ExpansionTile draws hairline dividers above/below its children —
+        // ExpansionTile draws hairline dividers above/below its children,
         // hide them so they don't double up with the container border.
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),

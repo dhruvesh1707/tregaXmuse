@@ -7,14 +7,14 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
 /// Thin wrapper around the Cashfree PG SDK (drop checkout).
 ///
-/// NOTE: `flutter_cashfree_pg_sdk` ships no barrel library — import the
+/// NOTE: `flutter_cashfree_pg_sdk` ships no barrel library, import the
 /// individual API files (session, payment, gateway, enums, exceptions).
 ///
 /// Flow:
 ///  1. Our `createCashfreeOrder` callable creates the order server-side and
 ///     returns `{paymentSessionId, orderId, cfOrderRef?}`.
 ///  2. [pay] opens the Cashfree checkout sheet with that session.
-///  3. The SDK callback only drives UI — payment truth always comes from
+///  3. The SDK callback only drives UI, payment truth always comes from
 ///     the `cashfreeWebhook` function flipping the order's `paymentStatus`.
 ///
 /// The SDK needs the *merchant* order id that was sent to Cashfree
@@ -28,11 +28,11 @@ class CashfreeService {
   /// Opens the Cashfree drop-checkout sheet.
   ///
   /// [onVerified] fires when the SDK reports the payment journey finished
-  /// for [cfOrderId] — the app should then confirm the order via Firestore
+  /// for [cfOrderId], the app should then confirm the order via Firestore
   /// (the webhook updates `paymentStatus` asynchronously).
   /// [onError] fires on failure or cancellation with a readable message.
   ///
-  /// Note: the SDK's web implementation is a stub — real payments must be
+  /// Note: the SDK's web implementation is a stub, real payments must be
   /// tested on Android/iOS, never on Flutter web.
   void pay({
     required String cfOrderId,

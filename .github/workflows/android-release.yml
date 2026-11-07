@@ -3,20 +3,20 @@
 #
 # Signing: the upload keystore is NOT in the repo. It lives in GitHub
 # Secrets (repo -> Settings -> Secrets and variables -> Actions):
-#   UPLOAD_KEYSTORE_BASE64 — base64 of C:\Users\Prime\upload-keystore.jks
-#   KEYSTORE_PASSWORD      — the keystore password
-#   KEY_ALIAS              — key alias (upload)
-#   KEY_PASSWORD           — key password
-# One-time, on the dev PC (PowerShell) — copies the base64 to clipboard:
+#   UPLOAD_KEYSTORE_BASE64, base64 of C:\Users\Prime\upload-keystore.jks
+#   KEYSTORE_PASSWORD, the keystore password
+#   KEY_ALIAS, key alias (upload)
+#   KEY_PASSWORD, key password
+# One-time, on the dev PC (PowerShell), copies the base64 to clipboard:
 #   [Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\Users\Prime\upload-keystore.jks')) | Set-Clipboard
 # then paste it into the UPLOAD_KEYSTORE_BASE64 secret.
 #
-# Prerequisite (one-time, on the dev PC) — google-services.json is gitignored
+# Prerequisite (one-time, on the dev PC), google-services.json is gitignored
 # but the cloud runner needs it, same as the iOS files were force-added:
 #   git add -f trega_app/android/app/google-services.json
 #   git commit -m "Add google-services.json for cloud Android builds"
 #   git push
-# (google-services.json holds public client identifiers, not secrets —
+# (google-services.json holds public client identifiers, not secrets,
 # committing it is standard Firebase practice.)
 #
 # Usage: GitHub repo -> Actions tab -> "Android release (AAB + APK)" ->

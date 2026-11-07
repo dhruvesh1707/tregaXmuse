@@ -6,13 +6,13 @@ import '../theme/app_colors.dart';
 
 /// Frosted app bar for the minimal Trega glass theme.
 ///
-/// Builds a REAL [AppBar] inside — so the automatic back button, title,
-/// actions and [bottom] keep working exactly as callers expect — wrapped
+/// Builds a REAL [AppBar] inside, so the automatic back button, title,
+/// actions and [bottom] keep working exactly as callers expect, wrapped
 /// in [ClipRect] + [BackdropFilter] (blur 18) with a translucent white
 /// fill and a hairline [AppColors.divider] bottom edge.
 ///
 /// Drop-in replacement for [AppBar] on screens that want the frosted
-/// look. Do NOT use it in [showFullScreenPhoto]-style black viewers —
+/// look. Do NOT use it in [showFullScreenPhoto]-style black viewers,
 /// those keep their own transparent-black app bar.
 class TregaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;

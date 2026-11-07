@@ -49,7 +49,7 @@ const Map<String, LegalPage> legalPages = {
         'Identity verification: to keep the marketplace trustworthy, sellers '
         'and buyers verify with an Aadhaar OTP. Your Aadhaar number is used '
         'only to request and verify the OTP through our verification '
-        'provider and is never stored on our servers — we keep only a '
+        'provider and is never stored on our servers, we keep only a '
         'one-way fingerprint to prevent the same Aadhaar verifying two '
         'accounts.\n\n'
         'Listings and transactions: photos, titles, descriptions, prices, '
@@ -130,7 +130,7 @@ const Map<String, LegalPage> legalPages = {
       LegalSection(
         'Bids and offers',
         'Negotiation on Trega happens through structured bids and offers '
-        'only — there is no buyer-seller chat. An accepted offer is a '
+        'only, there is no buyer-seller chat. An accepted offer is a '
         'commitment: the buyer must complete payment within 24 hours and '
         'the seller must make the item available for the scheduled pickup.',
       ),
@@ -215,7 +215,7 @@ const Map<String, LegalPage> legalPages = {
       LegalSection(
         'What is not refundable',
         'Change of mind after a successful delivery where the item matches '
-        'its listing description does not qualify for a refund — please bid '
+        'its listing description does not qualify for a refund, please bid '
         'carefully.',
       ),
     ],
@@ -228,7 +228,7 @@ const Map<String, LegalPage> legalPages = {
     sections: [
       LegalSection(
         'What is Trega?',
-        'Trega is India\'s community marketplace for pre-owned gear — '
+        'Trega is India\'s community marketplace for pre-owned gear, '
         'gaming, mobiles, laptops, cameras, music equipment and more. Great '
         'gear deserves a second life, and great deals deserve trust.',
       ),
@@ -242,7 +242,7 @@ const Map<String, LegalPage> legalPages = {
         'Built on trust',
         'Every buyer and seller is Aadhaar-verified, payments run through '
         'Cashfree\'s secure gateway, and our review team moderates listings '
-        '— so you can trade pre-owned with confidence.',
+        ', so you can trade pre-owned with confidence.',
       ),
     ],
   ),

@@ -233,7 +233,7 @@ class _TrackingContent extends ConsumerWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                // NOTE: not const — gradient recipe.
+                                // NOTE: not const, gradient recipe.
                                 borderRadius:
                                     BorderRadius.circular(8),
                                 color: AppColors.surface,
@@ -306,13 +306,13 @@ class _TrackingContent extends ConsumerWidget {
     final shortId = order.id.length > 6
         ? order.id.substring(0, 6).toUpperCase()
         : order.id;
-    final text = '$title — ${formatINR(order.amount)} on Trega '
+    final text = '$title, ${formatINR(order.amount)} on Trega '
         '(order #$shortId, ${order.status.label}). '
         'Track it: https://trega.in/orders/${order.id}';
     try {
       // share_plus 10.x on iOS throws PlatformException
       // ("sharePositionOrigin: argument must be set") unless the sheet is
-      // anchored to a non-zero rect inside the source view — anchor it to
+      // anchored to a non-zero rect inside the source view, anchor it to
       // the share button itself. `subject` stays unset for the same reason
       // as the listing share (setValue:forKey:@"subject" throws).
       final box = shareBtnContext.findRenderObject() as RenderBox?;

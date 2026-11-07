@@ -33,7 +33,7 @@ async function main() {
   try {
     // Force token refresh on next sign-in by revoking refresh tokens.
     await admin.auth().revokeRefreshTokens(uid);
-    console.log("Refresh tokens revoked — user must sign in again.");
+    console.log("Refresh tokens revoked, user must sign in again.");
   } catch (e) {
     console.warn("Could not revoke refresh tokens:", e.message);
   }

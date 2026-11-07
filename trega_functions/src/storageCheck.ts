@@ -5,7 +5,7 @@ import * as logger from "firebase-functions/logger";
  * Content-level upload validation (defense in depth for file uploads).
  *
  * The Storage rules already enforce `image/*` content-type + 10 MB at
- * upload time — but `contentType` is client-supplied metadata, so a
+ * upload time, but `contentType` is client-supplied metadata, so a
  * tampered client can claim `image/jpeg` while uploading arbitrary bytes.
  * This `onObjectFinalized` trigger reads the first 32 bytes of every new
  * object under `listingMedia/` and `avatars/` and DELETES anything whose
@@ -13,7 +13,7 @@ import * as logger from "firebase-functions/logger";
  *
  * Why deletion is safe: uploads are never executed anywhere. Storage
  * objects are served as static bytes with `X-Content-Type-Options: nosniff`
- * and there is no web root / code execution path — so the residual risk of
+ * and there is no web root / code execution path, so the residual risk of
  * a non-image sitting in the bucket for the ~1s before this trigger runs is
  * nil. The trigger just keeps the bucket clean and closes the "fake image"
  * hole for good.
@@ -58,7 +58,7 @@ function sniff(head: Buffer): string | null {
   ) {
     return "gif";
   }
-  // HEIC/HEIF/AVIF: `....ftyp<brand>` — brand at bytes 8..12.
+  // HEIC/HEIF/AVIF: `....ftyp<brand>`, brand at bytes 8..12.
   if (head.length >= 12 && head.toString("ascii", 4, 8) === "ftyp") {
     const brand = head.toString("ascii", 8, 12);
     if (
@@ -99,7 +99,7 @@ export async function checkUploadedImage(
         .on("error", (e) => reject(e));
     });
   } catch (e) {
-    // The object may already be gone (deleted upload) — nothing to do.
+    // The object may already be gone (deleted upload), nothing to do.
     logger.warn("storageCheck: could not read new object", {
       objectName,
       error: String(e),

@@ -7,7 +7,7 @@ import 'app_colors.dart';
 /// Every historic member name is kept so feature call sites keep
 /// compiling, but the soft-3D gradients are flattened: surfaces are
 /// solid, glass tints are translucent white, and ambient glows are fully
-/// transparent. The spec forbids gradient washes, glow blobs and sheens —
+/// transparent. The spec forbids gradient washes, glow blobs and sheens,
 /// these tokens now encode that by being solid.
 abstract final class AppGradients {
   /// Page background: flat warm paper. Kept as a same-color gradient so
@@ -68,7 +68,7 @@ abstract final class AppGradients {
     ],
   );
 
-  /// Specular top-light: removed — fully transparent. Do not paint
+  /// Specular top-light: removed, fully transparent. Do not paint
   /// highlights over surfaces.
   static const LinearGradient sheen = LinearGradient(
     begin: Alignment.topCenter,
@@ -76,7 +76,7 @@ abstract final class AppGradients {
     colors: [Color(0x00FFFFFF), Color(0x00FFFFFF)],
   );
 
-  /// Button sheen: removed — fully transparent.
+  /// Button sheen: removed, fully transparent.
   static const LinearGradient buttonSheen = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -97,7 +97,7 @@ abstract final class AppGradients {
     colors: [AppColors.espresso, AppColors.espresso],
   );
 
-  /// Ambient amber glow: removed — fully transparent. No glow blobs.
+  /// Ambient amber glow: removed, fully transparent. No glow blobs.
   static const RadialGradient amberGlow = RadialGradient(
     colors: [Color(0x00F7B600), Color(0x00F7B600)],
     stops: [0.0, 1.0],

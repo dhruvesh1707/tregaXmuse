@@ -14,7 +14,7 @@ import 'motion.dart';
 /// [AppColors.primary] pill.
 ///
 /// Destinations and tap behaviour are unchanged from the old
-/// [BottomNavigationBar] — only the presentation is new.
+/// [BottomNavigationBar], only the presentation is new.
 class FloatingTabBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
