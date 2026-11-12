@@ -97,10 +97,18 @@ class HomeScreen extends ConsumerWidget {
       body: Stack(
         children: [
           EasyRefresh(
+            // Seamless refresh: the reveal area paints the same
+            // espresso gradient as the header zone, so pulling down
+            // stretches the main block instead of tearing it open
+            // with a white gap. Text and icon stay cream on espresso.
             header: const ClassicHeader(
-              textStyle:
-                  TextStyle(color: AppColors.textSecondary, fontSize: 12),
-              iconTheme: IconThemeData(color: AppColors.primary),
+              boxDecoration: BoxDecoration(
+                gradient: AppGradients.headerEspresso,
+              ),
+              textStyle: TextStyle(color: Colors.white, fontSize: 12),
+              messageStyle: TextStyle(
+                  color: AppColors.onEspressoSecondary, fontSize: 12),
+              iconTheme: IconThemeData(color: AppColors.accent),
               processedText: 'All caught up',
             ),
             onRefresh: () async {
@@ -123,10 +131,17 @@ class HomeScreen extends ConsumerWidget {
                   foregroundColor: Colors.white,
                   surfaceTintColor: Colors.transparent,
                   iconTheme: const IconThemeData(color: Colors.white),
-                  flexibleSpace: Container(
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.headerEspresso,
-                    ),
+                  flexibleSpace: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: AppGradients.headerEspresso,
+                          ),
+                        ),
+                      ),
+                      const Positioned.fill(child: _HeaderGlow()),
+                    ],
                   ),
                   title: Image.asset('assets/logo/trega_logo_light.png', height: 28),
                   actions: [
@@ -156,26 +171,37 @@ class HomeScreen extends ConsumerWidget {
                         bottom: Radius.circular(24),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                          child: Text(
-                            'Explore by Passion',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(color: Colors.white),
+                        const Positioned.fill(
+                          child: _HeaderGlow(
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(24),
+                            ),
                           ),
                         ),
-                        KeyedSubtree(
-                          key: TourKeys.categories,
-                          child:
-                              _CategoryRail(categoriesAsync: categoriesAsync),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                              child: Text(
+                                'Explore by Passion',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(color: Colors.white),
+                              ),
+                            ),
+                            KeyedSubtree(
+                              key: TourKeys.categories,
+                              child: _CategoryRail(
+                                  categoriesAsync: categoriesAsync),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                         ),
-                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -284,6 +310,32 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+/// Soft warm glow over an espresso header surface, matching the
+/// reference frames' ambient light at the top of the zone. Pure
+/// decoration, no interaction.
+class _HeaderGlow extends StatelessWidget {
+  const _HeaderGlow({this.borderRadius});
+
+  final BorderRadiusGeometry? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        gradient: RadialGradient(
+          center: const Alignment(0.5, -0.7),
+          radius: 1.0,
+          colors: [
+            AppColors.primaryLight.withValues(alpha: 0.28),
+            Colors.transparent,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Maps a category to its photo tile asset, matching in order the
 /// category id, then slug, then lowercased name, against the known
 /// category photo keys. Returns null for unknown or admin-added
@@ -299,7 +351,9 @@ String? _categoryPhotoAsset(Category category) {
 /// Normalizes one raw category key (id, slug, or name) to a photo key,
 /// or null when it matches nothing known. Separators are ignored, so
 /// 'home appliances', 'home_appliances' and 'home-appliances' all map
-/// to the appliances photo, and plural names map to their singular key.
+/// to the appliances photo. Plurals and common aliases map to their
+/// photo key, and an unmatched key ending in 's' is retried singular,
+/// so a plural id like 'laptops' still finds the laptop photo.
 String? _categoryPhotoKey(String raw) {
   final normalized = raw
       .trim()
@@ -307,32 +361,40 @@ String? _categoryPhotoKey(String raw) {
       .replaceAll(' ', '')
       .replaceAll('_', '')
       .replaceAll('-', '');
-  switch (normalized) {
-    case 'mobiles':
-      return 'mobile';
-    case 'homeappliances':
-      return 'appliances';
-    case 'watches':
-      return 'watch';
-    case 'collectibles':
-      return 'collectible';
-    case 'gaming':
-    case 'mobile':
-    case 'laptop':
-    case 'camera':
-    case 'music':
-    case 'fashion':
-    case 'furniture':
-    case 'appliances':
-    case 'cycles':
-    case 'books':
-    case 'watch':
-    case 'collectible':
-    case 'others':
-      return normalized;
-    default:
-      return null;
+  const known = <String>{
+    'gaming',
+    'mobile',
+    'laptop',
+    'camera',
+    'music',
+    'fashion',
+    'furniture',
+    'appliances',
+    'cycles',
+    'books',
+    'watch',
+    'collectible',
+    'others',
+  };
+  const aliases = <String, String>{
+    'mobiles': 'mobile',
+    'laptops': 'laptop',
+    'cameras': 'camera',
+    'phones': 'mobile',
+    'cellphones': 'mobile',
+    'homeappliances': 'appliances',
+    'watches': 'watch',
+    'collectibles': 'collectible',
+    'bicycles': 'cycles',
+  };
+  final alias = aliases[normalized];
+  if (alias != null) return alias;
+  if (known.contains(normalized)) return normalized;
+  if (normalized.endsWith('s') && normalized.length > 2) {
+    final singular = normalized.substring(0, normalized.length - 1);
+    if (known.contains(singular)) return singular;
   }
+  return null;
 }
 
 class _CategoryRail extends StatelessWidget {
