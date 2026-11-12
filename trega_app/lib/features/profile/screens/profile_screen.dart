@@ -424,9 +424,12 @@ class _AvatarEditorState extends ConsumerState<_AvatarEditor> {
       ),
     );
     if (source == null || !mounted) return;
+    // 512px is plenty: the avatar shows as a 48px circle, and the
+    // square crop below bounds it further. Smaller file, faster load.
     final image = await ImagePicker().pickImage(
       source: source,
-      maxWidth: 1024,
+      maxWidth: 512,
+      maxHeight: 512,
       imageQuality: 85,
     );
     if (image == null || !mounted) return;

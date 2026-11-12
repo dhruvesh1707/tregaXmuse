@@ -788,19 +788,45 @@ class _SellerInfo extends ConsumerWidget {
               children: [
                 // The seller's profile photo when set, previously this
                 // always showed the placeholder icon even though
-                // `avatarUrl` was already on the profile.
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AppColors.primarySoft,
-                  backgroundImage:
-                      (seller?.avatarUrl?.isNotEmpty ?? false)
-                          ? NetworkImage(seller!.avatarUrl!)
-                          : null,
-                  child: (seller?.avatarUrl?.isNotEmpty ?? false)
-                      ? null
-                      : const Icon(PhosphorIconsRegular.user,
+                // `avatarUrl` was already on the profile. Cached: the
+                // old NetworkImage saved nothing on the phone, so
+                // every open re-downloaded the photo. Decoded at
+                // 200px, plenty for a 48px circle. No disk-cache cap
+                // on purpose: the disk file is shared with the
+                // full-screen photo view by URL, and capping it would
+                // soften that view.
+                if (seller?.avatarUrl?.isNotEmpty ?? false)
+                  CachedNetworkImage(
+                    imageUrl: seller!.avatarUrl!,
+                    memCacheWidth: 200,
+                    memCacheHeight: 200,
+                    imageBuilder: (context, imageProvider) =>
+                        CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.primarySoft,
+                      backgroundImage: imageProvider,
+                    ),
+                    placeholder: (context, url) => const CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.primarySoft,
+                      child: Icon(PhosphorIconsRegular.user,
                           color: AppColors.primary),
-                ),
+                    ),
+                    errorWidget: (context, url, error) =>
+                        const CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.primarySoft,
+                      child: Icon(PhosphorIconsRegular.user,
+                          color: AppColors.primary),
+                    ),
+                  )
+                else
+                  const CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primarySoft,
+                    child: Icon(PhosphorIconsRegular.user,
+                        color: AppColors.primary),
+                  ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
