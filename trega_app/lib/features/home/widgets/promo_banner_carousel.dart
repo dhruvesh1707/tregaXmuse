@@ -112,37 +112,22 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    // The dots live inside the card, bottom-left, like the reference
-    // frames, so the carousel reads as one unit. The active card
-    // always starts at the left edge of the viewport, so the overlay
-    // sits inside it on every page.
+    // The dots live inside each card, bottom-left, aligned with the
+    // card's content padding, so the carousel reads as one unit on
+    // every page. Each card builds its own indicator from the shared
+    // active index: a viewport-level overlay can never line up with
+    // the card's content edge on every screen width.
     return SizedBox(
       height: 168,
-      child: Stack(
-        children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: _slides.length,
-            onPageChanged: (i) => setState(() => _index = i),
-            itemBuilder: (context, i) => _PromoCard(slide: _slides[i]),
-          ),
-          Positioned(
-            left: 30,
-            bottom: 12,
-            child: AnimatedSmoothIndicator(
-              activeIndex: _index,
-              count: _slides.length,
-              effect: WormEffect(
-                dotWidth: 6,
-                dotHeight: 6,
-                spacing: 6,
-                radius: 3,
-                activeDotColor: AppColors.accent,
-                dotColor: Colors.white.withValues(alpha: 0.35),
-              ),
-            ),
-          ),
-        ],
+      child: PageView.builder(
+        controller: _controller,
+        itemCount: _slides.length,
+        onPageChanged: (i) => setState(() => _index = i),
+        itemBuilder: (context, i) => _PromoCard(
+          slide: _slides[i],
+          activeIndex: _index,
+          dotCount: _slides.length,
+        ),
       ),
     );
   }
@@ -150,14 +135,23 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
 
 /// One promo card: a warm espresso card with the headline copy and
 /// amber pill CTA on the left, a soft glow at the top-right, a hairline
-/// edge, and the slide's dedicated photo on the right.
+/// edge, and the slide's dedicated cutout on the right.
 /// Tapping navigates or shows the info dialog (see [_onSlideTap]).
-/// The bottom padding clears the dots overlay that sits inside the
-/// card, bottom-left.
+/// The bottom padding clears the dots indicator that sits inside the
+/// card, bottom-left, aligned with the content padding.
 class _PromoCard extends StatelessWidget {
   final _PromoSlide slide;
 
-  const _PromoCard({required this.slide});
+  /// Active dot for the indicator inside this card, shared by all
+  /// cards so the visible card always shows the right page.
+  final int activeIndex;
+  final int dotCount;
+
+  const _PromoCard({
+    required this.slide,
+    required this.activeIndex,
+    required this.dotCount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -205,6 +199,22 @@ class _PromoCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       _PromoArt(asset: slide.art),
                     ],
+                  ),
+                ),
+                Positioned(
+                  left: 18,
+                  bottom: 12,
+                  child: AnimatedSmoothIndicator(
+                    activeIndex: activeIndex,
+                    count: dotCount,
+                    effect: WormEffect(
+                      dotWidth: 6,
+                      dotHeight: 6,
+                      spacing: 6,
+                      radius: 3,
+                      activeDotColor: AppColors.accent,
+                      dotColor: Colors.white.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               ],

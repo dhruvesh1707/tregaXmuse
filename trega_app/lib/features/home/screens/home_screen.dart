@@ -106,11 +106,19 @@ class HomeScreen extends ConsumerWidget {
     return TregaScaffold(
       body: Stack(
         children: [
-          EasyRefresh(
+          EasyRefresh.builder(
             // Seamless refresh: the reveal area paints the same
             // espresso gradient as the header zone, so pulling down
             // stretches the main block instead of tearing it open
             // with a white gap. Text and icon stay cream on espresso.
+            // Builder form on purpose: the refresh physics is scoped
+            // to the feed's CustomScrollView only. The plain
+            // EasyRefresh form applies its physics to every
+            // descendant scroll view, so swiping the horizontal
+            // category rail or promo carousel drove the header
+            // sideways onto the left edge. With the builder, nested
+            // scroll views keep platform physics and refresh only
+            // ever comes from the top.
             header: const ClassicHeader(
               boxDecoration: BoxDecoration(
                 gradient: _homeHeaderGradient,
@@ -129,7 +137,8 @@ class HomeScreen extends ConsumerWidget {
                 ref.refresh(categoriesProvider.future),
               ]);
             },
-            child: CustomScrollView(
+            childBuilder: (context, physics) => CustomScrollView(
+              physics: physics,
               slivers: [
                 SliverAppBar(
                   // Pinned: the espresso header (logo, search,
@@ -311,8 +320,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 /// Soft warm glow over an espresso header surface, matching the
-/// reference frames' ambient light at the top of the zone. Pure
-/// decoration, no interaction.
+/// reference frames' ambient light. The light pools low around the
+/// category tiles and fades to transparent at the top edge, so the
+/// categories block meets the solid toolbar with no tone step and the
+/// header reads as one surface. Pure decoration, no interaction.
 class _HeaderGlow extends StatelessWidget {
   const _HeaderGlow({this.borderRadius});
 
@@ -324,8 +335,8 @@ class _HeaderGlow extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         gradient: RadialGradient(
-          center: const Alignment(0.5, -0.7),
-          radius: 1.0,
+          center: const Alignment(0.0, 0.75),
+          radius: 1.15,
           colors: [
             AppColors.primaryLight.withValues(alpha: 0.28),
             Colors.transparent,
