@@ -230,7 +230,10 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
+                  // NOT const: Transform.translate is a factory, not
+                  // a const constructor, so a const ancestor here is
+                  // a compile error (broke both builds on 760999ae).
                   // The promo cards straddle the header's bottom edge.
                   // The layout box holds only the card's lower half,
                   // the carousel's 12px shadow room, and the 4px gap
