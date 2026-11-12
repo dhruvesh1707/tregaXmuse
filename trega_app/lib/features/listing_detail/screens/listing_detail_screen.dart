@@ -490,7 +490,8 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8,),
-                      decoration: const BoxDecoration(
+                      // NOTE: not const, Border.all has no const constructor.
+                      decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius:
                             BorderRadius.all(Radius.circular(24)),
@@ -771,7 +772,8 @@ class _SellerInfo extends ConsumerWidget {
         final verified = seller?.isVerifiedSeller ?? false;
         return Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
+          // NOTE: not const, Border.all has no const constructor.
+          decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.all(Radius.circular(24)),
             border: Border.all(color: AppColors.divider),
