@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_tour.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -25,6 +24,17 @@ import '../../search/screens/search_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/promo_banner_carousel.dart';
+
+/// The home header's single gradient: solid espresso at the top edge,
+/// seamless with the toolbar, flowing to espressoLight at the bottom
+/// of the categories block. The toolbar, the refresh reveal area, and
+/// the categories block all share it, so the header reads as one
+/// surface with one light, never two stacked gradients.
+const _homeHeaderGradient = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [AppColors.espresso, AppColors.espressoLight],
+);
 
 /// Main marketplace feed: search entry, "Explore by Passion" categories,
 /// and the live listing feed.
@@ -103,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
             // with a white gap. Text and icon stay cream on espresso.
             header: const ClassicHeader(
               boxDecoration: BoxDecoration(
-                gradient: AppGradients.headerEspresso,
+                gradient: _homeHeaderGradient,
               ),
               textStyle: TextStyle(color: Colors.white, fontSize: 12),
               messageStyle: TextStyle(
@@ -124,25 +134,15 @@ class HomeScreen extends ConsumerWidget {
                 SliverAppBar(
                   // Pinned: the espresso header (logo, search,
                   // notifications) stays visible while the feed scrolls
-                  // underneath it.
+                  // underneath it. The toolbar is solid espresso and the
+                  // categories block below continues the same gradient
+                  // from espresso, so the whole header is one surface.
                   pinned: true,
                   floating: true,
                   backgroundColor: AppColors.espresso,
                   foregroundColor: Colors.white,
                   surfaceTintColor: Colors.transparent,
                   iconTheme: const IconThemeData(color: Colors.white),
-                  flexibleSpace: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: AppGradients.headerEspresso,
-                          ),
-                        ),
-                      ),
-                      const Positioned.fill(child: _HeaderGlow()),
-                    ],
-                  ),
                   title: Image.asset('assets/logo/trega_logo_light.png', height: 28),
                   actions: [
                     IconButton(
@@ -165,9 +165,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 SliverToBoxAdapter(
                   child: Container(
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.headerEspresso,
-                      borderRadius: const BorderRadius.vertical(
+                    decoration: const BoxDecoration(
+                      gradient: _homeHeaderGradient,
+                      borderRadius: BorderRadius.vertical(
                         bottom: Radius.circular(24),
                       ),
                     ),

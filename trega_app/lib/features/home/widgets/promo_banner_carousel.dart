@@ -5,16 +5,15 @@ import 'package:flutter/material.dart';
 import '../../../core/icons/phosphor_icons.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_dialog.dart';
 import '../../profile/screens/help_screen.dart';
 import '../../profile/screens/kyc_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 
-/// Promo banner carousel for the home feed: espresso gradient cards
-/// with white text, an amber pill CTA, product photo art on the right,
-/// and the dots inside the card, bottom-left. Radius 24.
+/// Promo banner carousel for the home feed: warm espresso cards with
+/// white text, an amber pill CTA, product photo art matched to each
+/// slide, and the dots inside the card, bottom-left. Radius 24.
 ///
 /// The carousel auto-advances every few seconds and the dots animate.
 /// Tapping a card opens the screen it promotes, or explains the promo
@@ -31,6 +30,11 @@ class _PromoSlide {
   final String subtitle;
   final String cta;
 
+  /// The two category photos shown as the card's product art, matched
+  /// to the slide's topic. Every slide has its own pair.
+  final String artPrimary;
+  final String artSecondary;
+
   /// Named route to open on tap. Null makes the card informational, tap
   /// shows [infoBody] in a dialog instead.
   final String? routeName;
@@ -40,6 +44,8 @@ class _PromoSlide {
     required this.title,
     required this.subtitle,
     required this.cta,
+    required this.artPrimary,
+    required this.artSecondary,
     this.routeName,
     this.infoBody,
   });
@@ -50,6 +56,8 @@ const List<_PromoSlide> _slides = [
     title: 'Trega Express is here',
     subtitle: 'Faster delivery in select cities.',
     cta: 'How it works',
+    artPrimary: 'assets/categories/mobile.jpg',
+    artSecondary: 'assets/categories/gaming.jpg',
     infoBody:
         'Look for the Express badge on listings. When you and the seller are in the same select city, order before 9 PM and express delivery is available in select cities.',
   ),
@@ -57,18 +65,24 @@ const List<_PromoSlide> _slides = [
     title: 'Turn gear into cash',
     subtitle: 'List in under a minute, just your camera.',
     cta: 'Start selling',
+    artPrimary: 'assets/categories/camera.jpg',
+    artSecondary: 'assets/categories/laptop.jpg',
     routeName: SellFlowScreen.routeName,
   ),
   _PromoSlide(
     title: 'Aadhaar-verified community',
     subtitle: 'Every seller is ID-verified.',
     cta: 'Get verified',
+    artPrimary: 'assets/categories/fashion.jpg',
+    artSecondary: 'assets/categories/watch.jpg',
     routeName: KycScreen.routeName,
   ),
   _PromoSlide(
     title: 'Secure payments',
     subtitle: 'UPI, cards & netbanking via Cashfree.',
     cta: 'How bidding works',
+    artPrimary: 'assets/categories/music.jpg',
+    artSecondary: 'assets/categories/collectible.jpg',
     routeName: HelpScreen.routeName,
   ),
 ];
@@ -138,8 +152,9 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
   }
 }
 
-/// One promo card: an espresso gradient card with the headline copy
-/// and amber pill CTA on the left and product photo art on the right.
+/// One promo card: a warm espresso card with the headline copy and
+/// amber pill CTA on the left, a soft glow at the top-right, a hairline
+/// edge, and product photo art matched to the slide on the right.
 /// Tapping navigates or shows the info dialog (see [_onSlideTap]).
 /// The bottom padding clears the dots overlay that sits inside the
 /// card, bottom-left.
@@ -156,18 +171,46 @@ class _PromoCard extends StatelessWidget {
         onTap: () => _onSlideTap(context, slide),
         child: Container(
           decoration: BoxDecoration(
-            gradient: AppGradients.headerEspresso,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.espressoLight, AppColors.espresso],
+            ),
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-            child: Row(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
               children: [
-                Expanded(
-                  child: _PromoCopy(slide: slide),
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: const Alignment(0.9, -0.4),
+                        radius: 1.0,
+                        colors: [
+                          AppColors.primaryLight.withValues(alpha: 0.35),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 12),
-                const _PromoArt(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _PromoCopy(slide: slide),
+                      ),
+                      const SizedBox(width: 12),
+                      _PromoArt(slide: slide),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -274,32 +317,34 @@ class _PromoCopy extends StatelessWidget {
 }
 
 /// Product photo art for the right side of a promo card: two
-/// overlapping category photos, the same brand motif on every slide,
-/// echoing the product imagery in the reference frames. A photo that
-/// fails to load falls back to a plain tile, never an error box.
+/// overlapping category photos matched to the slide's topic, so every
+/// card shows its own products. A photo that fails to load falls back
+/// to a plain tile, never an error box.
 class _PromoArt extends StatelessWidget {
-  const _PromoArt();
+  final _PromoSlide slide;
+
+  const _PromoArt({required this.slide});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 80,
-      height: 96,
+      width: 96,
+      height: 112,
       child: Stack(
         children: [
           Positioned(
             left: 0,
             bottom: 0,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
               child: Image.asset(
-                'assets/categories/gaming.jpg',
-                width: 58,
-                height: 58,
+                slide.artPrimary,
+                width: 68,
+                height: 68,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  width: 58,
-                  height: 58,
+                  width: 68,
+                  height: 68,
                   color: AppColors.tileBackground,
                 ),
               ),
@@ -311,18 +356,18 @@ class _PromoArt extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(color: AppColors.espresso, width: 3),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(17),
                 child: Image.asset(
-                  'assets/categories/mobile.jpg',
-                  width: 52,
-                  height: 52,
+                  slide.artSecondary,
+                  width: 60,
+                  height: 60,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    width: 52,
-                    height: 52,
+                    width: 60,
+                    height: 60,
                     color: AppColors.tileBackground,
                   ),
                 ),

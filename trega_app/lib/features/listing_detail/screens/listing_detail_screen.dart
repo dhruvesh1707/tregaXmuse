@@ -300,7 +300,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
     final expressEligible = expressConfig.isCityEligible(listing.city);
 
     return TregaScaffold(
-      backgroundColor: AppColors.espresso,
+      // Light backdrop, not espresso: the white sheet's rounded top
+      // corners and the overscroll reveal show the backdrop, and a dark
+      // backdrop reads as black corners and a black gap when the sheet
+      // is pulled down. The hero zone paints its own espresso gradient,
+      // and the pinned toolbar keeps its own espresso background, so
+      // nothing dark is lost.
+      backgroundColor: AppColors.surface,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -818,7 +824,7 @@ class _SellerInfo extends ConsumerWidget {
                         ],
                       ),
                       Text(
-                        "★ ${seller?.rating.toStringAsFixed(1) ?? '–'} "
+                        "★ ${seller?.rating.toStringAsFixed(1) ?? '-'} "
                         '· ${seller?.reviewsCount ?? 0} reviews',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
