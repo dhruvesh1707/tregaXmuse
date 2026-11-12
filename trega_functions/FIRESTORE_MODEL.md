@@ -263,6 +263,11 @@ Never store `photo_link` / XML blobs here.
 | read | boolean | clients may only flip this (see `firestore.rules`) |
 | createdAt | timestamp | |
 | data | map | deep-link payload the app opens on tap: `listingId` / `bidId` / `orderId` (only the relevant keys are set) |
+| pushSent | boolean | set by the `onNotificationCreate` trigger when it claims FCM delivery; stops a trigger redelivery from double-sending the push |
+
+Push delivery is async (perf fix, 2026-11-13): callables only write the
+inbox doc and return. The `onNotificationCreate` trigger fires on every
+new doc and sends the matching FCM push, claimed via `pushSent`.
 
 Tap targets (see `trega_app/lib/core/notifications/notification_router.dart`):
 `bid_received` → Offers Received tab · `outbid` → listing detail ·

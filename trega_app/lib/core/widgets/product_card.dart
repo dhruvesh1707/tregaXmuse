@@ -81,6 +81,16 @@ class ProductCard extends ConsumerWidget {
                             child: CachedNetworkImage(
                               imageUrl: product.imageUrls.first,
                               fit: BoxFit.cover,
+                              // Decode at card size, not full camera
+                              // resolution: a 4000px photo decodes to
+                              // ~48 MB of RAM and janks the scroll.
+                              // 600px covers the card at 3x density.
+                              // No disk-cache cap on purpose: the disk
+                              // file is shared with the detail gallery
+                              // by URL, and capping it would soften the
+                              // full-screen view.
+                              memCacheWidth: 600,
+                              memCacheHeight: 600,
                               placeholder: (context, url) => const ShimmerBox(
                                 borderRadius: BorderRadius.zero,
                               ),

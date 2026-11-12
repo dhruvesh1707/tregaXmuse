@@ -44,6 +44,7 @@ import {
   deleteListingHandler,
   onBidCreateHandler,
   onListingCreateHandler,
+  onNotificationCreateHandler,
   placeBidHandler,
   recordListingViewHandler,
   rejectBidHandler,
@@ -64,6 +65,16 @@ import { checkUploadedImage } from "./storageCheck";
 
 admin.initializeApp();
 setGlobalOptions({ region: "asia-south1", maxInstances: 10 });
+
+// Warm instances (perf fix, 2026-11-13): functions scale to zero by
+// default, so the first offer or payment after idle paid a multi-second
+// cold start. The six callables a user waits on (createCashfreeOrder,
+// verifyPayment, placeBid, acceptBid, rejectBid, cancelAcceptance)
+// carry minInstances: 1 + 512MiB, so one instance stays awake and
+// answers at once. Billed idle time, roughly $6-10 per function per
+// month, approved by the founder. Applied per function, never
+// globally: triggers, admin callables, and recordListingView (the app
+// never waits on it) still scale to zero.
 
 const secrets = [BULKPE_API_TOKEN, CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV, KYC_SALT];
 
@@ -90,7 +101,9 @@ export const verifyAadhaarOtp = onCall({ secrets }, async (request) => {
 });
 
 // --------------------------------------------------------- Payments ---------
-export const createCashfreeOrder = onCall({ secrets }, async (request) => {
+export const createCashfreeOrder = onCall(
+  { secrets, minInstances: 1, memory: "512MiB" },
+  async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("payments", { uid, ip: ipOf(request) });
   return createCashfreeOrderHandler(uid, {
@@ -107,7 +120,9 @@ export const createCashfreeOrder = onCall({ secrets }, async (request) => {
  * `paymentStatus: "SUCCESS"`, the SDK's on-device callback alone is never
  * trusted (it only means the sheet reported success on that phone).
  */
-export const verifyPayment = onCall({ secrets }, async (request) => {
+export const verifyPayment = onCall(
+  { secrets, minInstances: 1, memory: "512MiB" },
+  async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("payments", { uid, ip: ipOf(request) });
   return verifyPaymentHandler(uid, request.data?.orderId);
@@ -183,7 +198,9 @@ export const deleteListing = onCall(async (request) => {
   });
 });
 
-export const placeBid = onCall(async (request) => {
+export const placeBid = onCall(
+  { minInstances: 1, memory: "512MiB" },
+  async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("bids", { uid, ip: ipOf(request) });
   return placeBidHandler(uid, {
@@ -203,19 +220,46 @@ export const onBidCreate = onDocumentCreated(
   }
 );
 
-export const acceptBid = onCall(async (request) => {
+/**
+ * New inbox notification → sends the matching FCM push. Push delivery
+ * used to be awaited inside the accept/reject callables, so the seller
+ * waited for pushes to other people before Accept confirmed. Now the
+ * callables only write the inbox doc and return; this trigger delivers
+ * the push asynchronously (perf fix, 2026-11-13). Delivery is claimed
+ * in a transaction inside the handler, so a trigger redelivery never
+ * double-sends. No warm instance on purpose: a cold start only delays
+ * a push by seconds, and the inbox doc itself is immediate.
+ */
+export const onNotificationCreate = onDocumentCreated(
+  "users/{uid}/notifications/{notificationId}",
+  async (event) => {
+    await onNotificationCreateHandler(
+      event.params.uid,
+      event.params.notificationId,
+      event.data?.data()
+    );
+  }
+);
+
+export const acceptBid = onCall(
+  { minInstances: 1, memory: "512MiB" },
+  async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("bids", { uid, ip: ipOf(request) });
   return acceptBidHandler(uid, { bidId: request.data?.bidId });
 });
 
-export const rejectBid = onCall(async (request) => {
+export const rejectBid = onCall(
+  { minInstances: 1, memory: "512MiB" },
+  async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("bids", { uid, ip: ipOf(request) });
   return rejectBidHandler(uid, { bidId: request.data?.bidId });
 });
 
-export const cancelAcceptance = onCall(async (request) => {
+export const cancelAcceptance = onCall(
+  { minInstances: 1, memory: "512MiB" },
+  async (request) => {
   const uid = requireAuthUid(request);
   await rateLimit("bids", { uid, ip: ipOf(request) });
   return cancelAcceptanceHandler(uid, { bidId: request.data?.bidId });

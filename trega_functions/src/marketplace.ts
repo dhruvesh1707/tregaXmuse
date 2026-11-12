@@ -15,7 +15,10 @@ export const NotificationType = {
   listingFlagged: "listing_flagged",
 } as const;
 
-/** Queues one inbox notification on a write batch. */
+/** Queues one inbox notification on a write batch. The matching FCM
+ * push is delivered asynchronously by the `onNotificationCreate`
+ * trigger firing on this doc, never awaited by the caller, so
+ * accept/reject return the moment the batch commits. */
 function queueNotification(
   batch: admin.firestore.WriteBatch,
   uid: string,
@@ -40,22 +43,10 @@ function queueNotification(
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     }
   );
-  // Mirror to FCM: the app already routes push taps via notification_router.
-  pushOutbox.push({
-    uid,
-    title: n.title,
-    body: n.body,
-    type: n.type,
-    listingId: n.data?.listingId,
-    bidId: n.data?.bidId,
-    orderId: n.data?.orderId,
-  });
 }
 
-/** Push outbox: queueNotification() records an FCM job here; the handler
- * delivers it after its batch commits. FCM sends can't run inside the
- * batch, so they're staged here instead. Drained on every flush so a
- * failed commit can't leak a push into the next invocation. */
+/** One FCM push job, built from an inbox notification doc by the
+ * `onNotificationCreate` trigger. */
 type PushJob = {
   uid: string;
   title: string;
@@ -65,7 +56,6 @@ type PushJob = {
   bidId?: string;
   orderId?: string;
 };
-const pushOutbox: PushJob[] = [];
 
 /** Sends one push via FCM. Never throws, a push must not fail the callable. */
 async function sendPush(job: PushJob): Promise<void> {
@@ -113,24 +103,10 @@ async function sendPush(job: PushJob): Promise<void> {
   }
 }
 
-/** Delivers queued pushes; always drains the outbox. */
-async function flushPushOutbox(): Promise<void> {
-  const jobs = pushOutbox.splice(0, pushOutbox.length);
-  await Promise.all(jobs.map(sendPush));
-}
-
-/** Commits the batch, then delivers any queued pushes. If the commit
- * fails, queued pushes are dropped, the inbox write failed too. */
-async function commitAndNotify(
-  batch: admin.firestore.WriteBatch
-): Promise<void> {
-  try {
-    await batch.commit();
-  } catch (e) {
-    pushOutbox.length = 0;
-    throw e;
-  }
-  await flushPushOutbox();
+/** Commits a batch. Push delivery is async (see the
+ * `onNotificationCreate` trigger), so committing is all this does. */
+async function commitBatch(batch: admin.firestore.WriteBatch): Promise<void> {
+  await batch.commit();
 }
 
 function formatINR(amount: number): string {
@@ -232,7 +208,7 @@ export async function reviewListingHandler(
       });
     }
   }
-  await commitAndNotify(batch);
+  await commitBatch(batch);
   return { status };
 }
 
@@ -282,7 +258,7 @@ export async function deleteListingHandler(
     await chunk.commit();
   }
 
-  // Notify the seller (same commitAndNotify pattern as the review
+  // Notify the seller (same commitBatch pattern as the review
   // takedown). No deep-link data, the listing is about to not exist.
   if (sellerId) {
     const batch = db.batch();
@@ -291,7 +267,7 @@ export async function deleteListingHandler(
       title: "Your listing was removed",
       body: `“${title}” was permanently removed by the Trega team and can't be restored.`,
     });
-    await commitAndNotify(batch);
+    await commitBatch(batch);
   }
 
   // Doc + `private` subcollection in one recursive delete.
@@ -370,7 +346,60 @@ export async function onBidCreateHandler(
       body: `Someone bid ${formatINR(amount)} on “${listingTitle}”. Place a higher bid to stay in the race.`,
     });
   }
-  await commitAndNotify(batch);
+  await commitBatch(batch);
+}
+
+/**
+ * Runs on every new inbox notification doc: sends the matching FCM
+ * push. Callables only write the inbox doc and return; this trigger
+ * owns delivery, so no user ever waits on a push send (perf fix,
+ * 2026-11-13). Covers every server-written notification, including
+ * the KYC verdicts written by admin.ts.
+ *
+ * Delivery is claimed in a transaction first: Firestore triggers can
+ * redeliver, and the `pushSent` marker stops a second push. The claim
+ * happens before the send; sendPush never throws, so a claimed push
+ * is always attempted. A doc without title/body/type is skipped, it
+ * was never meant to be a push.
+ */
+export async function onNotificationCreateHandler(
+  uid: string,
+  notificationId: string,
+  doc: admin.firestore.DocumentData | undefined
+): Promise<void> {
+  if (!doc) return;
+  const title = doc.title as string | undefined;
+  const body = doc.body as string | undefined;
+  const type = doc.type as string | undefined;
+  if (!title || !body || !type) return;
+  const link = (doc.data as
+    | { listingId?: string; bidId?: string; orderId?: string }
+    | undefined) ?? {};
+
+  const db = admin.firestore();
+  const ref = db
+    .collection("users")
+    .doc(uid)
+    .collection("notifications")
+    .doc(notificationId);
+  const claimed = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return false;
+    if (snap.data()?.pushSent === true) return false;
+    tx.update(ref, { pushSent: true });
+    return true;
+  });
+  if (!claimed) return;
+
+  await sendPush({
+    uid,
+    title,
+    body,
+    type,
+    listingId: link.listingId,
+    bidId: link.bidId,
+    orderId: link.orderId,
+  });
 }
 
 /** Buyer places a structured offer/bid on a live listing. No chat involved. */
@@ -516,7 +545,7 @@ export async function acceptBidHandler(
       body: `Your ${formatINR(loser.amount)} bid on “${listingTitle}” wasn't accepted. The item went to someone else.`,
     });
   }
-  await commitAndNotify(batch);
+  await commitBatch(batch);
   return { accepted: true as const };
 }
 
@@ -564,7 +593,7 @@ export async function rejectBidHandler(
     title: "Offer not accepted",
     body: `Your ${formatINR(bid.amount as number)} offer on “${listingTitle}” wasn't accepted. You can send a new offer.`,
   });
-  await commitAndNotify(batch);
+  await commitBatch(batch);
   return { rejected: true as const };
 }
 
@@ -626,7 +655,7 @@ export async function cancelAcceptanceHandler(
     title: "Accepted offer cancelled",
     body: `The seller cancelled your accepted offer on “${listingTitle}”. The listing is open for offers again.`,
   });
-  await commitAndNotify(batch);
+  await commitBatch(batch);
   return { cancelled: true as const };
 }
 

@@ -136,6 +136,10 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
 
   final List<XFile> _pickedMedia = [];
 
+  /// Most photos a listing can carry. Caps upload time and feed weight;
+  /// the photo step shows the cap next to the Add tile.
+  static const _maxPhotos = 8;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -151,10 +155,23 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   }
 
   /// Camera-only capture (policy: no gallery uploads). One photo per tap,
-  /// tapping "Add" again captures another.
+  /// tapping "Add" again captures another, up to [_maxPhotos].
+  ///
+  /// Photos are capped at 2048px on the long side at capture: a phone
+  /// screen shows ~1080px, so 2048 stays sharp even under deep zoom,
+  /// while full camera resolution (4000px+) only made uploads and the
+  /// feed slow. Quality stays 85.
   Future<void> _pickMedia() async {
-    final file = await ImagePicker()
-        .pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (_pickedMedia.length >= _maxPhotos) {
+      setState(() => _error = 'You can add up to $_maxPhotos photos.');
+      return;
+    }
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 2048,
+      maxHeight: 2048,
+    );
     if (file == null) return;
     setState(() => _pickedMedia.add(file));
     _saveDraft();
@@ -465,6 +482,18 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
 static bool _isValidUpi(String upi) =>
       RegExp(r'^[\w.\-]{2,64}@[a-zA-Z]{2,64}$').hasMatch(upi);
 
+  /// Remembers the pickup address (deduped) and payout UPI for next
+  /// time. Runs alongside the uploads during publish.
+  Future<void> _rememberAddressAndUpi(
+      String uid, SavedAddress address, String upi,) async {
+    final firestore = ref.read(firestoreServiceProvider);
+    final existing = await firestore.getSavedAddresses(uid);
+    if (!existing.any((a) => a.sameAs(address))) {
+      await firestore.saveAddress(uid, address);
+    }
+    await firestore.savePayoutUpi(uid, upi);
+  }
+
   Future<void> _publish() async {
     final title = _titleController.text.trim();
     final price = _parsedPrice;
@@ -562,28 +591,11 @@ static bool _isValidUpi(String upi) =>
       );
 
       // 2) Upload media to Storage, then attach URLs to the listing.
-      if (_pickedMedia.isNotEmpty) {
-        final imageUrls =
-            await storage.uploadListingImages(listingId, _pickedMedia);
-        await firestore.updateListingMedia(listingId, imageUrls);
-      }
-
       // 3) Owner-only pickup address, never on the public listing doc.
-      // The payout UPI rides along so the team can release this sale's
-      // payout even if the seller changes it later.
-      await firestore.saveListingPrivateDetails(
-        listingId,
-        pickupAddress: {
-          'line1': line1,
-          'line2': line2,
-          'city': city,
-          'state': state,
-          'pincode': pin,
-          'payoutUpi': upi,
-        },
-      );
-
       // 4) Remember the address + UPI for next time (dedupe addresses).
+      // These three only depend on the listing id, never on each
+      // other, so they run together instead of one after another.
+      // Any failure lands in the catch below, same as before.
       final address = SavedAddress(
         id: '',
         line1: line1,
@@ -593,11 +605,29 @@ static bool _isValidUpi(String upi) =>
         pincode: pin,
         createdAt: DateTime.now(),
       );
-      final existing = await firestore.getSavedAddresses(uid);
-      if (!existing.any((a) => a.sameAs(address))) {
-        await firestore.saveAddress(uid, address);
-      }
-      await firestore.savePayoutUpi(uid, upi);
+      await Future.wait<void>([
+        // Uploads (parallel inside) then attach the URLs.
+        _pickedMedia.isEmpty
+            ? Future<void>.value()
+            : storage.uploadListingImages(listingId, _pickedMedia).then(
+                  (imageUrls) =>
+                      firestore.updateListingMedia(listingId, imageUrls),
+                ),
+        // The payout UPI rides along so the team can release this
+        // sale's payout even if the seller changes it later.
+        firestore.saveListingPrivateDetails(
+          listingId,
+          pickupAddress: {
+            'line1': line1,
+            'line2': line2,
+            'city': city,
+            'state': state,
+            'pincode': pin,
+            'payoutUpi': upi,
+          },
+        ),
+        _rememberAddressAndUpi(uid, address, upi),
+      ]);
 
       if (!mounted) return;
       // Celebration beats a snackbar: the listing is live, take a beat.
@@ -968,7 +998,7 @@ static bool _isValidUpi(String upi) =>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Use your camera to capture the real product: clear, well-lit photos sell faster. Gallery uploads are disabled for trust & safety.',
+                        'Use your camera to capture the real product: clear, well-lit photos sell faster. Gallery uploads are disabled for trust & safety. Up to $_maxPhotos photos.',
                         style:
                             Theme.of(context).textTheme.bodySmall,
                       ),
