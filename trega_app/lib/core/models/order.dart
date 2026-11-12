@@ -90,6 +90,13 @@ class Order {
   final String? trackingId;
   final String? pickupAddress;
   final String? deliveryAddress;
+  /// Purchase-time snapshot of the listing's title and first photo,
+  /// written server-side by `createCashfreeOrder`. The card shows the
+  /// live listing when it still exists and falls back to this snapshot
+  /// when the listing was deleted, so an order never degrades to a
+  /// bare listing id. Null on orders placed before the snapshot existed.
+  final String? listingTitle;
+  final String? listingPhotoUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -102,6 +109,8 @@ class Order {
     this.trackingId,
     this.pickupAddress,
     this.deliveryAddress,
+    this.listingTitle,
+    this.listingPhotoUrl,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -141,12 +150,14 @@ class Order {
 ///
 /// Canonical fields: `listingId`, `bidId?`, `buyerId`, `sellerId`, `amount`,
 /// `currency`, `paymentStatus`, `status`, `cfOrderId?`, `trackingNote?`,
-/// `paidAt?`, `createdAt`.
+/// `listingTitle?`, `listingPhotoUrl?`, `paidAt?`, `createdAt`.
 ///
 /// Orders are created server-side by the `createCashfreeOrder` callable,
-/// clients never write order docs directly. The order doc carries no listing
-/// snapshot, so the nested [Listing] is a minimal placeholder (id only);
-/// UI resolves the title/photo via the listing doc when needed.
+/// clients never write order docs directly. The order doc carries no full
+/// listing snapshot, so the nested [Listing] is a minimal placeholder (id
+/// only); UI resolves the title/photo via the listing doc when needed,
+/// falling back to the purchase-time `listingTitle`/`listingPhotoUrl`
+/// snapshot when the listing is gone.
 extension OrderFirestore on Order {
   static Order fromFirestore(Map<String, dynamic> data, String docId) {
     final listingId = data['listingId'] as String? ?? '';
@@ -171,6 +182,8 @@ extension OrderFirestore on Order {
       amount: (data['amount'] as num? ?? 0).toDouble(),
       status: OrderStatusLabel.fromWire(data['status'] as String? ?? ''),
       trackingId: data['trackingNote'] as String?,
+      listingTitle: data['listingTitle'] as String?,
+      listingPhotoUrl: data['listingPhotoUrl'] as String?,
       createdAt: firestoreDate(data['createdAt']),
       updatedAt: firestoreDate(data['createdAt']),
     );

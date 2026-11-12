@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -276,19 +277,30 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
               appBar: TregaAppBar(),
               body: const Center(child: CircularProgressIndicator()),
             ),
-      error: (e, __) => initial != null
-          ? _buildContent(context, initial)
-          : TregaScaffold(
-              appBar: TregaAppBar(),
-              body: SafeArea(
-                child: errorStateFor(
-                  e,
-                  title: 'Couldn\'t load this listing',
-                  onRetry: () =>
-                      ref.invalidate(listingDetailProvider(listingId)),
-                ),
-              ),
+      error: (e, __) {
+        if (initial != null) return _buildContent(context, initial);
+        // Archived listings (sold 48h+ ago) deny single-doc reads to
+        // anyone but the seller, the buyer and admins. That denial is
+        // "no longer available", not a load error, so no retry button.
+        if (e is FirebaseException && e.code == 'permission-denied') {
+          return TregaScaffold(
+            appBar: TregaAppBar(),
+            body: const Center(
+                child: Text('This listing is no longer available.')),
+          );
+        }
+        return TregaScaffold(
+          appBar: TregaAppBar(),
+          body: SafeArea(
+            child: errorStateFor(
+              e,
+              title: 'Couldn\'t load this listing',
+              onRetry: () =>
+                  ref.invalidate(listingDetailProvider(listingId)),
             ),
+          ),
+        );
+      },
     );
   }
 

@@ -59,7 +59,22 @@ service cloud.firestore {
     // listings after the fact). Clients never write `status` directly.
     // Only Aadhaar-verified users may sell (verified via BulkPe KYC).
     match /listings/{listingId} {
-      allow read: if true; // live listings are public; queries filter status
+      // Seller, buyer (`soldTo`, set at payment time) or admin: the only
+      // parties who may read an archived listing (sold 48h+ ago).
+      function isListingParty() {
+        return isAdmin()
+          || (signedIn()
+            && (resource.data.sellerId == request.auth.uid
+              || resource.data.get('soldTo', null) == request.auth.uid));
+      }
+      // Public view ends 48h after a sale: the hourly archiver flips sold
+      // listings to `archived`, and single-doc reads of archived listings
+      // are restricted to the parties above. List queries stay open (rules
+      // are not filters); the app's feed, search and category queries
+      // already exclude non-live listings, and the wishlist filters to
+      // live client-side.
+      allow get: if resource.data.status != 'archived' || isListingParty();
+      allow list: if true;
       allow create: if signedIn()
         && request.resource.data.sellerId == request.auth.uid
         && request.resource.data.status == 'draft'
@@ -87,7 +102,9 @@ service cloud.firestore {
       );
       allow delete: if signedIn()
         && resource.data.sellerId == request.auth.uid
-        && resource.data.status != 'sold'; // sold items stay for order records
+        && resource.data.status != 'sold' // sold items stay for order records
+        && resource.data.status != 'archived' // sold 48h+ ago, same order records
+        && resource.data.get('acceptedBidId', null) == null; // an accepted offer reserves the listing for the buyer until they pay
 
       // ── listings/{listingId}/private/{docId} ───────────────────
       // Owner-only listing data (pickup address). Never on the public

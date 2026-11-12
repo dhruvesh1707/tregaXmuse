@@ -33,6 +33,8 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// - `recordListingView` ({listingId}) -> {counted, viewCount}, IG-style
 ///   view counter: call only after 3s of continuous detail visibility
 /// - `deleteAccount` () -> {deleted}, wipes the account completely
+/// - `deleteOwnListing` ({listingId}) -> {deleted}, seller deletes their
+///   own listing; refused when sold or an offer is accepted
 /// - `reviewListing` ({listingId, approve, reason?}) -> {success, status}
 ///   (admin custom claim only)
 class FunctionsService {
@@ -144,6 +146,18 @@ class FunctionsService {
   Future<void> recordListingView({required String listingId}) async {
     await _functions
         .httpsCallable('recordListingView')
+        .call({'listingId': listingId});
+  }
+
+  // ---------------------------------------------------------- listings
+
+  /// Deletes the caller's own listing, server-side: bids, doc, private
+  /// details and media. Refused when the listing is sold or has an
+  /// accepted offer (the offer reserves it for the buyer until they pay).
+  /// The UI confirms explicitly before calling this.
+  Future<void> deleteOwnListing({required String listingId}) async {
+    await _functions
+        .httpsCallable('deleteOwnListing')
         .call({'listingId': listingId});
   }
 

@@ -5,6 +5,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -55,6 +56,12 @@ class MyListingsScreen extends ConsumerWidget {
           fg: AppColors.primaryDark,
           label: 'Sold'
         );
+      case ListingStatus.archived:
+        return (
+          bg: AppColors.tileBackground,
+          fg: AppColors.textSecondary,
+          label: 'Archived'
+        );
       case ListingStatus.rejected:
         return (
           bg: const Color(0xFFFDECEA),
@@ -88,7 +95,9 @@ class MyListingsScreen extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
     try {
-      await ref.read(firestoreServiceProvider).deleteListing(listing.id);
+      await ref
+          .read(functionsServiceProvider)
+          .deleteOwnListing(listingId: listing.id);
       if (!context.mounted) return;
       await showTregaToast(
         context,
@@ -96,11 +105,13 @@ class MyListingsScreen extends ConsumerWidget {
         title: 'Listing deleted',
         kind: TregaToastKind.info,
       );
-    } catch (_) {
+    } catch (e) {
       if (!context.mounted) return;
       await showTregaToast(
         context,
-        'Could not delete this listing right now. Try again.',
+        functionsErrorMessage(e,
+            fallback:
+                'Could not delete this listing right now. Try again.',),
         title: 'Something went wrong',
         kind: TregaToastKind.error,
       );
@@ -208,6 +219,14 @@ class MyListingsScreen extends ConsumerWidget {
                         listing.product.imageUrls.isNotEmpty
                             ? listing.product.imageUrls.first
                             : null;
+                    // Sold and archived listings stay for order records,
+                    // and an accepted offer reserves the listing for the
+                    // buyer until they pay, so none of those can be
+                    // deleted. The server enforces the same guards.
+                    final canDelete =
+                        listing.status != ListingStatus.sold &&
+                            listing.status != ListingStatus.archived &&
+                            listing.acceptedBidId == null;
                     return Entrance(
                       index: i % 8,
                       child: Slidable(
@@ -233,8 +252,7 @@ class MyListingsScreen extends ConsumerWidget {
                         motion: const DrawerMotion(),
                         extentRatio: 0.3,
                         children: [
-                          if (listing.status !=
-                              ListingStatus.sold)
+                          if (canDelete)
                             SlidableAction(
                               onPressed: (_) => _confirmDelete(
                                   context, ref, listing,),
@@ -330,6 +348,17 @@ class MyListingsScreen extends ConsumerWidget {
                                 background: chip.bg,
                                 foreground: chip.fg,
                               ),
+                              if (canDelete)
+                                IconButton(
+                                  onPressed: () => _confirmDelete(
+                                      context, ref, listing,),
+                                  tooltip: 'Delete listing',
+                                  visualDensity: VisualDensity.compact,
+                                  icon: const Icon(
+                                    PhosphorIconsRegular.trash,
+                                    color: AppColors.error,
+                                  ),
+                                ),
                             ],
                                 ),
                               ),

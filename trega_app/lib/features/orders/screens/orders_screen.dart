@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
@@ -153,8 +154,11 @@ class _OrdersList extends StatelessWidget {
   }
 }
 
-/// Order card; resolves the listing title/photo via the listing stream
-/// (canonical order docs carry no listing snapshot).
+/// Order card: the listing's first photo as a small thumbnail plus its
+/// name. Title/photo resolve from the live listing when it still exists,
+/// fall back to the purchase-time snapshot on the order doc when the
+/// listing was deleted, and show "Listing unavailable" when neither
+/// exists, never a bare listing id.
 class _OrderCard extends ConsumerWidget {
   final Order order;
 
@@ -163,6 +167,15 @@ class _OrderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listingId = order.listing.id;
+    final listingAsync = ref.watch(listingDetailProvider(listingId));
+    final live = listingAsync.valueOrNull;
+    final livePhoto = live != null && live.product.imageUrls.isNotEmpty
+        ? live.product.imageUrls.first
+        : null;
+    final title = live?.product.title ??
+        order.listingTitle ??
+        (listingAsync.isLoading ? null : 'Listing unavailable');
+    final photoUrl = livePhoto ?? order.listingPhotoUrl;
     return Pressable(
       child: Container(
         decoration: BoxDecoration(
@@ -185,43 +198,51 @@ class _OrderCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _OrderThumbnail(photoUrl: photoUrl),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: ref
-                        .watch(listingDetailProvider(listingId))
-                        .when(
-                          data: (listing) => Text(
-                            listing?.product.title ?? 'Listing $listingId',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          loading: () => Text(
-                            'Listing $listingId',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          error: (_, __) => Text(
-                            'Listing $listingId',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: title == null
+                                  ? const ShimmerBox(
+                                      width: 140,
+                                      height: 14,
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(7),
+                                      ),
+                                    )
+                                  : Text(
+                                      title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall,
+                                    ),
+                            ),
+                            StatusChip.order(
+                              order.status.label,
+                              isTerminal: order.status.isTerminal,
+                            ),
+                          ],
                         ),
-                  ),
-                  StatusChip.order(
-                    order.status.label,
-                    isTerminal: order.status.isTerminal,
+                        const SizedBox(height: 4),
+                        Text(
+                          'Order ${order.id.toUpperCase()} · ${timeAgo(order.createdAt)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Order ${order.id.toUpperCase()} · ${timeAgo(order.createdAt)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
               Row(
@@ -255,6 +276,49 @@ class _OrderCard extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Small rounded thumbnail for an order card, 48px like a profile pic.
+/// Decoded small; no disk-cache cap on purpose, the disk file is shared
+/// with the listing detail gallery by URL.
+class _OrderThumbnail extends StatelessWidget {
+  final String? photoUrl;
+
+  const _OrderThumbnail({required this.photoUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    if (photoUrl == null) return _fallback();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: CachedNetworkImage(
+        imageUrl: photoUrl!,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        memCacheWidth: 200,
+        memCacheHeight: 200,
+        placeholder: (context, url) => _fallback(),
+        errorWidget: (context, url, error) => _fallback(),
+      ),
+    );
+  }
+
+  Widget _fallback() {
+    return Container(
+      width: 48,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: AppColors.tileBackground,
+      ),
+      child: const Icon(
+        PhosphorIconsRegular.image,
+        color: AppColors.primary,
       ),
     );
   }

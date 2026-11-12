@@ -351,12 +351,28 @@ export async function createCashfreeOrderHandler(
     );
   }
 
+  // The listing must still exist: a seller cannot delete a listing with
+  // an accepted offer, but if it vanished anyway, fail here rather than
+  // taking money for an item that is gone. Its title and first photo are
+  // snapshotted onto the order doc so the buyer's order card keeps
+  // showing what was bought even after the listing is later deleted.
+  const listingSnap = await listingRef.get();
+  const listing = listingSnap.data();
+  if (!listingSnap.exists || !listing) {
+    throw new HttpsError("not-found", "This listing is no longer available.");
+  }
+  const listingPhotos = Array.isArray(listing.photos) ? listing.photos : [];
+  const listingPhotoUrl =
+    typeof listingPhotos[0] === "string" ? listingPhotos[0] : undefined;
+
   // 1. Create the order doc first (payment PENDING).
   const orderRef = db.collection("orders").doc();
   const orderId = orderRef.id;
   const cfOrderIdStr = `trega_${orderId}`;
   await orderRef.set({
     listingId: listingRef.id,
+    listingTitle: (listing.title as string | undefined) ?? "",
+    ...(listingPhotoUrl ? { listingPhotoUrl } : {}),
     ...(bidId ? { bidId } : {}),
     ...(deliveryAddress ? { deliveryAddress } : {}),
     buyerId: uid,
@@ -543,6 +559,7 @@ async function applyPaymentSuccess(
   batch.update(db.collection("listings").doc(order.listingId as string), {
     status: "sold",
     soldAt: admin.firestore.FieldValue.serverTimestamp(),
+    soldTo: order.buyerId as string,
   });
   // Reject any other open bids on the listing.
   const bidsSnap = await db

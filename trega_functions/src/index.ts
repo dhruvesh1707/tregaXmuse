@@ -21,6 +21,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 
 import {
@@ -40,8 +41,10 @@ import {
 } from "./payments";
 import {
   acceptBidHandler,
+  archiveSoldListingsHandler,
   cancelAcceptanceHandler,
   deleteListingHandler,
+  deleteOwnListingHandler,
   onBidCreateHandler,
   onListingCreateHandler,
   onNotificationCreateHandler,
@@ -197,6 +200,35 @@ export const deleteListing = onCall(async (request) => {
     listingId: request.data?.listingId,
   });
 });
+
+/**
+ * Seller deletes their own listing (My Listings). Refused when the
+ * listing is sold or has an accepted offer; the accepted offer reserves
+ * it for the winning buyer until they pay.
+ */
+export const deleteOwnListing = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("listingDelete", { uid, ip: ipOf(request) });
+  return deleteOwnListingHandler(uid, {
+    listingId: request.data?.listingId,
+  });
+});
+
+/**
+ * Hourly: archive sold listings older than 48h so they leave the public
+ * view (single-doc reads of archived listings are restricted to the
+ * seller, the buyer and admins). Runs on the service account, no auth.
+ */
+export const archiveSoldListings = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    region: "asia-south1",
+  },
+  async () => {
+    const { archived } = await archiveSoldListingsHandler();
+    logger.info("archiveSoldListings: archived listings", { archived });
+  }
+);
 
 export const placeBid = onCall(
   { minInstances: 1, memory: "512MiB" },

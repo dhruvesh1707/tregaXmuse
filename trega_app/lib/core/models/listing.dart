@@ -7,13 +7,16 @@ import 'user.dart';
 /// Clients create listings as [draft]; the `onListingCreate` trigger flips
 /// them to [live] immediately (reactive moderation, the team flags
 /// suspicious listings after the fact). [pending] is kept only for legacy
-/// docs; [rejected] is now the flag/takedown state. Clients never write
+/// docs; [rejected] is now the flag/takedown state. [archived] is a sold
+/// listing 48h after payment: it leaves the public view and only the
+/// seller, the buyer and admins can still read it. Clients never write
 /// status directly.
 enum ListingStatus {
   draft,
   pending,
   live,
   sold,
+  archived,
   rejected,
 }
 
@@ -28,6 +31,8 @@ extension ListingStatusLabel on ListingStatus {
         return 'Live';
       case ListingStatus.sold:
         return 'Sold';
+      case ListingStatus.archived:
+        return 'Archived';
       case ListingStatus.rejected:
         return 'Rejected';
     }
@@ -146,7 +151,7 @@ class Listing {
 /// `sellerId`, `title`, `description`, `categoryId`, `price`,
 /// `condition` (`brand_new`…), `photos[]`, `videoUrl?`, `status`
 /// (`draft`→`live` immediately on publish; `pending` legacy;
-/// `sold`/`rejected`), `viewCount`, `createdAt`.
+/// `sold` on payment, `archived` 48h later; `rejected`), `viewCount`, `createdAt`.
 ///
 /// Additive (client-managed) fields not in the canonical doc:
 /// `likedBy[]` / `likesCount` (wishlist). `negotiable`/`biddingEnabled` are

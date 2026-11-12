@@ -3,7 +3,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { assertAmount, assertDocId, assertText } from "./validate";
 import { minListPrice, readFeeConfig } from "./payments";
 
-export type ListingStatus = "draft" | "pending" | "live" | "sold" | "rejected";
+export type ListingStatus = "draft" | "pending" | "live" | "sold" | "archived" | "rejected";
 export type BidStatus = "open" | "accepted" | "rejected" | "expired" | "countered";
 
 /** Notification kinds written to `users/{uid}/notifications`. */
@@ -213,13 +213,53 @@ export async function reviewListingHandler(
 }
 
 /**
+ * Deletes everything a listing owns: its bids, the doc plus the `private`
+ * subcollection (recursive delete), and its media files (best-effort).
+ * Shared by the admin takedown and the seller's own delete; the guards
+ * and notifications differ, the deletion itself is identical.
+ */
+async function deleteListingRecords(
+  db: admin.firestore.Firestore,
+  listingId: string
+): Promise<void> {
+  // Bids on this listing (single-field query, no composite index needed).
+  // Deleted in batch-sized chunks; bid counts per listing are small, but
+  // the loop keeps a pathological case under the 500-write batch limit.
+  const bidsSnap = await db
+    .collection("bids")
+    .where("listingId", "==", listingId)
+    .get();
+  for (let i = 0; i < bidsSnap.docs.length; i += 400) {
+    const chunk = db.batch();
+    for (const doc of bidsSnap.docs.slice(i, i + 400)) chunk.delete(doc.ref);
+    await chunk.commit();
+  }
+
+  // Doc + `private` subcollection in one recursive delete.
+  await db.recursiveDelete(db.collection("listings").doc(listingId));
+
+  // Media last, best-effort: if this fails the listing is still gone from
+  // the app, and orphaned files under the prefix are inert. Never fail
+  // the callable over cleanup (mirrors account.ts).
+  try {
+    const bucket = admin.storage().bucket();
+    const [files] = await bucket.getFiles({
+      prefix: `listingMedia/${listingId}/`,
+    });
+    await Promise.all(files.map((f) => f.delete().catch(() => undefined)));
+  } catch {
+    // best-effort cleanup only
+  }
+}
+
+/**
  * Permanent admin delete, the hard counterpart to reviewListing's reject.
  * Removes the listing doc (recursiveDelete also clears its `private`
  * subcollection), every bid placed on it, and its Storage media under
- * `listingMedia/{listingId}/`. Sold listings are refused: an order
- * references them, so their record must stay. The seller is notified via
- * the same listing_flagged inbox type the app already renders for
- * takedowns, only the wording says the removal is permanent.
+ * `listingMedia/{listingId}/`. Sold and archived listings are refused: an
+ * order references them, so their record must stay. The seller is
+ * notified via the same listing_flagged inbox type the app already
+ * renders for takedowns, only the wording says the removal is permanent.
  */
 export async function deleteListingHandler(
   isAdmin: boolean,
@@ -236,7 +276,10 @@ export async function deleteListingHandler(
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "Listing not found.");
   const data = snap.data()!;
-  if ((data.status as ListingStatus | undefined) === "sold") {
+  if (
+    (data.status as ListingStatus | undefined) === "sold" ||
+    (data.status as ListingStatus | undefined) === "archived"
+  ) {
     throw new HttpsError(
       "failed-precondition",
       "Sold listings can't be deleted. An order references them."
@@ -244,19 +287,6 @@ export async function deleteListingHandler(
   }
   const sellerId = data.sellerId as string | undefined;
   const title = (data.title as string | undefined) ?? "Your listing";
-
-  // Bids on this listing (single-field query, no composite index needed).
-  // Deleted in batch-sized chunks; bid counts per listing are small, but
-  // the loop keeps a pathological case under the 500-write batch limit.
-  const bidsSnap = await db
-    .collection("bids")
-    .where("listingId", "==", listingId)
-    .get();
-  for (let i = 0; i < bidsSnap.docs.length; i += 400) {
-    const chunk = db.batch();
-    for (const doc of bidsSnap.docs.slice(i, i + 400)) chunk.delete(doc.ref);
-    await chunk.commit();
-  }
 
   // Notify the seller (same commitBatch pattern as the review
   // takedown). No deep-link data, the listing is about to not exist.
@@ -270,23 +300,93 @@ export async function deleteListingHandler(
     await commitBatch(batch);
   }
 
-  // Doc + `private` subcollection in one recursive delete.
-  await db.recursiveDelete(ref);
-
-  // Media last, best-effort: if this fails the listing is still gone from
-  // the app, and orphaned files under the prefix are inert. Never fail
-  // the callable over cleanup (mirrors account.ts).
-  try {
-    const bucket = admin.storage().bucket();
-    const [files] = await bucket.getFiles({
-      prefix: `listingMedia/${listingId}/`,
-    });
-    await Promise.all(files.map((f) => f.delete().catch(() => undefined)));
-  } catch {
-    // best-effort cleanup only
-  }
+  await deleteListingRecords(db, listingId);
 
   return { deleted: true };
+}
+
+/**
+ * Seller deletes their own listing: bids, doc, private details and media
+ * all go (same deletion as the admin takedown, no seller notification,
+ * the seller did it themselves).
+ *
+ * Guards: the caller must own the listing, it must not be sold, and it
+ * must not have an accepted offer. An accepted offer reserves the
+ * listing for the winning buyer until they pay, deleting it would strand
+ * their checkout, so the seller must cancel the acceptance first (or let
+ * the sale complete, after which the listing is sold and undeletable).
+ */
+export async function deleteOwnListingHandler(
+  uid: string,
+  input: { listingId?: string }
+): Promise<{ deleted: true }> {
+  const { listingId } = input;
+  assertDocId(listingId, "listingId");
+
+  const db = admin.firestore();
+  const ref = db.collection("listings").doc(listingId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Listing not found.");
+  const data = snap.data()!;
+  if (data.sellerId !== uid) {
+    throw new HttpsError(
+      "permission-denied",
+      "You can only delete your own listings."
+    );
+  }
+  if (
+    (data.status as ListingStatus | undefined) === "sold" ||
+    (data.status as ListingStatus | undefined) === "archived"
+  ) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Sold listings can't be deleted. An order references them."
+    );
+  }
+  if (typeof data.acceptedBidId === "string" && data.acceptedBidId !== "") {
+    throw new HttpsError(
+      "failed-precondition",
+      "This listing has an accepted offer. Cancel the acceptance before deleting it."
+    );
+  }
+
+  await deleteListingRecords(db, listingId);
+  return { deleted: true };
+}
+
+/**
+ * Hourly archiver: a sold listing leaves the public view 48 hours after
+ * the sale. It flips to `archived`, after which single-doc reads are
+ * restricted to the seller, the buyer (`soldTo`) and admins (see
+ * firestore.rules). The feed, search and category queries already
+ * exclude non-live listings, so nothing else changes.
+ *
+ * Single-field query + in-code time filter (no composite index): sold
+ * counts are small, and the job is idempotent, a listing already
+ * archived is never matched again. Listings with no `soldAt` clock are
+ * skipped and stay public.
+ */
+export async function archiveSoldListingsHandler(): Promise<{
+  archived: number;
+}> {
+  const db = admin.firestore();
+  const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+  const snap = await db
+    .collection("listings")
+    .where("status", "==", "sold")
+    .limit(200)
+    .get();
+  let archived = 0;
+  const batch = db.batch();
+  for (const doc of snap.docs) {
+    const soldAt = doc.data()?.soldAt as admin.firestore.Timestamp | undefined;
+    const soldMs = soldAt?.toMillis?.() ?? 0;
+    if (soldMs === 0 || soldMs > cutoff) continue;
+    batch.update(doc.ref, { status: "archived" satisfies ListingStatus });
+    archived++;
+  }
+  if (archived > 0) await batch.commit();
+  return { archived };
 }
 
 /**

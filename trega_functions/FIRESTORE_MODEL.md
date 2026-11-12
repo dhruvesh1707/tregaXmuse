@@ -137,11 +137,12 @@ false` for clients).
 | condition | string | `brand_new` \| `like_new` \| `good` \| `fair` |
 | photos | string[] | Storage URLs |
 | videoUrl | string? | Storage URL (video-verified listing) |
-| status | string | `draft` → `live` → `sold`, or `rejected` (`pending` kept for legacy docs) |
+| status | string | `draft` → `live` → `sold` → `archived` (48h after payment), or `rejected` (`pending` kept for legacy docs) |
 | rejectionReason | string? | set when flagged/rejected |
 | acceptedBidId | string? | bids/{id} once seller accepts an offer |
+| soldTo | string? | buyer uid, set when payment succeeds; gates who may still read the listing after it archives |
 | viewCount | number | IG-style counter: incremented ONLY by the `recordListingView` callable (3s detail-screen dwell, seller self-views never count, 1h per-viewer cooldown). Clients cannot write it (see `firestore.rules`). |
-| liveAt / soldAt | timestamp? | lifecycle markers |
+| liveAt / soldAt | timestamp? | lifecycle markers; `soldAt` starts the 48h clock to `archived` |
 | createdAt | timestamp | |
 | city | string | denormalized from the seller's pickup address at publish time; drives Trega Express eligibility |
 
@@ -149,7 +150,15 @@ Write rule of thumb: clients create with `status: "draft"`; the
 `onListingCreate` trigger flips it to `live` immediately and notifies
 admins (reactive moderation, the team reviews new listings and flags
 suspicious ones after the fact). `reviewListing` (admin claim) may set
-`live`/`rejected` from `live` or legacy `pending`.
+`live`/`rejected` from `live` or legacy `pending`. Payment flips a
+listing to `sold` (`applyPaymentSuccess`, shared by the webhook and
+`verifyPayment`); the hourly `archiveSoldListings` schedule flips `sold`
+listings older than 48h to `archived`, after which single-doc reads are
+restricted to the seller, the buyer (`soldTo`) and admins
+(`firestore.rules`: `allow get` conditional, `allow list` open, since
+rules are not filters and the app's queries already exclude non-live
+listings). Neither `sold` nor `archived` listings can be deleted
+(callables and rules enforce this, an order references them).
 
 ### `listingViews/{listingId}_{viewerUid}`
 
@@ -198,6 +207,8 @@ Never on the public listing doc. Readable only by the seller and admins
 | Field | Type | Notes |
 |---|---|---|
 | listingId | string | |
+| listingTitle | string | purchase-time snapshot of the listing title, written by `createCashfreeOrder`; the order card falls back to it when the listing was deleted |
+| listingPhotoUrl | string? | purchase-time snapshot of the listing's first photo, same fallback; absent when the listing had no photo |
 | bidId | string? | set when the order came from an accepted bid |
 | buyerId / sellerId | string | |
 | amount | number | INR, always set server-side |
@@ -342,6 +353,13 @@ Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
   listing still `live`. Marks the bid `rejected`, clears
   `listings/{id}.acceptedBidId`, notifies the buyer; the listing is open for
   offers again (used when the winner never pays).
+- `deleteOwnListing({listingId})`, seller only; the caller must own the
+  listing, it must not be `sold`, and it must have no `acceptedBidId` (an
+  accepted offer reserves the listing for the winner until they pay).
+  Deletes the bids, the doc plus its `private` subcollection, and the
+  media files. The admin takedown `deleteListing` shares the same deletion
+  and additionally notifies the seller. Firestore rules enforce the same
+  guards on direct client deletes.
 - `createCashfreeOrder({listingId?, bidId?, customerPhone, deliveryAddress?})`
  `deliveryAddress` is required when `bidId` is set (accepted-offer
   checkout), validated server-side and stored on the order; the `bidId` path
