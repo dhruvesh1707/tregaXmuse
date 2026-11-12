@@ -38,10 +38,10 @@ const _homeHeaderGradient = LinearGradient(
 
 /// How far the promo cards overlap the header: exactly half the
 /// 168-tall promo card. The header container extends down by this
-/// amount below the category rail, and the carousel is translated up
-/// by the same amount, so each card sits half on the espresso header
-/// and half on the cream body. The header stays one surface, the
-/// same gradient container, only taller.
+/// amount below the category rail, and the carousel is Positioned
+/// over the seam inside the same Stack sliver, so each card sits half
+/// on the espresso header and half on the cream body. The header stays
+/// one surface, the same gradient container, only taller.
 const _promoCardOverlap = 84.0;
 
 /// Main marketplace feed: search entry, "Explore by Passion" categories,
@@ -182,74 +182,88 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+                // Header + promo cards in ONE sliver. The sizing Column
+                // holds the espresso header (extended down by the
+                // overlap) plus room for the card's lower half, and the
+                // carousel is Positioned over the seam, so each card
+                // sits half on the header and half on the cream body.
+                // The carousel stays fully inside the Stack's layout
+                // box, so it paints and hit-tests in full. (The earlier
+                // Transform.translate overlap did not render on device
+                // at all on ab387abd6f, so it is not used here.)
                 SliverToBoxAdapter(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: _homeHeaderGradient,
-                      borderRadius: BorderRadius.vertical(
-                        bottom: Radius.circular(24),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        const Positioned.fill(
-                          child: _HeaderGlow(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(24),
-                            ),
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: Column(
                           children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                              child: Text(
-                                'Explore by Passion',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(color: Colors.white),
+                            Container(
+                              decoration: const BoxDecoration(
+                                gradient: _homeHeaderGradient,
+                                borderRadius: BorderRadius.vertical(
+                                  bottom: Radius.circular(24),
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  const Positioned.fill(
+                                    child: _HeaderGlow(
+                                      borderRadius: BorderRadius.vertical(
+                                        bottom: Radius.circular(24),
+                                      ),
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.fromLTRB(
+                                                20, 4, 20, 12),
+                                        child: Text(
+                                          'Explore by Passion',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge
+                                              ?.copyWith(
+                                                  color: Colors.white),
+                                        ),
+                                      ),
+                                      KeyedSubtree(
+                                        key: TourKeys.categories,
+                                        child: _CategoryRail(
+                                            categoriesAsync:
+                                                categoriesAsync),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      // The header extends down by the
+                                      // card overlap, so the promo
+                                      // cards can sit half on it. Same
+                                      // gradient container, same glow,
+                                      // one surface, only taller.
+                                      const SizedBox(
+                                          height: _promoCardOverlap),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                            KeyedSubtree(
-                              key: TourKeys.categories,
-                              child: _CategoryRail(
-                                  categoriesAsync: categoriesAsync),
-                            ),
-                            const SizedBox(height: 20),
-                            // The header extends down by the card
-                            // overlap, so the promo cards can sit half
-                            // on it. Same gradient container, same glow,
-                            // one surface, only taller.
-                            const SizedBox(height: _promoCardOverlap),
+                            // Room for the card's lower half, the
+                            // carousel's 12px shadow room, and the 4px
+                            // gap below it.
+                            SizedBox(height: _promoCardOverlap + 16),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  // NOT const: Transform.translate is a factory, not
-                  // a const constructor, so a const ancestor here is
-                  // a compile error (broke both builds on 760999ae).
-                  // The promo cards straddle the header's bottom edge.
-                  // The layout box holds only the card's lower half,
-                  // the carousel's 12px shadow room, and the 4px gap
-                  // below it; the carousel is translated up by the
-                  // overlap, so each card sits half on the espresso
-                  // header and half on the cream body. Transform
-                  // never clips, so the card's top half paints over
-                  // the header, and hit testing follows the
-                  // translation, so taps on the overlapped half still
-                  // hit the card.
-                  child: SizedBox(
-                    height: _promoCardOverlap + 16,
-                    child: Transform.translate(
-                      offset: Offset(0, -_promoCardOverlap),
-                      child: PromoBannerCarousel(),
-                    ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 4,
+                        child: PromoBannerCarousel(),
+                      ),
+                    ],
                   ),
                 ),
                 SliverToBoxAdapter(
