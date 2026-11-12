@@ -7,8 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/utils/format.dart';
@@ -225,7 +225,7 @@ class MyListingsScreen extends ConsumerWidget {
                             icon: PhosphorIconsRegular.mapPin,
                             label: 'Address',
                             borderRadius:
-                                BorderRadius.circular(12),
+                                BorderRadius.circular(24),
                           ),
                         ],
                       ),
@@ -243,7 +243,7 @@ class MyListingsScreen extends ConsumerWidget {
                               icon: PhosphorIconsRegular.trash,
                               label: 'Delete',
                               borderRadius:
-                                  BorderRadius.circular(12),
+                                  BorderRadius.circular(24),
                             ),
                         ],
                       ),
@@ -251,23 +251,34 @@ class MyListingsScreen extends ConsumerWidget {
                       // listens for taps, so the Slidable swipe gestures
                       // and vertical scrolling are untouched.
                       child: Pressable(
-                        child: GlassCard(
-                        padding: const EdgeInsets.all(12),
-                        borderRadius: 16,
-                        onTap: () => Navigator.of(context).pushNamed(
-                          ListingDetailScreen.routeName,
-                          arguments: ListingDetailArgs(
-                            listingId: listing.id,
-                            initial: listing,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            // NOTE: not const, Border.all has no const constructor.
+                            borderRadius: BorderRadius.circular(24),
+                            color: AppColors.surface,
+                            border: Border.all(color: AppColors.divider),
+                            boxShadow: AppShadows.soft,
                           ),
-                        ),
-                        child: Row(
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () => Navigator.of(context).pushNamed(
+                                ListingDetailScreen.routeName,
+                                arguments: ListingDetailArgs(
+                                  listingId: listing.id,
+                                  initial: listing,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
                             crossAxisAlignment:
                                 CrossAxisAlignment.start,
                             children: [
                               ClipRRect(
                                 borderRadius:
-                                    BorderRadius.circular(10),
+                                    BorderRadius.circular(16),
                                 child: photo != null
                                     ? CachedNetworkImage(
                                         imageUrl: photo,
@@ -320,6 +331,9 @@ class MyListingsScreen extends ConsumerWidget {
                                 foreground: chip.fg,
                               ),
                             ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         ),
@@ -338,9 +352,9 @@ class MyListingsScreen extends ConsumerWidget {
       height: 72,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        // Matches the real photo's ClipRRect(10) corner radius.
-        borderRadius: BorderRadius.circular(10),
-        color: AppColors.surface,
+        // Matches the real photo's ClipRRect(16) corner radius.
+        borderRadius: BorderRadius.circular(16),
+        color: AppColors.tileBackground,
       ),
       child:
           const Icon(PhosphorIconsRegular.image, color: AppColors.primary),

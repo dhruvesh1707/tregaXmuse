@@ -8,9 +8,10 @@ import 'package:flutter/material.dart';
 /// - Background     `#FFFBF7`, warm paper
 /// - Surface        `#FFFFFF`, cards, sheets
 ///
-/// The extended tokens below (gradient stops, glass tints, espresso)
-/// power the modern theme: soft gradients, soft-3D depth and liquid
-/// glass surfaces. They are additive, every original value is unchanged.
+/// The extended tokens below (gradient stops, page washes, espresso)
+/// power the espresso-and-cream theme: deep espresso header zones,
+/// warm cream bodies, and flat solid white cards. They are additive,
+/// every original value is unchanged.
 abstract final class AppColors {
   static const Color primary = Color(0xFF8B3A1C);
   static const Color primaryDark = Color(0xFF6E2E16);
@@ -31,7 +32,7 @@ abstract final class AppColors {
   static const Color info = Color(0xFF1565C0);
 
   // -- Gradient stops -------------------------------------------------
-  /// Lighter top edge of the primary button gradient (soft-3D light).
+  /// Lighter top edge of the primary button gradient.
   static const Color primaryLight = Color(0xFFA34A24);
 
   /// Deepest brown, bottom of the primary gradient and hero surfaces.
@@ -47,11 +48,13 @@ abstract final class AppColors {
   static const Color pageTop = Color(0xFFFFFDF8);
   static const Color pageMid = Color(0xFFFFF5E8);
   static const Color pageBottom = Color(0xFFFDEEDC);
+  static const Color tileBackground = Color(0xFFFFF3E4);
 
   // -- Espresso (dark brand surfaces, hero headers) ---------------------
   static const Color espresso = Color(0xFF1A0F08);
   static const Color espressoLight = Color(0xFF2A1A0E);
+  static const Color onEspressoSecondary = Color(0xFFD8C3B2);
 
-  // -- Soft-3D shadow tint (warm, never pure black) ----------------------
+  // -- Warm shadow tint (never pure black) -------------------------------
   static const Color shadowWarm = Color(0xFF3A2417);
 }

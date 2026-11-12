@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,17 +9,56 @@ import 'package:timelines_plus/timelines_plus.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_scaffold.dart';
-import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../core/widgets/trega_toast.dart';
 import '../../home/providers/listing_providers.dart';
+
+/// Espresso header zone: the solid espresso gradient behind a plain
+/// [AppBar], so the automatic back button, title and actions keep
+/// working exactly as before. Rounded bottom corners let the cream
+/// body show through at the edges.
+class _EspressoHeader extends StatelessWidget implements PreferredSizeWidget {
+  final Widget title;
+  final List<Widget>? actions;
+
+  const _EspressoHeader({required this.title, this.actions});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: title,
+      actions: actions,
+      centerTitle: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: Colors.white,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: Colors.white,
+          ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: AppGradients.headerEspresso,
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Doorstep pickup + delivery tracking timeline for a single order.
 ///
@@ -55,7 +95,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     final id = widget.orderId;
     if (id == null) {
       return TregaScaffold(
-        appBar: TregaAppBar(title: const Text('Track order')),
+        appBar: const _EspressoHeader(title: Text('Track order')),
         body: const Center(child: Text('Order not found.')),
       );
     }
@@ -66,14 +106,14 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return TregaScaffold(
-            appBar: TregaAppBar(title: const Text('Track order')),
+            appBar: const _EspressoHeader(title: Text('Track order')),
             body: const Center(child: CircularProgressIndicator()),
           );
         }
         final order = snap.data;
         if (snap.hasError) {
           return TregaScaffold(
-            appBar: TregaAppBar(title: const Text('Track order')),
+            appBar: const _EspressoHeader(title: Text('Track order')),
             body: errorStateFor(
               snap.error!,
               title: 'Couldn\'t load this order',
@@ -83,7 +123,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         }
         if (order == null) {
           return TregaScaffold(
-            appBar: TregaAppBar(title: const Text('Track order')),
+            appBar: const _EspressoHeader(title: Text('Track order')),
             body: const Center(
               child:
                   Text('Couldn\'t load this order. Check your connection.'),
@@ -107,7 +147,7 @@ class _TrackingContent extends ConsumerWidget {
         .indexWhere((e) => e.$1 == order.status);
 
     return TregaScaffold(
-      appBar: TregaAppBar(
+      appBar: _EspressoHeader(
         title: const Text('Track order'),
         actions: [
           Builder(
@@ -122,8 +162,14 @@ class _TrackingContent extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          GlassCard(
-            padding: const EdgeInsets.all(16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.divider),
+              boxShadow: AppShadows.card,
+            ),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -233,10 +279,9 @@ class _TrackingContent extends ConsumerWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                // NOTE: not const, gradient recipe.
                                 borderRadius:
-                                    BorderRadius.circular(8),
-                                color: AppColors.surface,
+                                    BorderRadius.circular(999),
+                                color: AppColors.tileBackground,
                                 border: Border.all(
                                     color: AppColors.divider),
                                 boxShadow: AppShadows.soft,

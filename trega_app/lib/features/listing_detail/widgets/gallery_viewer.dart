@@ -4,6 +4,8 @@ import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
+import '../../../core/theme/app_colors.dart';
+
 /// Full-screen photo viewer for listing galleries: pinch-to-zoom,
 /// swipe between photos, animated page indicator.
 ///
@@ -44,7 +46,7 @@ class _GalleryViewerState extends State<GalleryViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.espresso,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -71,7 +73,7 @@ class _GalleryViewerState extends State<GalleryViewer> {
             pageController: _controller,
             onPageChanged: (i) => setState(() => _index = i),
             backgroundDecoration:
-                const BoxDecoration(color: Colors.black),
+                const BoxDecoration(color: AppColors.espresso),
           ),
           Positioned(
             bottom: 36,
@@ -85,13 +87,13 @@ class _GalleryViewerState extends State<GalleryViewer> {
                 AnimatedSmoothIndicator(
                   activeIndex: _index,
                   count: widget.imageUrls.length,
-                  effect: const ExpandingDotsEffect(
+                  effect: ExpandingDotsEffect(
                     dotWidth: 6,
                     dotHeight: 6,
                     spacing: 6,
                     expansionFactor: 2.4,
-                    activeDotColor: Colors.white,
-                    dotColor: Colors.white38,
+                    activeDotColor: AppColors.accent,
+                    dotColor: AppColors.onEspressoSecondary,
                   ),
                 ),
               ],

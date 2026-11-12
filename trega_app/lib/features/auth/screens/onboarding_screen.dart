@@ -3,7 +3,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/widgets/trega_button.dart';
 import 'phone_auth_screen.dart';
 
@@ -59,9 +59,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(onPressed: _finish, child: const Text('Skip')),
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppGradients.headerEspresso,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _finish,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Skip'),
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: PageView.builder(
@@ -80,30 +98,46 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           height: 120,
                           alignment: Alignment.center,
                           decoration: const BoxDecoration(
-                            color: AppColors.primaryDeep,
-                            shape: BoxShape.circle,
-                            boxShadow: AppShadows.button,
+                            color: AppColors.espresso,
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(24)),
                           ),
                           child: Icon(
                             slide.icon,
                             size: 56,
-                            color: Colors.white,
+                            color: AppColors.accent,
                           ),
                         ),
                         const SizedBox(height: 32),
-                        Text(
-                          slide.title,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.displaySmall,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          slide.body,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(color: AppColors.textSecondary),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                slide.title,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .displaySmall,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                slide.body,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                        color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -124,7 +158,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     color: _page == i
                         ? AppColors.primary
                         : AppColors.divider,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),

@@ -6,11 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../delivery/express_delivery.dart';
 import '../firebase/firebase_providers.dart';
 import '../models/listing.dart';
+import '../theme/app_shadows.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import 'condition_badge.dart';
 import 'express_widgets.dart';
-import 'liquid_glass.dart';
 import 'motion.dart';
 
 /// Card used in home feed, search results, category and wishlist grids.
@@ -19,9 +19,8 @@ import 'motion.dart';
 /// (tag `listing-photo-<id>`), and the heart toggles the wishlist via
 /// Firestore with a springy pop + haptic.
 ///
-/// Minimal glass pass: the card is a [GlassCard] (radius 18), frosted
-/// fill, hairline border and the one shadow replace the old bordered
-/// gradient surface.
+/// Flat white card, radius 24, hairline border and the one shadow. The
+/// photo is clipped to the top corners so badges stay inside the card.
 class ProductCard extends ConsumerWidget {
   final Listing listing;
   final VoidCallback? onTap;
@@ -49,99 +48,115 @@ class ProductCard extends ConsumerWidget {
         ExpressDeliveryConfig.defaults;
     final expressEligible = expressConfig.isCityEligible(listing.city);
     // Tactile press: the whole card dips slightly on touch-down, like an
-    // iOS collection cell. Tap handling comes from GlassCard's InkWell.
+    // iOS collection cell. Tap handling comes from the card's InkWell.
     return PressScale(
-      child: GlassCard(
-        padding: EdgeInsets.zero,
-        borderRadius: 18,
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (product.imageUrls.isNotEmpty)
-                    Hero(
-                      tag: 'listing-photo-${listing.id}',
-                      child: CachedNetworkImage(
-                        imageUrl: product.imageUrls.first,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const ShimmerBox(
-                          borderRadius: BorderRadius.zero,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.divider, width: 1),
+          boxShadow: AppShadows.card,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: onTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (product.imageUrls.isNotEmpty)
+                          Hero(
+                            tag: 'listing-photo-${listing.id}',
+                            child: CachedNetworkImage(
+                              imageUrl: product.imageUrls.first,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const ShimmerBox(
+                                borderRadius: BorderRadius.zero,
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                color: AppColors.primarySoft,
+                                child: const Icon(
+                                  PhosphorIconsRegular.prohibit,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            color: AppColors.primarySoft,
+                            child: const Icon(
+                              PhosphorIconsRegular.image,
+                              color: AppColors.textSecondary,
+                              size: 40,
+                            ),
+                          ),
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: ConditionBadge(condition: product.condition),
                         ),
-                        errorWidget: (context, url, error) => Container(
-                          color: AppColors.primarySoft,
-                          child: const Icon(
-                            PhosphorIconsRegular.prohibit,
-                            color: AppColors.textSecondary,
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: LikeButton(
+                            isLiked: listing.isLiked,
+                            unlikedColor: AppColors.textPrimary,
+                            onTap: onLikeToggle ?? () => _toggleLike(ref),
                           ),
                         ),
+                        if (expressEligible)
+                          const Positioned(
+                            bottom: 8,
+                            left: 8,
+                            child: ExpressBadge(),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
-                    )
-                  else
-                    Container(
-                      color: AppColors.primarySoft,
-                      child: const Icon(
-                        PhosphorIconsRegular.image,
-                        color: AppColors.textSecondary,
-                        size: 40,
+                      const SizedBox(height: 4),
+                      Text(
+                        formatINR(listing.price),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w800,
+                                ),
                       ),
-                    ),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: ConditionBadge(condition: product.condition),
+                      const SizedBox(height: 2),
+                      Text(
+                        timeAgo(listing.createdAt),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: LikeButton(
-                      isLiked: listing.isLiked,
-                      unlikedColor: AppColors.textPrimary,
-                      onTap: onLikeToggle ?? () => _toggleLike(ref),
-                    ),
-                  ),
-                  if (expressEligible)
-                    const Positioned(
-                      bottom: 8,
-                      left: 8,
-                      child: ExpressBadge(),
-                    ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatINR(listing.price),
-                    style:
-                        Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    timeAgo(listing.createdAt),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

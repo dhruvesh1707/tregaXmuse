@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/saved_address.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
 
@@ -255,8 +255,14 @@ class SavedAddressesScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                   itemBuilder: (context, i) {
                     final a = addresses[i];
-                    return GlassCard(
-                      padding: EdgeInsets.zero,
+                    return Container(
+                      decoration: BoxDecoration(
+                        // NOTE: not const, Border.all has no const constructor.
+                        borderRadius: BorderRadius.circular(24),
+                        color: AppColors.surface,
+                        border: Border.all(color: AppColors.divider),
+                        boxShadow: AppShadows.soft,
+                      ),
                       child: ListTile(
                         leading: const Icon(PhosphorIconsRegular.mapPin,
                             color: AppColors.primary,),

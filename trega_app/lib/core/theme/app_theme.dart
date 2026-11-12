@@ -5,10 +5,10 @@ import 'app_colors.dart';
 
 /// Builds the app-wide [ThemeData] for Trega.
 ///
-/// Minimal glass pass: warm paper stays flat, surfaces stay flat and
-/// solid, no gradient washes, no glow blobs, no specular sheens. Depth
-/// comes only from the single frosted-glass recipe (translucent white +
-/// backdrop blur + hairline border + one warm shadow), applied by the
+/// Espresso-and-cream: deep espresso header zones, warm cream bodies,
+/// flat solid white cards, pill buttons, and big soft radii. Surfaces
+/// stay flat and solid, no gradient washes, no glow blobs, no sheens.
+/// Depth comes only from the single warm shadow recipe, applied by the
 /// widgets in `core/widgets`.
 ///
 /// Element pass: text fields, dialogs, bottom sheets, snackbars and
@@ -106,10 +106,8 @@ ThemeData buildTregaTheme() {
     scaffoldBackgroundColor: AppColors.background,
     textTheme: textTheme,
     appBarTheme: AppBarTheme(
-      // Frosted default: translucent white, no elevation. Screens that
-      // want the full glass treatment use [TregaAppBar], which adds the
-      // backdrop blur and hairline divider.
-      backgroundColor: Colors.white.withValues(alpha: 0.7),
+      // Solid white, no elevation.
+      backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
@@ -127,7 +125,7 @@ ThemeData buildTregaTheme() {
         // Flat and solid: no lifted shadow on Material buttons.
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(999),
         ),
         textStyle: const TextStyle(
           fontSize: 15,
@@ -143,7 +141,7 @@ ThemeData buildTregaTheme() {
         minimumSize: const Size(48, 54),
         side: const BorderSide(color: AppColors.primary, width: 1.5),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(999),
         ),
         textStyle: const TextStyle(
           fontSize: 15,
@@ -160,8 +158,8 @@ ThemeData buildTregaTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      // Near-solid white fill over the flat paper background.
-      fillColor: Colors.white.withValues(alpha: 0.85),
+      // Solid white fill over the flat paper background.
+      fillColor: Colors.white,
       // Extra headroom above the field: the floating label sits ~8px above
       // the border, and tight parents (Stepper content, dense columns)
       // otherwise clip its top edge.
@@ -179,23 +177,23 @@ ThemeData buildTregaTheme() {
         fontWeight: FontWeight.w600,
       ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: AppColors.divider),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: AppColors.divider),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: AppColors.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: AppColors.error, width: 1.5),
       ),
     ),
@@ -234,7 +232,7 @@ ThemeData buildTregaTheme() {
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         side: const BorderSide(color: AppColors.divider),
       ),
       margin: EdgeInsets.zero,
@@ -243,7 +241,7 @@ ThemeData buildTregaTheme() {
       backgroundColor: AppColors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(28),
       ),
       titleTextStyle: textTheme.titleLarge,
       contentTextStyle: textTheme.bodyMedium,
@@ -255,14 +253,14 @@ ThemeData buildTregaTheme() {
       showDragHandle: true,
       dragHandleColor: AppColors.divider,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
-      // Dark-glass fallback toast: espresso at 0.78 alpha, floating.
+      // Solid espresso toast, floating.
       // NOTE: no `margin` here, this SDK's SnackBarThemeData has no such
       // named parameter; the floating behavior still offsets from edges.
-      backgroundColor: AppColors.espresso.withValues(alpha: 0.78),
+      backgroundColor: AppColors.espresso,
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
       behavior: SnackBarBehavior.floating,
       elevation: 0,

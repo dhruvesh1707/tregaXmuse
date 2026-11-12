@@ -17,9 +17,9 @@ import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
 import '../../../core/models/saved_address.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/utils/pincode_lookup.dart';
 import '../../../core/widgets/motion.dart';
@@ -636,41 +636,106 @@ static bool _isValidUpi(String upi) =>
       appBar: TregaAppBar(title: const Text('Sell an item')),
       body: Column(
         children: [
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: AppGradients.headerEspresso,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Step ${_step + 1} of 6',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _stepTitles[_step],
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.onEspressoSecondary,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: (_step + 1) / 6,
+                    minHeight: 6,
+                    backgroundColor: Colors.white.withValues(alpha: 0.25),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: GlassCard(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12,),
-              borderRadius: 12,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(PhosphorIconsRegular.warningCircle,
-                      color: AppColors.error, size: 20,),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _error!,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.error),
-                    ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.35),
                   ),
-                ],
-              ),
+                  boxShadow: AppShadows.soft,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(PhosphorIconsRegular.warningCircle,
+                        color: AppColors.error, size: 20,),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: AppColors.error),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           if (_draftRestored)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: GlassCard(
+              child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
                 ),
-                borderRadius: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.divider),
+                  boxShadow: AppShadows.soft,
+                ),
                 child: Row(
                   children: [
                     const Expanded(
@@ -686,46 +751,6 @@ static bool _isValidUpi(String upi) =>
                 ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Step ${_step + 1} of 6',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _stepTitles[_step],
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: (_step + 1) / 6,
-                    minHeight: 6,
-                    backgroundColor: AppColors.divider,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: Stepper(
               currentStep: _step,
@@ -861,7 +886,7 @@ static bool _isValidUpi(String upi) =>
                                   children: [
                                     ClipRRect(
                                       borderRadius:
-                                          BorderRadius.circular(12),
+                                          BorderRadius.circular(24),
                                       child: Image.file(
                                         // ignore: avoid-unnecessary-type-casts
                                         File(e.value.path),
@@ -908,14 +933,14 @@ static bool _isValidUpi(String upi) =>
                               ),
                           InkWell(
                             onTap: _pickMedia,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(24),
                             child: Container(
                               width: 96,
                               height: 96,
                               decoration: BoxDecoration(
                                 // NOTE: not const, Border.all has no const constructor.
-                                borderRadius: BorderRadius.circular(12),
-                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(24),
+                                color: AppColors.tileBackground,
                                 border: Border.all(
                                   color: AppColors.primary,
                                   style: BorderStyle.solid,
@@ -1271,12 +1296,12 @@ class _CategoryGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
           // NOTE: not const, Border.all has no const constructor.
-          borderRadius: BorderRadius.circular(14),
-          color: selected ? AppColors.primarySoft : AppColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          color: selected ? AppColors.primarySoft : AppColors.tileBackground,
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.divider,
             width: selected ? 1.5 : 1,
@@ -1367,9 +1392,14 @@ class _ReviewSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GlassCard(
+        Container(
           padding: const EdgeInsets.all(16),
-          borderRadius: 16,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.divider),
+            boxShadow: AppShadows.soft,
+          ),
           child: Column(
             children: [
               row('Photos', '$photoCount captured'),

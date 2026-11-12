@@ -1,19 +1,16 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Frosted app bar for the minimal Trega glass theme.
+/// Flat solid app bar for the Trega theme.
 ///
 /// Builds a REAL [AppBar] inside, so the automatic back button, title,
-/// actions and [bottom] keep working exactly as callers expect, wrapped
-/// in [ClipRect] + [BackdropFilter] (blur 18) with a translucent white
-/// fill and a hairline [AppColors.divider] bottom edge.
+/// actions and [bottom] keep working exactly as callers expect, with a
+/// solid white fill and a hairline [AppColors.divider] bottom edge.
 ///
-/// Drop-in replacement for [AppBar] on screens that want the frosted
-/// look. Do NOT use it in [showFullScreenPhoto]-style black viewers,
-/// those keep their own transparent-black app bar.
+/// Drop-in replacement for [AppBar] on standard screens. Do NOT use it
+/// in [showFullScreenPhoto]-style black viewers, those keep their own
+/// transparent-black app bar.
 class TregaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
   final Widget? titleWidget;
@@ -38,24 +35,19 @@ class TregaAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: AppBar(
-          title: titleWidget ?? title,
-          leading: leading,
-          actions: actions,
-          centerTitle: centerTitle,
-          bottom: bottom,
-          backgroundColor: Colors.white.withValues(alpha: 0.7),
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          surfaceTintColor: Colors.transparent,
-          foregroundColor: AppColors.textPrimary,
-          shape: const Border(
-            bottom: BorderSide(color: AppColors.divider, width: 1),
-          ),
-        ),
+    return AppBar(
+      title: titleWidget ?? title,
+      leading: leading,
+      actions: actions,
+      centerTitle: centerTitle,
+      bottom: bottom,
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: AppColors.textPrimary,
+      shape: const Border(
+        bottom: BorderSide(color: AppColors.divider, width: 1),
       ),
     );
   }

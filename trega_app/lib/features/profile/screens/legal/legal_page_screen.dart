@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/widgets/trega_scaffold.dart';
 import '../../../../core/widgets/trega_app_bar.dart';
 import 'legal_content.dart';
@@ -34,33 +35,48 @@ class LegalPageScreen extends StatelessWidget {
     return TregaScaffold(
       appBar: TregaAppBar(title: Text(page.title)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          Text(
-            'Last updated: ${page.updated}',
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              // NOTE: not const, Border.all has no const constructor.
+              borderRadius: BorderRadius.circular(24),
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.divider),
+              boxShadow: AppShadows.soft,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Last updated: ${page.updated}',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                for (final section in page.sections) ...[
+                  Text(
+                    section.heading,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    section.body,
+                    style: textTheme.bodyMedium?.copyWith(
+                      height: 1.6,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          for (final section in page.sections) ...[
-            Text(
-              section.heading,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              section.body,
-              style: textTheme.bodyMedium?.copyWith(
-                height: 1.6,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 18),
-          ],
         ],
       ),
     );

@@ -9,8 +9,8 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/motion.dart';
@@ -215,7 +215,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           ),
       decoration: BoxDecoration(
         // NOTE: not const, Border.all has no const constructor.
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         color: AppColors.surface,
         border: Border.all(color: border, width: 1.5),
         boxShadow: AppShadows.soft,
@@ -227,38 +227,58 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Center(
-          child: Container(
-            width: 112,
-            height: 112,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryDeep,
-              shape: BoxShape.circle,
-              boxShadow: AppShadows.button,
-            ),
-            child: const Icon(
-              PhosphorIconsRegular.fingerprint,
-              size: 56,
-              color: Colors.white,
-            ),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: AppGradients.headerEspresso,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: AppShadows.card,
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Verify your identity',
-          style: Theme.of(context).textTheme.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Verify your Aadhaar with an OTP. First, please read and accept '
-          'the consent notice below, only then can you enter your Aadhaar '
-          'number. Verification is required to sell items and to make '
-          'offers, and verified sellers get a badge buyers trust. Your '
-          'Aadhaar number is never stored.',
-          style: Theme.of(context).textTheme.bodyMedium,
-          textAlign: TextAlign.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 112,
+                    height: 112,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      PhosphorIconsRegular.fingerprint,
+                      size: 56,
+                      color: AppColors.espresso,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Verify your identity',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Verify your Aadhaar with an OTP. First, please read and accept '
+                'the consent notice below, only then can you enter your Aadhaar '
+                'number. Verification is required to sell items and to make '
+                'offers, and verified sellers get a badge buyers trust. Your '
+                'Aadhaar number is never stored.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onEspressoSecondary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 24),
         if (_refId == null) ...[
@@ -360,9 +380,15 @@ class _ConsentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GlassCard(
+    return Container(
       padding: const EdgeInsets.all(16),
-      borderRadius: 16,
+      decoration: BoxDecoration(
+        // NOTE: not const, Border.all has no const constructor.
+        borderRadius: BorderRadius.circular(24),
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.divider),
+        boxShadow: AppShadows.soft,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -380,7 +406,7 @@ class _ConsentCard extends StatelessWidget {
           _bullet(theme,
               'Your Aadhaar number is never stored. It is used once for this verification and discarded.',),
           _bullet(theme,
-              'Verification is required to sell items and to make offers on Trega, and verified sellers get a trust badge.',),
+              'Verification is required to sell items on Trega, and verified sellers get a trust badge.',),
           const SizedBox(height: 8),
           InkWell(
             onTap: () => onChanged(!consented),

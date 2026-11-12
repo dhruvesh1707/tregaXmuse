@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// The single shadow recipe for the minimal Trega glass theme, plus
+/// The one warm shadow recipe for the espresso-and-cream theme, plus
 /// historic aliases.
 ///
-/// Every frosted surface (cards, sheets, dialogs, chips, app bars, tab
-/// bar) uses exactly [glass]: offset (0, 6), blur 18, warm tint
-/// 0xFF3A2417 at 10% alpha (`Color(0x1A3A2417)`). The other names are
-/// const aliases so feature call sites keep compiling. Colored glow
-/// shadows are gone.
+/// Every surface (cards, sheets, dialogs, chips, app bars, tab bar)
+/// uses exactly [glass]: offset (0, 6), blur 18, warm tint 0xFF3A2417
+/// at 10% alpha (`Color(0x1A3A2417)`). The other names are const
+/// aliases so feature call sites keep compiling. Colored glow shadows
+/// are gone.
 abstract final class AppShadows {
   /// The one recipe: warm, diffused, barely-there.
   static const List<BoxShadow> glass = [

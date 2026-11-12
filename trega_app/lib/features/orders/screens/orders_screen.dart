@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
-import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -15,6 +16,44 @@ import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../home/providers/listing_providers.dart';
 import 'order_tracking_screen.dart';
+
+/// Espresso header zone: the solid espresso gradient behind a plain
+/// [AppBar], so the automatic back button and title keep working
+/// exactly as before. Rounded bottom corners let the cream body show
+/// through at the edges.
+class _EspressoHeader extends StatelessWidget implements PreferredSizeWidget {
+  final Widget title;
+
+  const _EspressoHeader({required this.title});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: title,
+      centerTitle: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: Colors.white,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: Colors.white,
+          ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: AppGradients.headerEspresso,
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Buyer's order history, streamed from Firestore (`orders` where
 /// `buyerId` == uid). Orders are created server-side by the
@@ -56,7 +95,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return TregaScaffold(
-            appBar: TregaAppBar(title: const Text('My Orders')),
+            appBar: const _EspressoHeader(title: Text('My Orders')),
             body: ListView.separated(
               padding: const EdgeInsets.all(16),
               physics: const NeverScrollableScrollPhysics(),
@@ -68,7 +107,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         }
         if (snap.hasError) {
           return TregaScaffold(
-            appBar: TregaAppBar(title: const Text('My Orders')),
+            appBar: const _EspressoHeader(title: Text('My Orders')),
             body: errorStateFor(
               snap.error!,
               title: 'Couldn\'t load orders',
@@ -90,7 +129,7 @@ class _OrdersList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TregaScaffold(
-      appBar: TregaAppBar(title: const Text('My Orders')),
+      appBar: const _EspressoHeader(title: Text('My Orders')),
       body: orders.isEmpty
           ? const EmptyState(
               icon: PhosphorIconsRegular.package,
@@ -125,14 +164,24 @@ class _OrderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final listingId = order.listing.id;
     return Pressable(
-      child: GlassCard(
-      padding: const EdgeInsets.all(16),
-      borderRadius: 16,
-      onTap: () => Navigator.of(context).pushNamed(
-        OrderTrackingScreen.routeName,
-        arguments: order.id,
-      ),
-      child: Column(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.divider),
+          boxShadow: AppShadows.card,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: () => Navigator.of(context).pushNamed(
+              OrderTrackingScreen.routeName,
+              arguments: order.id,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -202,7 +251,10 @@ class _OrderCard extends ConsumerWidget {
                 ],
               ),
             ],
+              ),
+            ),
           ),
+        ),
       ),
     );
   }

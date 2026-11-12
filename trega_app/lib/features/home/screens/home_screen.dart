@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:easy_refresh/easy_refresh.dart';
@@ -8,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/listing.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_tour.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/no_internet_state.dart';
@@ -31,8 +29,10 @@ import '../widgets/promo_banner_carousel.dart';
 /// Main marketplace feed: search entry, "Explore by Passion" categories,
 /// and the live listing feed.
 ///
-/// Modern pass: the page sits on the warm gradient wash ([TregaScaffold]),
-/// the pinned header is liquid glass, and category tiles are soft-3D.
+/// Two-tone page: a deep espresso header zone holds the wordmark, the
+/// search and notifications actions, and the category photo tiles, and
+/// the warm cream body below holds the promo carousel and the listing
+/// feed. Surfaces are flat and solid, no frosted glass.
 ///
 /// Data comes from Firestore (`listings` where `status == live`,
 /// `categories` where `active == true`). Errors surface an inline error
@@ -112,117 +112,129 @@ class HomeScreen extends ConsumerWidget {
               ]);
             },
             child: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            // Pinned: the header (logo, search, notifications) stays
-            // visible while the feed scrolls underneath it.
-            pinned: true,
-            floating: true,
-            // Liquid-glass header: the bar itself is transparent and a
-            // frosted wash blurs the feed scrolling beneath it.
-            backgroundColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    // Flat wash (was a vertical gradient): the BackdropFilter
-                    // above does the actual frosting; this just tints it.
-                    color: Colors.white.withValues(alpha: 0.62),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.6),
+              slivers: [
+                SliverAppBar(
+                  // Pinned: the espresso header (logo, search,
+                  // notifications) stays visible while the feed scrolls
+                  // underneath it.
+                  pinned: true,
+                  floating: true,
+                  backgroundColor: AppColors.espresso,
+                  foregroundColor: Colors.white,
+                  surfaceTintColor: Colors.transparent,
+                  iconTheme: const IconThemeData(color: Colors.white),
+                  flexibleSpace: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.headerEspresso,
+                    ),
+                  ),
+                  title: Image.asset('assets/logo/trega_logo_light.png', height: 28),
+                  actions: [
+                    IconButton(
+                      key: TourKeys.search,
+                      icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
+                      onPressed: () => Navigator.of(context)
+                          .pushNamed(SearchScreen.routeName),
+                    ),
+                    IconButton(
+                      icon: unread > 0
+                          ? Badge(
+                              label: Text(unread > 99 ? '99+' : '$unread'),
+                              child: const Icon(PhosphorIconsRegular.bell),
+                            )
+                          : const Icon(PhosphorIconsRegular.bell),
+                      onPressed: () => Navigator.of(context)
+                          .pushNamed(NotificationsScreen.routeName),
+                    ),
+                  ],
+                ),
+                SliverToBoxAdapter(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.headerEspresso,
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(24),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                          child: Text(
+                            'Explore by Passion',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(color: Colors.white),
+                          ),
+                        ),
+                        KeyedSubtree(
+                          key: TourKeys.categories,
+                          child:
+                              _CategoryRail(categoriesAsync: categoriesAsync),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 16, bottom: 4),
+                    child: PromoBannerCarousel(),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SectionHeader(
+                    title: 'Fresh listings',
+                    actionLabel: 'See all',
+                    onAction: () => Navigator.of(context)
+                        .pushNamed(SearchScreen.routeName),
+                  ),
+                ),
+                listingsAsync.when(
+                  data: (listings) => listings.isEmpty
+                      ? const SliverToBoxAdapter(
+                          child: EmptyState(
+                            icon: PhosphorIconsRegular.package,
+                            title: 'No listings yet',
+                            subtitle:
+                                'Be the first to list your gear on Trega.',
+                          ),
+                        )
+                      : _ListingGrid(
+                          listings: listings,
+                          firstCardKey: TourKeys.firstCard,
+                        ),
+                  loading: () => SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.68,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, i) => const ProductCardSkeleton(),
+                        childCount: 6,
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
-            title: Image.asset('assets/logo/trega_logo.png', height: 28),
-            actions: [
-              IconButton(
-                key: TourKeys.search,
-                icon: const Icon(PhosphorIconsRegular.magnifyingGlass),
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(SearchScreen.routeName),
-              ),
-              IconButton(
-                icon: unread > 0
-                    ? Badge(
-                        label: Text(unread > 99 ? '99+' : '$unread'),
-                        child: const Icon(PhosphorIconsRegular.bell),
-                      )
-                    : const Icon(PhosphorIconsRegular.bell),
-                onPressed: () => Navigator.of(context)
-                    .pushNamed(NotificationsScreen.routeName),
-              ),
-            ],
-          ),
-          const SliverToBoxAdapter(
-            child: SectionHeader(
-              title: 'Explore by Passion',
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: KeyedSubtree(
-              key: TourKeys.categories,
-              child: _CategoryRail(categoriesAsync: categoriesAsync),
-            ),
-          ),
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(top: 16, bottom: 4),
-              child: PromoBannerCarousel(),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: SectionHeader(
-              title: 'Fresh listings',
-              actionLabel: 'See all',
-              onAction: () =>
-                  Navigator.of(context).pushNamed(SearchScreen.routeName),
-            ),
-          ),
-          listingsAsync.when(
-            data: (listings) => listings.isEmpty
-                ? const SliverToBoxAdapter(
-                    child: EmptyState(
-                      icon: PhosphorIconsRegular.package,
-                      title: 'No listings yet',
-                      subtitle: 'Be the first to list your gear on Trega.',
+                  error: (e, __) => SliverToBoxAdapter(
+                    child: errorStateFor(
+                      e,
+                      title: 'Couldn\'t load listings',
+                      onRetry: () => ref.invalidate(liveListingsProvider),
                     ),
-                  )
-                : _ListingGrid(
-                    listings: listings,
-                    firstCardKey: TourKeys.firstCard,
                   ),
-            loading: () => SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.68,
                 ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, i) => const ProductCardSkeleton(),
-                  childCount: 6,
-                ),
-              ),
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              ],
             ),
-            error: (e, __) => SliverToBoxAdapter(
-              child: errorStateFor(
-                e,
-                title: 'Couldn\'t load listings',
-                onRetry: () => ref.invalidate(liveListingsProvider),
-              ),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
-        ],
-      ),
           ),
           Positioned(
             left: 20,
@@ -272,6 +284,57 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+/// Maps a category to its photo tile asset, matching in order the
+/// category id, then slug, then lowercased name, against the known
+/// category photo keys. Returns null for unknown or admin-added
+/// categories, which fall back to the Phosphor icon tile.
+String? _categoryPhotoAsset(Category category) {
+  for (final raw in <String>[category.id, category.slug, category.name]) {
+    final key = _categoryPhotoKey(raw);
+    if (key != null) return 'assets/categories/$key.jpg';
+  }
+  return null;
+}
+
+/// Normalizes one raw category key (id, slug, or name) to a photo key,
+/// or null when it matches nothing known. Separators are ignored, so
+/// 'home appliances', 'home_appliances' and 'home-appliances' all map
+/// to the appliances photo, and plural names map to their singular key.
+String? _categoryPhotoKey(String raw) {
+  final normalized = raw
+      .trim()
+      .toLowerCase()
+      .replaceAll(' ', '')
+      .replaceAll('_', '')
+      .replaceAll('-', '');
+  switch (normalized) {
+    case 'mobiles':
+      return 'mobile';
+    case 'homeappliances':
+      return 'appliances';
+    case 'watches':
+      return 'watch';
+    case 'collectibles':
+      return 'collectible';
+    case 'gaming':
+    case 'mobile':
+    case 'laptop':
+    case 'camera':
+    case 'music':
+    case 'fashion':
+    case 'furniture':
+    case 'appliances':
+    case 'cycles':
+    case 'books':
+    case 'watch':
+    case 'collectible':
+    case 'others':
+      return normalized;
+    default:
+      return null;
+  }
+}
+
 class _CategoryRail extends StatelessWidget {
   const _CategoryRail({required this.categoriesAsync});
 
@@ -281,7 +344,7 @@ class _CategoryRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final categories = categoriesAsync.valueOrNull ?? const <Category>[];
     return SizedBox(
-      height: 104,
+      height: 120,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -292,7 +355,7 @@ class _CategoryRail extends StatelessWidget {
           return Entrance(
             index: i,
             child: InkWell(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(24),
               onTap: () => Navigator.of(context).pushNamed(
                 CategoryScreen.routeName,
                 arguments: CategoryArgs(
@@ -300,21 +363,12 @@ class _CategoryRail extends StatelessWidget {
                   categoryName: category.name,
                 ),
               ),
-              child: Container(
-                width: 84,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.all(Radius.circular(18)),
-                  color: AppColors.surface,
-                  // NOTE: not const, Border.all has no const constructor.
-                  border: Border.all(color: AppColors.divider),
-                  boxShadow: AppShadows.card,
-                ),
+              child: SizedBox(
+                width: 76,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(category.icon, size: 28, color: AppColors.primary),
-                    const SizedBox(height: 6),
+                    _CategoryTile(category: category),
+                    const SizedBox(height: 8),
                     Text(
                       category.name,
                       maxLines: 2,
@@ -322,7 +376,10 @@ class _CategoryRail extends StatelessWidget {
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                          ?.copyWith(
+                            color: AppColors.onEspressoSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -331,6 +388,64 @@ class _CategoryRail extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Category photo tile: a cream squircle holding the category photo,
+/// clipped cover. Unknown or admin-added categories, and any photo
+/// asset that fails to load, fall back to the Phosphor icon tile, so
+/// the rail never shows a blank tile.
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({required this.category});
+
+  final Category category;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = _categoryPhotoAsset(category);
+    if (asset == null) return _CategoryIconTile(category: category);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: 72,
+        height: 72,
+        color: AppColors.tileBackground,
+        child: Image.asset(
+          asset,
+          width: 72,
+          height: 72,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              _CategoryIconTile(category: category),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fallback tile for categories with no photo: the category icon on a
+/// cream squircle.
+class _CategoryIconTile extends StatelessWidget {
+  const _CategoryIconTile({required this.category});
+
+  final Category category;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        color: AppColors.tileBackground,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(category.icon, size: 28, color: AppColors.primary),
+        ],
       ),
     );
   }

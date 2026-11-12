@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/widgets/trega_scaffold.dart';
-import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/trega_button.dart';
 import '../../home/screens/home_screen.dart';
 import 'phone_auth_screen.dart';
@@ -100,71 +100,119 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return TregaScaffold(
-      appBar: TregaAppBar(),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Image.asset('assets/logo/trega_logo.png', width: 120),
-              const SizedBox(height: 32),
-              Text(
-                'Set up your profile',
-                style: Theme.of(context).textTheme.displaySmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Buyers and sellers will see your name. We use your email '
-                'for order and bid updates.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Full name',
-                  hintText: 'e.g. Aarav Sharma',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'you@example.com',
-                ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.error),
-                ),
-              ],
-              const SizedBox(height: 16),
-              // Keep the button mounted while saving (label swaps and it
-              // disables) so the layout doesn't jump.
-              TregaButton(
-                label: _saving ? 'Saving…' : 'Continue',
-                onPressed: _saving ? null : _save,
-              ),
-              const Spacer(),
-              Text(
-                'You can update these later from Profile → Settings.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+      appBar: AppBar(
+        backgroundColor: AppColors.espresso,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: AppGradients.headerEspresso,
           ),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppGradients.headerEspresso,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Set up your profile',
+                    style: Theme.of(context)
+                        .textTheme
+                        .displaySmall
+                        ?.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Buyers and sellers will see your name. We use your email '
+                    'for order and bid updates.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(color: AppColors.onEspressoSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Image.asset('assets/logo/trega_logo.png', width: 120),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: _nameController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'Full name',
+                              hintText: 'e.g. Aarav Sharma',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              hintText: 'you@example.com',
+                            ),
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: AppColors.error),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          // Keep the button mounted while saving (label swaps and it
+                          // disables) so the layout doesn't jump.
+                          TregaButton(
+                            label: _saving ? 'Saving…' : 'Continue',
+                            onPressed: _saving ? null : _save,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'You can update these later from Profile → Settings.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

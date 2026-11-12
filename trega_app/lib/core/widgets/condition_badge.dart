@@ -6,8 +6,8 @@ import 'status_chip.dart';
 
 /// Small pill showing the condition grade of a listing.
 ///
-/// Rendered as a light-glass [StatusChip]: the semantic color survives as
-/// the label color plus a faint tint in the frosted fill.
+/// Rendered as a flat [StatusChip]: the semantic color survives as
+/// the label color plus a faint tint in the fill.
 class ConditionBadge extends StatelessWidget {
   final Condition condition;
 

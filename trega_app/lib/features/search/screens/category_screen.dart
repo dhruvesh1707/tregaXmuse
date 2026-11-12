@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -40,7 +41,14 @@ class CategoryScreen extends ConsumerWidget {
     return TregaScaffold(
       appBar: TregaAppBar(title: Text(name)),
       body: listingsAsync == null
-          ? const Center(child: Text('Pick a category to browse.'))
+          ? Center(
+              child: Text(
+                'Pick a category to browse.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+              ),
+            )
           : listingsAsync.when(
               data: (listings) => listings.isEmpty
                   ? const EmptyState(

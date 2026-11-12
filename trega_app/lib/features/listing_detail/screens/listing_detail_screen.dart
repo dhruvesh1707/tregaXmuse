@@ -21,9 +21,8 @@ import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/widgets/glass_sheet.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/condition_badge.dart';
 import '../../../core/widgets/blocking_progress.dart';
@@ -301,15 +300,25 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
     final expressEligible = expressConfig.isCityEligible(listing.city);
 
     return TregaScaffold(
+      backgroundColor: AppColors.espresso,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 320,
             pinned: true,
+            backgroundColor: AppColors.espresso,
+            foregroundColor: Colors.white,
+            systemOverlayStyle: SystemUiOverlayStyle.light,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Espresso hero zone behind the photos.
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.headerEspresso,
+                    ),
+                  ),
                   PageView.builder(
                     itemCount: product.imageUrls.length,
                     onPageChanged: (i) => setState(() => _page = i),
@@ -318,10 +327,10 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
                         imageUrl: product.imageUrls[i],
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          color: AppColors.primarySoft,
+                          color: AppColors.tileBackground,
                         ),
                         errorWidget: (context, url, error) => Container(
-                          color: AppColors.primarySoft,
+                          color: AppColors.tileBackground,
                           child: const Icon(PhosphorIconsRegular.prohibit),
                         ),
                       );
@@ -343,11 +352,20 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
                   ),
                   if (product.videoUrl != null)
                     // TODO: replace with inline video_player preview.
-                    const Positioned(
+                    Positioned(
                       bottom: 16,
                       right: 16,
-                      child: GlassIconButton(
-                        icon: PhosphorIconsRegular.play,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          PhosphorIconsRegular.play,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   if (product.imageUrls.length > 1)
@@ -363,13 +381,13 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
                           AnimatedSmoothIndicator(
                             activeIndex: _page,
                             count: product.imageUrls.length,
-                            effect: const ExpandingDotsEffect(
+                            effect: ExpandingDotsEffect(
                               dotWidth: 8,
                               dotHeight: 8,
                               spacing: 5,
                               expansionFactor: 2.2,
-                              activeDotColor: Colors.white,
-                              dotColor: Colors.white54,
+                              activeDotColor: AppColors.accent,
+                              dotColor: AppColors.onEspressoSecondary,
                             ),
                           ),
                         ],
@@ -401,8 +419,15 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
             child: Entrance(
               // Plays once on first paint; stream rebuilds keep the state
               // so it never replays when listing data refreshes.
-              child: Padding(
-              padding: const EdgeInsets.all(16),
+              // White content sheet over the espresso hero zone.
+              child: Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -462,7 +487,18 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
                     Text('Specifications',
                         style: Theme.of(context).textTheme.titleMedium,),
                     const SizedBox(height: 8),
-                    ...product.specs.entries.map(
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8,),
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius:
+                            BorderRadius.all(Radius.circular(24)),
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      child: Column(
+                        children: [
+                          ...product.specs.entries.map(
                       (e) => Padding(
                         padding:
                             const EdgeInsets.symmetric(vertical: 4),
@@ -485,6 +521,9 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
                                         fontWeight: FontWeight.w600,),),
                           ],
                         ),
+                      ),
+                    ),
+                        ],
                       ),
                     ),
                   ],
@@ -522,11 +561,15 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
     final isSeller = uid != null && uid == listing.seller.id;
 
     Widget bar(Widget child) {
-      // Frosted iOS-style action bar: blurs the content scrolling beneath
-      // it instead of sitting as a flat white slab.
-      return LiquidGlass(
-        borderRadius: 0,
-        shadows: AppShadows.soft,
+      // Flat white action bar with a rounded top edge, one hero button.
+      return Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border(
+            top: BorderSide(color: AppColors.divider),
+          ),
+        ),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         child: SafeArea(top: false, child: child),
       );
@@ -680,8 +723,13 @@ class _VerifiedPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const GlassChip(
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: const BoxDecoration(
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.all(Radius.circular(999)),
+      ),
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
@@ -721,8 +769,13 @@ class _SellerInfo extends ConsumerWidget {
         final name =
             (seller?.name.isNotEmpty ?? false) ? seller!.name : 'Seller';
         final verified = seller?.isVerifiedSeller ?? false;
-        return GlassCard(
-          padding: const EdgeInsets.all(12),
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.all(Radius.circular(24)),
+            border: Border.all(color: AppColors.divider),
+          ),
           child: Row(
               children: [
                 // The seller's profile photo when set, previously this
@@ -867,15 +920,18 @@ class _ReportSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(2),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
+              ],
             ),
             const SizedBox(height: 16),
             Text('Report listing', style: textTheme.titleMedium),

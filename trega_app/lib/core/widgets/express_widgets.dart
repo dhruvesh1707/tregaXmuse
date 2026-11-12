@@ -97,7 +97,7 @@ class _ExpressBannerState extends State<ExpressBanner> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.primaryDeep,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: AppShadows.glass,
       ),
       child: Row(

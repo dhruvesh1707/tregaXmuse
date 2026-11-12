@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
-import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/delivery/express_delivery.dart';
 import '../../../core/marketplace/fee_config.dart';
 import '../../../core/firebase/firebase_providers.dart';
@@ -16,9 +15,9 @@ import '../../../core/utils/pincode_lookup.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/payments/cashfree_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/trega_button.dart';
@@ -268,7 +267,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     _prefill(uid);
 
     return TregaScaffold(
-      appBar: TregaAppBar(title: const Text('Checkout')),
+      // Espresso header zone: dark gradient bar over the cream body.
+      appBar: AppBar(
+        title: const Text('Checkout'),
+        centerTitle: true,
+        foregroundColor: Colors.white,
+        backgroundColor: AppColors.espresso,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.2,
+          height: 1.3,
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: AppGradients.headerEspresso,
+          ),
+        ),
+      ),
       body: StreamBuilder<Bid?>(
         stream: ref.read(firestoreServiceProvider).watchBid(widget.bidId),
         builder: (context, bidSnap) {
@@ -307,10 +328,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           final placeable = quote.sellerPayout > 0;
           return TregaScaffold(
             body: _buildForm(context, bid),
-            bottomSheet: LiquidGlass(
-              borderRadius: 0,
-              shadows: AppShadows.soft,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            bottomSheet: Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.divider),
+                boxShadow: AppShadows.soft,
+              ),
               child: SafeArea(
                 top: false,
                 child: TregaButton(
@@ -340,20 +366,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       builder: (context, listingSnap) {
         final listing = listingSnap.data;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
           children: [
             // ── Order summary ──────────────────────────────────────
             Text('Order summary', style: textTheme.titleMedium),
             const SizedBox(height: 12),
-            GlassCard(
-              padding: const EdgeInsets.all(12),
-              borderRadius: 16,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.divider),
+                boxShadow: AppShadows.soft,
+              ),
               child: Row(
                 children: [
                   if (listing != null &&
                       listing.product.imageUrls.isNotEmpty)
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       child: CachedNetworkImage(
                         imageUrl: listing.product.imageUrls.first,
                         width: 72,
@@ -362,7 +393,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         errorWidget: (_, __, ___) => Container(
                           width: 72,
                           height: 72,
-                          color: AppColors.primarySoft,
+                          color: AppColors.tileBackground,
                           child: const Icon(PhosphorIconsRegular.prohibit),
                         ),
                       ),
@@ -401,7 +432,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             const SizedBox(height: 24),
 
             // ── Delivery address ───────────────────────────────────
-_buildPriceBreakdown(context, bid),
+            _buildPriceBreakdown(context, bid),
             Text('Delivery address', style: textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
@@ -476,9 +507,16 @@ _buildPriceBreakdown(context, bid),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              GlassCard(
-                padding: const EdgeInsets.all(12),
-                borderRadius: 12,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.35),
+                  ),
+                  boxShadow: AppShadows.soft,
+                ),
                 child: Text(
                   _error!,
                   style: textTheme.bodyMedium?.copyWith(
@@ -669,9 +707,16 @@ _buildPriceBreakdown(context, bid),
 
     final children = <Widget>[
       if (q.sellerPayout <= 0) ...[
-        GlassCard(
-          padding: const EdgeInsets.all(12),
-          borderRadius: 12,
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppColors.error.withValues(alpha: 0.35),
+            ),
+            boxShadow: AppShadows.soft,
+          ),
           child: Text(
             "This order can't be placed: at ${formatINR(q.price)} the seller's ${formatINRPaise(q.deliverySellerShare)} delivery share is more than the sale price, so the seller would lose money on it.",
             style: textTheme.bodySmall?.copyWith(color: AppColors.error),
@@ -681,9 +726,14 @@ _buildPriceBreakdown(context, bid),
       ],
       Text('Price breakdown', style: textTheme.titleMedium),
       const SizedBox(height: 12),
-      GlassCard(
-        padding: const EdgeInsets.all(12),
-        borderRadius: 16,
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.divider),
+          boxShadow: AppShadows.soft,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: cardChildren,
@@ -697,9 +747,15 @@ _buildPriceBreakdown(context, bid),
       final stdGst = (stdFee * feeCfg.gstPct / 100).roundToDouble();
       children.addAll([
         const SizedBox(height: 8),
-        GlassCard(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          borderRadius: 12,
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.accentSoft,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.divider),
+            boxShadow: AppShadows.soft,
+          ),
           child: Text(
             'Zero Fee Launch: you save ${formatINR(stdFee + stdGst)} in fees.',
             style: textTheme.bodySmall?.copyWith(
@@ -855,15 +911,15 @@ class _DeliveryOptionTile extends StatelessWidget {
       opacity: enabled ? 1 : 0.55,
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             // NOTE: not const, Border.all has no const constructor.
-            borderRadius: BorderRadius.circular(16),
-            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            color: selected ? AppColors.espresso : AppColors.surface,
             border: Border.all(
-              color: selected ? AppColors.primary : AppColors.divider,
+              color: selected ? AppColors.espresso : AppColors.divider,
               width: selected ? 1.6 : 1,
             ),
             boxShadow: AppShadows.soft,
@@ -875,16 +931,15 @@ class _DeliveryOptionTile extends StatelessWidget {
                 height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: (selected
-                          ? AppColors.primary
-                          : AppColors.textSecondary)
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: selected
+                      ? AppColors.accent
+                      : AppColors.tileBackground,
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   icon,
                   color: selected
-                      ? AppColors.primary
+                      ? AppColors.espresso
                       : AppColors.textSecondary,
                   size: 22,
                 ),
@@ -898,13 +953,18 @@ class _DeliveryOptionTile extends StatelessWidget {
                       title,
                       style: textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
+                        color: selected
+                            ? Colors.white
+                            : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: selected
+                            ? AppColors.onEspressoSecondary
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -913,7 +973,7 @@ class _DeliveryOptionTile extends StatelessWidget {
               if (selected)
                 const Icon(
                   PhosphorIconsRegular.checkCircle,
-                  color: AppColors.primary,
+                  color: AppColors.accent,
                 )
               else
                 Container(

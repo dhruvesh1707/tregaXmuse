@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/no_internet_state.dart';
 import '../../../core/widgets/product_card.dart';
@@ -66,43 +66,98 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: TregaAppBar(title: const Text('Search')),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: TextField(
-              controller: _controller,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Search PS5, iPhone, DSLR…',
-                prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass),
-                suffixIcon: _controller.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(PhosphorIconsRegular.x),
-                        onPressed: () =>
-                            setState(() => _controller.clear()),
-                      ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: AppGradients.headerEspresso,
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
               ),
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) {
-                // TODO: trigger search request.
-              },
             ),
-          ),
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
+            child: Column(
               children: [
-                _filterChip(context, 'All', _conditionFilter == null, () {
-                  setState(() => _conditionFilter = null);
-                }),
-                ...Condition.values.map(
-                  (c) => _filterChip(
-                    context,
-                    c.label,
-                    _conditionFilter == c,
-                    () => setState(() => _conditionFilter = c),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                  child: TextField(
+                    controller: _controller,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Search PS5, iPhone, DSLR…',
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      hintStyle: const TextStyle(
+                        color: AppColors.textSecondary,
+                      ),
+                      prefixIcon: const Icon(
+                        PhosphorIconsRegular.magnifyingGlass,
+                        color: AppColors.textSecondary,
+                      ),
+                      suffixIcon: _controller.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(
+                                PhosphorIconsRegular.x,
+                                color: AppColors.textSecondary,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _controller.clear()),
+                            ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide:
+                            const BorderSide(color: AppColors.divider),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide:
+                            const BorderSide(color: AppColors.divider),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide:
+                            const BorderSide(color: AppColors.error),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: const BorderSide(
+                          color: AppColors.error,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) {
+                      // TODO: trigger search request.
+                    },
+                  ),
+                ),
+                SizedBox(
+                  height: 48,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 6),
+                    children: [
+                      _filterChip(context, 'All', _conditionFilter == null,
+                          () {
+                        setState(() => _conditionFilter = null);
+                      }),
+                      ...Condition.values.map(
+                        (c) => _filterChip(
+                          context,
+                          c.label,
+                          _conditionFilter == c,
+                          () => setState(() => _conditionFilter = c),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -135,7 +190,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ? Center(
                             child: Text(
                               'No matches. Try another search.',
-                              style: Theme.of(context).textTheme.bodyMedium,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                             ),
                           )
                         : EasyRefresh(
@@ -190,16 +250,39 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     bool selected,
     VoidCallback onTap,
   ) {
+    // Flat solid pill on the espresso header zone: amber when selected,
+    // white when not, dark label in both states. The Row centers the
+    // label vertically inside the horizontal list's tight height, and
+    // the ConstrainedBox keeps the 44pt minimum touch target.
+    const radius = BorderRadius.all(Radius.circular(999));
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: GlassChip(
-        selected: selected,
-        onTap: onTap,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
+      child: Pressable(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          child: Material(
+            color: selected ? AppColors.accent : AppColors.surface,
+            borderRadius: radius,
+            child: InkWell(
+              borderRadius: radius,
+              onTap: onTap,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -166,7 +166,7 @@ class _NotificationsScreenState
                           decoration: BoxDecoration(
                             // NOTE: not const, Border.all has no const constructor.
                             borderRadius:
-                                BorderRadius.circular(16),
+                                BorderRadius.circular(24),
                             color: AppColors.surface,
                             border: Border.all(
                               color: n.read
@@ -184,7 +184,7 @@ class _NotificationsScreenState
                               decoration: BoxDecoration(
                                 color: AppColors.primarySoft,
                                 borderRadius:
-                                    BorderRadius.circular(12),
+                                    BorderRadius.circular(16),
                               ),
                               child: Icon(
                                   _iconForType(n.type),
@@ -201,7 +201,14 @@ class _NotificationsScreenState
                               ),
                             ),
                             subtitle: Text(
-                                '${n.body}${time.isEmpty ? '' : '\n$time'}',),
+                              '${n.body}${time.isEmpty ? '' : '\n$time'}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                            ),
                             isThreeLine: true,
                             onTap: () => _onTapNotification(n),
                           ),

@@ -4,16 +4,14 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/trega_scaffold.dart';
-import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/widgets/glass_dialog.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
@@ -87,13 +85,29 @@ class _BidsOffersScreenState extends ConsumerState<BidsOffersScreen>
     final service = ref.watch(firestoreServiceProvider);
 
     return TregaScaffold(
-      appBar: TregaAppBar(
+      appBar: AppBar(
         title: const Text('Bids & Offers'),
+        centerTitle: true,
+        foregroundColor: Colors.white,
+        backgroundColor: AppColors.espresso,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle:
+            Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: AppGradients.headerEspresso,
+          ),
+        ),
         bottom: TabBar(
           controller: _tabs,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
+          labelColor: Colors.white,
+          unselectedLabelColor: AppColors.onEspressoSecondary,
+          indicatorColor: AppColors.accent,
+          dividerColor: Colors.transparent,
           tabs: const [
             Tab(text: 'My Offers'),
             Tab(text: 'Offers Received'),
@@ -306,8 +320,13 @@ class _MyOfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return GlassCard(
+    return Container(
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -684,8 +703,13 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
     final past =
         widget.bids.where((b) => b.status == BidStatus.rejected).toList();
 
-    return GlassCard(
+    return Container(
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -718,9 +742,13 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
 
             // Accepted offer banner (exclusive reservation).
             for (final bid in accepted) ...[
-              GlassCard(
+              Container(
                 padding: const EdgeInsets.all(12),
-                borderRadius: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.tileBackground,
+                  border: Border.all(color: AppColors.divider),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -877,7 +905,7 @@ class _OfferRow extends StatelessWidget {
             foregroundColor: Colors.white,
             icon: PhosphorIconsRegular.check,
             label: 'Accept',
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
         ],
       ),
@@ -891,7 +919,7 @@ class _OfferRow extends StatelessWidget {
             foregroundColor: Colors.white,
             icon: PhosphorIconsRegular.x,
             label: 'Reject',
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
         ],
       ),
@@ -899,10 +927,9 @@ class _OfferRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         // NOTE: not const, Border.all has no const constructor.
-        color: AppColors.surface,
+        color: AppColors.tileBackground,
         border: Border.all(color: AppColors.divider),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: AppShadows.soft,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -944,6 +971,11 @@ class _OfferRow extends StatelessWidget {
                 child: PressScale(
                   child: OutlinedButton(
                     onPressed: busy ? null : onReject,
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
                     child: const Text('Reject'),
                   ),
                 ),
@@ -953,6 +985,11 @@ class _OfferRow extends StatelessWidget {
                 child: PressScale(
                   child: ElevatedButton(
                     onPressed: busy ? null : onAccept,
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
                     child: busy
                         ? const SizedBox(
                             width: 16,

@@ -12,9 +12,9 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/kyc_verification.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_sheet.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/photo_viewer.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -98,8 +98,14 @@ class ProfileScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(16),
                           child: Skeletonizer(
                             enabled: profileLoading,
-                            child: GlassCard(
+                            child: Container(
                               padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: AppGradients.headerEspresso,
+                                borderRadius: const BorderRadius.all(
+                                    Radius.circular(24),),
+                                boxShadow: AppShadows.soft,
+                              ),
                               child: Row(
                                   children: [
                                     _AvatarEditor(
@@ -125,14 +131,17 @@ class ProfileScreen extends ConsumerWidget {
                                                       TextOverflow.ellipsis,
                                                   style: Theme.of(context)
                                                       .textTheme
-                                                      .titleLarge,
+                                                      .titleLarge
+                                                      ?.copyWith(
+                                                          color:
+                                                              Colors.white,),
                                                 ),
                                               ),
                                               if (verified)
                                                 const Icon(PhosphorIconsRegular.sealCheck,
                                                     size: 20,
                                                     color:
-                                                        AppColors.primary,),
+                                                        AppColors.accent,),
                                             ],
                                           ),
                                           Text(
@@ -144,7 +153,7 @@ class ProfileScreen extends ConsumerWidget {
                                                 .bodyMedium
                                                 ?.copyWith(
                                                     color: AppColors
-                                                        .textSecondary,),
+                                                        .onEspressoSecondary,),
                                           ),
                                           const SizedBox(height: 4),
                                           Row(
@@ -157,7 +166,10 @@ class ProfileScreen extends ConsumerWidget {
                                                 '(${user?.reviewsCount ?? 0} reviews)',
                                                 style: Theme.of(context)
                                                     .textTheme
-                                                    .bodySmall,
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                        color: AppColors
+                                                            .onEspressoSecondary,),
                                               ),
                                             ],
                                           ),
@@ -300,6 +312,9 @@ class ProfileScreen extends ConsumerWidget {
                             style: OutlinedButton.styleFrom(
                               side:
                                   const BorderSide(color: AppColors.error),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
                             ),
                           ),
                         ),
@@ -335,7 +350,7 @@ class _MenuTile extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         decoration: BoxDecoration(
           // NOTE: not const, Border.all has no const constructor.
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           color: AppColors.surface,
           border: Border.all(color: AppColors.divider),
           boxShadow: AppShadows.soft,
@@ -346,8 +361,8 @@ class _MenuTile extends StatelessWidget {
             height: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.primarySoft,
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.tileBackground,
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: AppColors.primary),
           ),

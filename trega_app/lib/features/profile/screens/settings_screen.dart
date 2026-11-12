@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/glass_dialog.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/trega_toast.dart';
@@ -405,7 +405,7 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 
-/// A settings section: small header label over a frosted card of rows.
+/// A settings section: small header label over a flat white card of rows.
 Widget _settingsGroup(
   BuildContext context, {
   String? title,
@@ -434,8 +434,18 @@ Widget _settingsGroup(
                       ?.copyWith(color: AppColors.textSecondary),
             ),
           ),
-        GlassCard(
-          padding: EdgeInsets.zero,
+        Container(
+          decoration: BoxDecoration(
+            // NOTE: not const, Border.all has no const constructor.
+            borderRadius: BorderRadius.circular(24),
+            color: AppColors.surface,
+            border: Border.all(
+              color: danger
+                  ? AppColors.error.withValues(alpha: 0.35)
+                  : AppColors.divider,
+            ),
+            boxShadow: AppShadows.soft,
+          ),
           child: child,
         ),
       ],

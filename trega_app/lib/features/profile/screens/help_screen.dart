@@ -3,8 +3,8 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/widgets/motion.dart';
@@ -51,11 +51,8 @@ class HelpScreen extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 20),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              // NOTE: not const, BoxShadow list + gradient are fine, but
-              // this stays non-const to match the card recipe.
-              borderRadius: BorderRadius.circular(20),
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(24),
+              gradient: AppGradients.headerEspresso,
               boxShadow: AppShadows.card,
             ),
             child: Row(
@@ -65,12 +62,12 @@ class HelpScreen extends StatelessWidget {
                   height: 52,
                   alignment: Alignment.center,
                   decoration: const BoxDecoration(
-                    color: AppColors.primary,
+                    color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     PhosphorIconsRegular.headset,
-                    color: Colors.white,
+                    color: AppColors.espresso,
                     size: 28,
                   ),
                 ),
@@ -81,12 +78,17 @@ class HelpScreen extends StatelessWidget {
                     children: [
                       Text(
                         'How can we help?',
-                        style: textTheme.titleMedium,
+                        style: textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Answers to the most common questions about buying and selling on Trega.',
-                        style: textTheme.bodySmall?.copyWith(height: 1.45),
+                        style: textTheme.bodySmall?.copyWith(
+                          height: 1.45,
+                          color: AppColors.onEspressoSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -144,8 +146,14 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           // ── Contact card ────────────────────────────────────────
-          GlassCard(
-            padding: EdgeInsets.zero,
+          Container(
+            decoration: BoxDecoration(
+              // NOTE: not const, Border.all has no const constructor.
+              borderRadius: BorderRadius.circular(24),
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.divider),
+              boxShadow: AppShadows.soft,
+            ),
             child: ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -155,7 +163,7 @@ class HelpScreen extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(PhosphorIconsRegular.envelope,
                     color: Colors.white, size: 24,),
@@ -176,7 +184,7 @@ class HelpScreen extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   'Email us',
@@ -234,7 +242,7 @@ class _FaqTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
           // NOTE: not const, Border.all has no const constructor.
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           color: AppColors.surface,
           border: Border.all(color: AppColors.divider),
           boxShadow: AppShadows.soft,

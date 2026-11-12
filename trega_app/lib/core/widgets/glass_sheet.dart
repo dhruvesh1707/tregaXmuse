@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_shadows.dart';
 import '../theme/app_theme.dart';
-import 'liquid_glass.dart';
 
-/// Shows a floating light-glass bottom panel.
+/// Shows a floating flat bottom panel.
 ///
 /// Modern replacement for plain `showModalBottomSheet` call sites: the
-/// panel floats with a margin, 26dp radius, blur 24 and a drag pill,
-/// blurring whatever is behind it.
+/// panel floats with a margin, 28dp radius and a drag pill.
 ///
 /// The [builder] returns the sheet's content, laid out in a min-height
 /// column below the pill, return a Column with mainAxisSize.min (or a
@@ -36,10 +35,14 @@ Future<T?> showGlassSheet<T>({
         12,
         12 + MediaQuery.of(ctx).viewInsets.bottom,
       ),
-      child: LiquidGlass(
-        borderRadius: 26,
-        blur: 24,
+      child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppColors.divider, width: 1),
+          boxShadow: AppShadows.glass,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

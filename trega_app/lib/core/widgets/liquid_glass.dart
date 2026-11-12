@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -7,27 +6,24 @@ import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
 import 'motion.dart';
 
-/// The canonical light-glass surface for the minimal Trega theme.
+/// The canonical flat surface for the Trega theme.
 ///
 /// Exactly one recipe, applied everywhere:
-/// - fill: white at 0.70 alpha over a real [BackdropFilter] blur
-/// - hairline border: white at 0.60 alpha, width 1
-///   (or [AppColors.divider] on solid, non-frosted contexts)
+/// - fill: solid white
+/// - hairline border: [AppColors.divider], width 1
 /// - exactly one shadow: [AppShadows.glass]
 ///   (offset (0, 6), blur 18, warm tint 0xFF3A2417 at 10% alpha)
 ///
-/// Blur guidance: 18 for cards / sheets / bars, 14 for chips and small
-/// surfaces, 24 for dialogs.
-///
 /// The constructor keeps its historic parameters so existing call sites
-/// keep compiling: pass [tint] / [borderGradient] only to override the
+/// keep compiling: [blur] is accepted but ignored, flat rendering uses
+/// no blur. Pass [tint] / [borderGradient] only to override the
 /// default fill / hairline border.
-///
-/// Keep blur radii modest and glass surfaces few: every [BackdropFilter]
-/// repaints the content behind it.
 class LiquidGlass extends StatelessWidget {
   final Widget child;
   final double borderRadius;
+
+  /// Accepted for compatibility with existing call sites; ignored.
+  /// Flat rendering applies no blur.
   final double blur;
   final EdgeInsetsGeometry? padding;
   final Gradient? tint;
@@ -57,27 +53,22 @@ class LiquidGlass extends StatelessWidget {
     );
     final hasGradientBorder = borderGradient != null;
 
-    Widget inner = BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          borderRadius: hasGradientBorder ? innerRadius : outerRadius,
-          // Default fill: flat translucent white. A custom [tint]
-          // replaces it outright.
-          color: tint == null
-              ? Colors.white.withValues(alpha: 0.7)
-              : null,
-          gradient: tint,
-          border: hasGradientBorder
-              ? null
-              : Border.all(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  width: 1,
-                ),
-        ),
-        child: child,
+    Widget inner = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        borderRadius: hasGradientBorder ? innerRadius : outerRadius,
+        // Default fill: solid white. A custom [tint]
+        // replaces it outright.
+        color: tint == null ? Colors.white : null,
+        gradient: tint,
+        border: hasGradientBorder
+            ? null
+            : Border.all(
+                color: AppColors.divider,
+                width: 1,
+              ),
       ),
+      child: child,
     );
 
     if (onTap != null) {
@@ -94,7 +85,7 @@ class LiquidGlass extends StatelessWidget {
 
     // The shadow lives on the outer wrapper so the inner ClipRRect never
     // clips it. A custom [borderGradient] keeps the legacy treatment:
-    // the gradient paints an outer shell and the frosted fill insets by
+    // the gradient paints an outer shell and the flat fill insets by
     // [borderWidth].
     return Container(
       decoration: BoxDecoration(
@@ -113,9 +104,10 @@ class LiquidGlass extends StatelessWidget {
   }
 }
 
-/// Frosted card with comfortable default padding.
+/// Flat card with comfortable default padding.
 ///
-/// The standard content surface: blur 18, radius 18, the one shadow.
+/// The standard content surface: radius 18, solid white fill, hairline
+/// border and the one shadow.
 class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -142,9 +134,9 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-/// Small frosted pill, filter chips, badges, counts, overlay labels.
+/// Small flat pill, filter chips, badges, counts, overlay labels.
 ///
-/// Unselected: light glass (white 0.70 + blur 14 + hairline border).
+/// Unselected: solid white with a hairline [AppColors.divider] border.
 /// Selected: solid [AppColors.primary]; the fill animates via an
 /// [AnimatedContainer]. Label color is the caller's job, white when
 /// selected, [AppColors.textPrimary] when not.
@@ -175,36 +167,29 @@ class GlassChip extends StatelessWidget {
         borderRadius: radius,
         boxShadow: AppShadows.glass,
       ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                padding: padding,
-                // CRITICAL: centers the label vertically when a
-                // horizontal ListView hands the chip a tight height.
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: radius,
-                  color: selected
-                      ? AppColors.primary
-                      : Colors.white.withValues(alpha: 0.7),
-                  border: Border.all(
-                    color: selected
-                        ? Colors.transparent
-                        : Colors.white.withValues(alpha: 0.6),
-                    width: 1,
-                  ),
-                ),
-                child: child,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            padding: padding,
+            // CRITICAL: centers the label vertically when a
+            // horizontal ListView hands the chip a tight height.
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              color: selected ? AppColors.primary : Colors.white,
+              border: Border.all(
+                color: selected
+                    ? Colors.transparent
+                    : AppColors.divider,
+                width: 1,
               ),
             ),
+            child: child,
           ),
         ),
       ),
@@ -222,7 +207,7 @@ class GlassChip extends StatelessWidget {
   }
 }
 
-/// Frosted circular icon button, overlays on photos, headers, maps.
+/// Flat circular icon button, overlays on photos, headers, maps.
 class GlassIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;

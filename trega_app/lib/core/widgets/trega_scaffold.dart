@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../icons/phosphor_icons.dart';
@@ -95,8 +93,7 @@ class TregaScaffold extends StatelessWidget {
 /// Slim floating "you're offline" pill, shown over every [TregaScaffold]
 /// screen while the device has no connectivity.
 ///
-/// Dark glass: espresso at 0.78 alpha + blur 16 + hairline
-/// white-at-0.14 border, no heavy shadow. Driven by
+/// Solid [AppColors.espresso], no shadow. Driven by
 /// [ConnectivityService]; appears and vanishes automatically.
 /// [IgnorePointer] so it never swallows taps meant for the screen below.
 class _OfflinePill extends StatelessWidget {
@@ -105,40 +102,31 @@ class _OfflinePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.espresso.withValues(alpha: 0.78),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.14),
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.espresso,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              PhosphorIconsRegular.cloudSlash,
+              size: 14,
+              color: Colors.white,
+            ),
+            SizedBox(width: 8),
+            Text(
+              "You're offline",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  PhosphorIconsRegular.cloudSlash,
-                  size: 14,
-                  color: Colors.white,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  "You're offline",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );

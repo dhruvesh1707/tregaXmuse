@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-import 'liquid_glass.dart';
 import 'motion.dart';
 
 /// Primary / secondary / accent button, flat and solid.
@@ -9,10 +8,11 @@ import 'motion.dart';
 /// - Primary: solid [AppColors.primary] fill, white label.
 /// - Accent: solid [AppColors.accent] fill, dark label, the loudest CTA
 ///   on a screen.
-/// - Secondary: true light-glass pill, [AppColors.primary] label.
+/// - Secondary: solid white pill, 1.5pt [AppColors.primary] border,
+///   [AppColors.primary] label.
 ///
-/// Radius 16 everywhere. Press feedback (scale + haptic) comes from
-/// [PressScale]; the label centers via a full-width Row, never
+/// Pill radius (999) everywhere. Press feedback (scale + haptic) comes
+/// from [PressScale]; the label centers via a full-width Row, never
 /// Center/Align, which expand to max height under finite-loose
 /// constraints (Scaffold.bottomSheet, dialogs) and blow the button up
 /// full-screen.
@@ -36,7 +36,7 @@ class TregaButton extends StatelessWidget {
     this.accent = false,
   });
 
-  static const _radius = BorderRadius.all(Radius.circular(16));
+  static const _radius = BorderRadius.all(Radius.circular(999));
 
   @override
   Widget build(BuildContext context) {
@@ -50,13 +50,26 @@ class TregaButton extends StatelessWidget {
     late final Widget button;
     if (secondary) {
       final fg = enabled ? AppColors.primary : AppColors.textSecondary;
-      button = LiquidGlass(
-        borderRadius: 16,
-        blur: 14,
-        onTap: onPressed,
-        padding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        child: _labelRow(baseStyle.copyWith(color: fg), fg),
+      button = Container(
+        decoration: BoxDecoration(
+          borderRadius: _radius,
+          color: Colors.white,
+          border: Border.all(color: AppColors.primary, width: 1.5),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: _radius,
+            onTap: onPressed,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 14,
+                horizontal: 20,
+              ),
+              child: _labelRow(baseStyle.copyWith(color: fg), fg),
+            ),
+          ),
+        ),
       );
     } else {
       final Color fill;
