@@ -36,13 +36,23 @@ const _homeHeaderGradient = LinearGradient(
   colors: [AppColors.espresso, AppColors.espressoLight],
 );
 
+/// How far the promo cards overlap the header: exactly half the
+/// 168-tall promo card. The header container extends down by this
+/// amount below the category rail, and the carousel is translated up
+/// by the same amount, so each card sits half on the espresso header
+/// and half on the cream body. The header stays one surface, the
+/// same gradient container, only taller.
+const _promoCardOverlap = 84.0;
+
 /// Main marketplace feed: search entry, "Explore by Passion" categories,
 /// and the live listing feed.
 ///
 /// Two-tone page: a deep espresso header zone holds the wordmark, the
-/// search and notifications actions, and the category photo tiles, and
-/// the warm cream body below holds the promo carousel and the listing
-/// feed. Surfaces are flat and solid, no frosted glass.
+/// search and notifications actions, and the category photo tiles; the
+/// promo carousel straddles the header's bottom edge, half on the
+/// espresso zone and half on the warm cream body below, and the
+/// listing feed follows on cream. Surfaces are flat and solid, no
+/// frosted glass.
 ///
 /// Data comes from Firestore (`listings` where `status == live`,
 /// `categories` where `active == true`). Errors surface an inline error
@@ -209,6 +219,11 @@ class HomeScreen extends ConsumerWidget {
                                   categoriesAsync: categoriesAsync),
                             ),
                             const SizedBox(height: 20),
+                            // The header extends down by the card
+                            // overlap, so the promo cards can sit half
+                            // on it. Same gradient container, same glow,
+                            // one surface, only taller.
+                            const SizedBox(height: _promoCardOverlap),
                           ],
                         ),
                       ],
@@ -216,9 +231,22 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 16, bottom: 4),
-                    child: PromoBannerCarousel(),
+                  // The promo cards straddle the header's bottom edge.
+                  // The layout box holds only the card's lower half,
+                  // the carousel's 12px shadow room, and the 4px gap
+                  // below it; the carousel is translated up by the
+                  // overlap, so each card sits half on the espresso
+                  // header and half on the cream body. Transform
+                  // never clips, so the card's top half paints over
+                  // the header, and hit testing follows the
+                  // translation, so taps on the overlapped half still
+                  // hit the card.
+                  child: SizedBox(
+                    height: _promoCardOverlap + 16,
+                    child: Transform.translate(
+                      offset: Offset(0, -_promoCardOverlap),
+                      child: PromoBannerCarousel(),
+                    ),
                   ),
                 ),
                 SliverToBoxAdapter(

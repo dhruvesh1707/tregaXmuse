@@ -15,7 +15,10 @@ import '../../sell/screens/sell_flow_screen.dart';
 /// white text, an amber pill CTA, a dedicated transparent cutout per
 /// slide matched to the card's message and floating on the card, and
 /// the dots inside the card, bottom-left.
-/// Radius 24.
+/// Radius 24. The cards sit half on the home header, so the warmer
+/// gradient top, the stronger edge, and the warm shadow keep each
+/// card reading as its own panel on the dark header and the cream
+/// body alike.
 ///
 /// The carousel auto-advances every few seconds and the dots animate.
 /// Tapping a card opens the screen it promotes, or explains the promo
@@ -118,7 +121,11 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
     // active index: a viewport-level overlay can never line up with
     // the card's content edge on every screen width.
     return SizedBox(
-      height: 168,
+      // 168-tall card plus 12px of shadow room below it, so the
+      // card's warm shadow can breathe instead of clipping at the
+      // viewport edge. The home header overlaps the top half of
+      // the card; see _promoCardOverlap in home_screen.dart.
+      height: 180,
       child: PageView.builder(
         controller: _controller,
         itemCount: _slides.length,
@@ -156,7 +163,9 @@ class _PromoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      // Bottom 12px is the shadow room: the card itself stays
+      // 168 tall and the warm shadow paints into the gap below.
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 12),
       child: GestureDetector(
         onTap: () => _onSlideTap(context, slide),
         child: Container(
@@ -164,12 +173,26 @@ class _PromoCard extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.espressoLight, AppColors.espresso],
+              // Warmer top stop: where the card overlaps the header,
+              // the header's bottom tone is espressoLight, so a card
+              // starting at espressoLight would blend into it. The
+              // primaryDeep top keeps the card reading as its own
+              // panel on the dark header and on the cream body alike.
+              colors: [AppColors.primaryDeep, AppColors.espresso],
             ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: Colors.white.withValues(alpha: 0.16),
             ),
+            // Warm contact shadow, never pure black: lifts the card
+            // off the cream body and off the header it overlaps.
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowWarm.withValues(alpha: 0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
