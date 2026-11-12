@@ -12,8 +12,9 @@ import '../../profile/screens/kyc_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 
 /// Promo banner carousel for the home feed: warm espresso cards with
-/// white text, an amber pill CTA, a dedicated photo per slide matched
-/// to the card's message, and the dots inside the card, bottom-left.
+/// white text, an amber pill CTA, a dedicated transparent cutout per
+/// slide matched to the card's message and floating on the card, and
+/// the dots inside the card, bottom-left.
 /// Radius 24.
 ///
 /// The carousel auto-advances every few seconds and the dots animate.
@@ -31,8 +32,8 @@ class _PromoSlide {
   final String subtitle;
   final String cta;
 
-  /// The dedicated photo for this card, generated for the card's
-  /// message. Every slide has its own image.
+  /// The dedicated transparent cutout for this card, generated for
+  /// the card's message. Every slide has its own image.
   final String art;
 
   /// Named route to open on tap. Null makes the card informational, tap
@@ -55,7 +56,7 @@ const List<_PromoSlide> _slides = [
     title: 'Trega Express is here',
     subtitle: 'Faster delivery in select cities.',
     cta: 'How it works',
-    art: 'assets/promo/express.jpg',
+    art: 'assets/promo/express.png',
     infoBody:
         'Look for the Express badge on listings. When you and the seller are in the same select city, order before 9 PM and express delivery is available in select cities.',
   ),
@@ -63,21 +64,21 @@ const List<_PromoSlide> _slides = [
     title: 'Turn gear into cash',
     subtitle: 'List in under a minute, just your camera.',
     cta: 'Start selling',
-    art: 'assets/promo/sell.jpg',
+    art: 'assets/promo/sell.png',
     routeName: SellFlowScreen.routeName,
   ),
   _PromoSlide(
     title: 'Aadhaar-verified community',
     subtitle: 'Every seller is ID-verified.',
     cta: 'Get verified',
-    art: 'assets/promo/verified.jpg',
+    art: 'assets/promo/verified.png',
     routeName: KycScreen.routeName,
   ),
   _PromoSlide(
     title: 'Secure payments',
     subtitle: 'UPI, cards & netbanking via Cashfree.',
     cta: 'How bidding works',
-    art: 'assets/promo/payments.jpg',
+    art: 'assets/promo/payments.png',
     routeName: HelpScreen.routeName,
   ),
 ];
@@ -311,10 +312,10 @@ class _PromoCopy extends StatelessWidget {
   }
 }
 
-/// The slide's dedicated photo on the right side of a promo card:
-/// one square image, generated for the card's message, lifted with a
-/// soft shadow. A photo that fails to load falls back to a plain tile,
-/// never an error box.
+/// The slide's dedicated cutout on the right side of a promo card: a
+/// transparent PNG generated for the card's message, floating directly
+/// on the card with no frame. A cutout that fails to load leaves the
+/// space empty, never an error box.
 class _PromoArt extends StatelessWidget {
   final String asset;
 
@@ -322,32 +323,13 @@ class _PromoArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 96,
-      height: 96,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Image.asset(
-          asset,
-          width: 96,
-          height: 96,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            width: 96,
-            height: 96,
-            color: AppColors.tileBackground,
-          ),
-        ),
+    return SizedBox(
+      width: 108,
+      height: 104,
+      child: Image.asset(
+        asset,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
   }
