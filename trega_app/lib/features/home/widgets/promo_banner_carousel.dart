@@ -12,8 +12,9 @@ import '../../profile/screens/kyc_screen.dart';
 import '../../sell/screens/sell_flow_screen.dart';
 
 /// Promo banner carousel for the home feed: warm espresso cards with
-/// white text, an amber pill CTA, product photo art matched to each
-/// slide, and the dots inside the card, bottom-left. Radius 24.
+/// white text, an amber pill CTA, a dedicated photo per slide matched
+/// to the card's message, and the dots inside the card, bottom-left.
+/// Radius 24.
 ///
 /// The carousel auto-advances every few seconds and the dots animate.
 /// Tapping a card opens the screen it promotes, or explains the promo
@@ -30,10 +31,9 @@ class _PromoSlide {
   final String subtitle;
   final String cta;
 
-  /// The two category photos shown as the card's product art, matched
-  /// to the slide's topic. Every slide has its own pair.
-  final String artPrimary;
-  final String artSecondary;
+  /// The dedicated photo for this card, generated for the card's
+  /// message. Every slide has its own image.
+  final String art;
 
   /// Named route to open on tap. Null makes the card informational, tap
   /// shows [infoBody] in a dialog instead.
@@ -44,8 +44,7 @@ class _PromoSlide {
     required this.title,
     required this.subtitle,
     required this.cta,
-    required this.artPrimary,
-    required this.artSecondary,
+    required this.art,
     this.routeName,
     this.infoBody,
   });
@@ -56,8 +55,7 @@ const List<_PromoSlide> _slides = [
     title: 'Trega Express is here',
     subtitle: 'Faster delivery in select cities.',
     cta: 'How it works',
-    artPrimary: 'assets/categories/mobile.jpg',
-    artSecondary: 'assets/categories/gaming.jpg',
+    art: 'assets/promo/express.jpg',
     infoBody:
         'Look for the Express badge on listings. When you and the seller are in the same select city, order before 9 PM and express delivery is available in select cities.',
   ),
@@ -65,24 +63,21 @@ const List<_PromoSlide> _slides = [
     title: 'Turn gear into cash',
     subtitle: 'List in under a minute, just your camera.',
     cta: 'Start selling',
-    artPrimary: 'assets/categories/camera.jpg',
-    artSecondary: 'assets/categories/laptop.jpg',
+    art: 'assets/promo/sell.jpg',
     routeName: SellFlowScreen.routeName,
   ),
   _PromoSlide(
     title: 'Aadhaar-verified community',
     subtitle: 'Every seller is ID-verified.',
     cta: 'Get verified',
-    artPrimary: 'assets/categories/fashion.jpg',
-    artSecondary: 'assets/categories/watch.jpg',
+    art: 'assets/promo/verified.jpg',
     routeName: KycScreen.routeName,
   ),
   _PromoSlide(
     title: 'Secure payments',
     subtitle: 'UPI, cards & netbanking via Cashfree.',
     cta: 'How bidding works',
-    artPrimary: 'assets/categories/music.jpg',
-    artSecondary: 'assets/categories/collectible.jpg',
+    art: 'assets/promo/payments.jpg',
     routeName: HelpScreen.routeName,
   ),
 ];
@@ -154,7 +149,7 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
 
 /// One promo card: a warm espresso card with the headline copy and
 /// amber pill CTA on the left, a soft glow at the top-right, a hairline
-/// edge, and product photo art matched to the slide on the right.
+/// edge, and the slide's dedicated photo on the right.
 /// Tapping navigates or shows the info dialog (see [_onSlideTap]).
 /// The bottom padding clears the dots overlay that sits inside the
 /// card, bottom-left.
@@ -207,7 +202,7 @@ class _PromoCard extends StatelessWidget {
                         child: _PromoCopy(slide: slide),
                       ),
                       const SizedBox(width: 12),
-                      _PromoArt(slide: slide),
+                      _PromoArt(asset: slide.art),
                     ],
                   ),
                 ),
@@ -316,65 +311,43 @@ class _PromoCopy extends StatelessWidget {
   }
 }
 
-/// Product photo art for the right side of a promo card: two
-/// overlapping category photos matched to the slide's topic, so every
-/// card shows its own products. A photo that fails to load falls back
-/// to a plain tile, never an error box.
+/// The slide's dedicated photo on the right side of a promo card:
+/// one square image, generated for the card's message, lifted with a
+/// soft shadow. A photo that fails to load falls back to a plain tile,
+/// never an error box.
 class _PromoArt extends StatelessWidget {
-  final _PromoSlide slide;
+  final String asset;
 
-  const _PromoArt({required this.slide});
+  const _PromoArt({required this.asset});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: 96,
-      height: 112,
-      child: Stack(
-        children: [
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                slide.artPrimary,
-                width: 68,
-                height: 68,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 68,
-                  height: 68,
-                  color: AppColors.tileBackground,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.espresso, width: 3),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(17),
-                child: Image.asset(
-                  slide.artSecondary,
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 60,
-                    height: 60,
-                    color: AppColors.tileBackground,
-                  ),
-                ),
-              ),
-            ),
+      height: 96,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Image.asset(
+          asset,
+          width: 96,
+          height: 96,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            width: 96,
+            height: 96,
+            color: AppColors.tileBackground,
+          ),
+        ),
       ),
     );
   }

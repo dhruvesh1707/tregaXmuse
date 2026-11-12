@@ -105,6 +105,7 @@ flutter:
   assets:
     - assets/logo/
     - assets/categories/
+    - assets/promo/
 
   fonts:
     - family: PhosphorRegular
