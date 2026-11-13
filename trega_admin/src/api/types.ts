@@ -63,6 +63,19 @@ export interface Listing {
 }
 
 /** Order row (orders/{id}), enriched client-side. */
+/** Structured address: the order's `deliveryAddress` map (checkout) or a
+ * listing's pickup address (`listings/{id}/private/details`). Delivery
+ * addresses always carry name/phone; pickup addresses usually don't. */
+export interface DeliveryAddress {
+  name?: string;
+  phone?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}
+
 export interface Order {
   id: string;
   listingId: string;
@@ -78,6 +91,12 @@ export interface Order {
   paymentStatus: PaymentStatus;
   /** 'express' = next-day same-city (Trega Express); team must book same-day courier. */
   deliveryType?: 'express' | 'standard';
+  /** Buyer delivery address from checkout (required for accepted-bid orders). */
+  deliveryAddress?: DeliveryAddress;
+  /** Seller pickup address from the listing's private details: a
+   * structured map, or a plain string for older listings. Null when the
+   * listing has no pickup address saved. */
+  pickupAddress?: DeliveryAddress | string | null;
   trackingNote?: string;
   createdAt: string; // ISO
 }

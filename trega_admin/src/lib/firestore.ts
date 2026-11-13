@@ -26,6 +26,7 @@ import type {
   Campaign,
   Category,
   DashboardStats,
+  DeliveryAddress,
   DeliveryConfig,
   FeeConfig,
   KycStatus,
@@ -100,6 +101,46 @@ async function fetchListingLite(id: string) {
 }
 
 // ── Mappers ──────────────────────────────────────────────────────────────
+
+// Pickup addresses never change; cache them like users/listings.
+const pickupCache = new Map<string, DeliveryAddress | string | null>();
+
+/** Coerces a Firestore value to a structured address, or undefined when
+ * it is not a map with at least a first address line. */
+function toDeliveryAddress(v: unknown): DeliveryAddress | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const m = v as Record<string, unknown>;
+  const str = (k: string) => (typeof m[k] === 'string' ? (m[k] as string) : undefined);
+  if (!str('line1')) return undefined;
+  return {
+    name: str('name'),
+    phone: str('phone'),
+    line1: str('line1'),
+    line2: str('line2'),
+    city: str('city'),
+    state: str('state'),
+    pincode: str('pincode'),
+  };
+}
+
+/** Seller pickup address from `listings/{id}/private/details`: a
+ * structured map, a plain string for older listings, or null when none
+ * is saved. Never throws, a missing doc just means no address. */
+async function fetchPickupAddress(listingId: string): Promise<DeliveryAddress | string | null> {
+  const hit = pickupCache.get(listingId);
+  if (hit !== undefined) return hit;
+  try {
+    const snap = await getDoc(doc(db, 'listings', listingId, 'private', 'details'));
+    const raw = snap.exists() ? snap.data().pickupAddress : undefined;
+    const value =
+      typeof raw === 'string' ? raw : (toDeliveryAddress(raw) ?? null);
+    pickupCache.set(listingId, value);
+    return value;
+  } catch {
+    return null;
+  }
+}
+
 export function mapListing(id: string, d: DocumentData, seller: UserLite, categoryName: string): Listing {
   return {
     id,
@@ -122,10 +163,11 @@ export function mapListing(id: string, d: DocumentData, seller: UserLite, catego
 }
 
 export async function mapOrder(id: string, d: DocumentData): Promise<Order> {
-  const [listing, buyer, seller] = await Promise.all([
+  const [listing, buyer, seller, pickupAddress] = await Promise.all([
     fetchListingLite(d.listingId as string),
     fetchUserLite(d.buyerId as string),
     fetchUserLite(d.sellerId as string),
+    fetchPickupAddress(d.listingId as string),
   ]);
   return {
     id,
@@ -141,6 +183,8 @@ export async function mapOrder(id: string, d: DocumentData): Promise<Order> {
     status: (d.status as Order['status']) ?? 'placed',
     paymentStatus: (d.paymentStatus as Order['paymentStatus']) ?? 'PENDING',
     deliveryType: (d.deliveryType as Order['deliveryType']) ?? 'standard',
+    deliveryAddress: toDeliveryAddress(d.deliveryAddress),
+    pickupAddress,
     trackingNote: d.trackingNote as string | undefined,
     createdAt: tsToIso(d.createdAt),
   };

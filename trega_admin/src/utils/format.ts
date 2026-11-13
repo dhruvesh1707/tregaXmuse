@@ -1,3 +1,5 @@
+import type { DeliveryAddress } from '../api/types';
+
 /** INR currency formatting */
 export function formatINR(amount: number): string {
   return new Intl.NumberFormat('en-IN', {
@@ -58,4 +60,30 @@ const CONDITION_LABELS: Record<string, string> = {
 
 export function conditionLabel(condition: string): string {
   return CONDITION_LABELS[condition] ?? condition;
+}
+
+/** Address (structured map or legacy plain string) → display lines.
+ * Empty parts are dropped, so pickup addresses without a name/phone
+ * still render cleanly. */
+export function formatAddressLines(
+  addr: DeliveryAddress | string | null | undefined,
+): string[] {
+  if (!addr) return [];
+  if (typeof addr === 'string') {
+    return addr
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const cityLine = [addr.city, addr.state].filter(Boolean).join(', ');
+  const lastLine = [cityLine, addr.pincode].filter(Boolean).join(' ');
+  return [
+    addr.name,
+    addr.phone,
+    addr.line1,
+    addr.line2,
+    lastLine,
+  ]
+    .map((s) => s?.trim())
+    .filter((s): s is string => Boolean(s));
 }

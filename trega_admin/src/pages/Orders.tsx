@@ -6,7 +6,7 @@ import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import StatusBadge, { prettyStatus } from '../components/StatusBadge';
 import Modal from '../components/Modal';
-import { formatINR, timeAgo } from '../utils/format';
+import { formatAddressLines, formatINR, timeAgo } from '../utils/format';
 
 const PAGE_SIZE = 20;
 const TABS: Array<{ key: string; label: string }> = [
@@ -249,6 +249,40 @@ export default function Orders() {
                 ) : (
                   <span className="text-stone-500">Delivery: Standard</span>
                 )}
+              </div>
+              <div className="mt-3 grid gap-3 border-t border-stone-200 pt-3 sm:grid-cols-2">
+                <div>
+                  <div className="mb-1 text-xs font-semibold text-stone-700">
+                    Pick up from (seller)
+                  </div>
+                  {editing.pickupAddress ? (
+                    <div className="text-xs leading-relaxed text-stone-600">
+                      {formatAddressLines(editing.pickupAddress).map((line) => (
+                        <div key={line}>{line}</div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-stone-400">
+                      No pickup address saved for this listing.
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="mb-1 text-xs font-semibold text-stone-700">
+                    Deliver to (buyer)
+                  </div>
+                  {editing.deliveryAddress ? (
+                    <div className="text-xs leading-relaxed text-stone-600">
+                      {formatAddressLines(editing.deliveryAddress).map((line) => (
+                        <div key={line}>{line}</div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-stone-400">
+                      No delivery address on this order.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
