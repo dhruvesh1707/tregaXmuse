@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:trega/core/icons/phosphor_icons.dart';
@@ -14,6 +13,7 @@ import '../../../core/utils/format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/no_internet_state.dart';
+import '../../../core/widgets/order_thumbnail.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../home/providers/listing_providers.dart';
 import 'order_tracking_screen.dart';
@@ -200,7 +200,7 @@ class _OrderCard extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _OrderThumbnail(photoUrl: photoUrl),
+                  OrderThumbnail(photoUrl: photoUrl),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -276,49 +276,6 @@ class _OrderCard extends ConsumerWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Small rounded thumbnail for an order card, 48px like a profile pic.
-/// Decoded small; no disk-cache cap on purpose, the disk file is shared
-/// with the listing detail gallery by URL.
-class _OrderThumbnail extends StatelessWidget {
-  final String? photoUrl;
-
-  const _OrderThumbnail({required this.photoUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    if (photoUrl == null) return _fallback();
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: CachedNetworkImage(
-        imageUrl: photoUrl!,
-        width: 48,
-        height: 48,
-        fit: BoxFit.cover,
-        memCacheWidth: 200,
-        memCacheHeight: 200,
-        placeholder: (context, url) => _fallback(),
-        errorWidget: (context, url, error) => _fallback(),
-      ),
-    );
-  }
-
-  Widget _fallback() {
-    return Container(
-      width: 48,
-      height: 48,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: AppColors.tileBackground,
-      ),
-      child: const Icon(
-        PhosphorIconsRegular.image,
-        color: AppColors.primary,
       ),
     );
   }

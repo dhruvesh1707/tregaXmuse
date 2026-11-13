@@ -5,6 +5,7 @@ import 'package:trega/core/icons/phosphor_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:timelines_plus/timelines_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/models/order.dart';
@@ -16,6 +17,7 @@ import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/no_internet_state.dart';
+import '../../../core/widgets/order_thumbnail.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../core/widgets/trega_toast.dart';
 import '../../home/providers/listing_providers.dart';
@@ -145,6 +147,18 @@ class _TrackingContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = OrderTrackingScreen._timeline
         .indexWhere((e) => e.$1 == order.status);
+    // Same title/photo resolution as the order list card: live listing
+    // first, purchase-time snapshot when the listing is gone, and
+    // "Listing unavailable" when neither exists, never a bare id.
+    final listingAsync = ref.watch(listingDetailProvider(order.listing.id));
+    final live = listingAsync.valueOrNull;
+    final livePhoto = live != null && live.product.imageUrls.isNotEmpty
+        ? live.product.imageUrls.first
+        : null;
+    final title = live?.product.title ??
+        order.listingTitle ??
+        (listingAsync.isLoading ? null : 'Listing unavailable');
+    final photoUrl = livePhoto ?? order.listingPhotoUrl;
 
     return TregaScaffold(
       appBar: _EspressoHeader(
@@ -173,35 +187,43 @@ class _TrackingContent extends ConsumerWidget {
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ref
-                      .watch(listingDetailProvider(order.listing.id))
-                      .when(
-                        data: (listing) => Text(
-                          listing?.product.title ??
-                              'Listing ${order.listing.id}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        loading: () => Text(
-                          'Listing ${order.listing.id}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        error: (_, __) => Text(
-                          'Listing ${order.listing.id}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      OrderThumbnail(photoUrl: photoUrl),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            title == null
+                                ? const ShimmerBox(
+                                    width: 140,
+                                    height: 14,
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(7),
+                                    ),
+                                  )
+                                : Text(
+                                    title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium,
+                                  ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Order ${order.id.toUpperCase()}${order.trackingId != null ? ' · ${order.trackingId}' : ''}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
                         ),
                       ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Order ${order.id.toUpperCase()}${order.trackingId != null ? ' · ${order.trackingId}' : ''}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -330,11 +352,51 @@ class _TrackingContent extends ConsumerWidget {
             label: 'Need help with this order?',
             secondary: true,
             expanded: false,
-            onPressed: () {},
+            onPressed: () => _emailOrderSupport(context, ref, order),
           ),
         ],
       ),
     );
+  }
+
+  /// Emails support about this specific order, with the order details
+  /// prefilled so the buyer does not have to type them. Same mailto +
+  /// fallback pattern as the Help screen.
+  Future<void> _emailOrderSupport(
+      BuildContext context, WidgetRef ref, Order order) async {
+    final title = ref
+            .read(listingDetailProvider(order.listing.id))
+            .valueOrNull
+            ?.product
+            .title ??
+        order.listingTitle ??
+        'Listing unavailable';
+    final shortId = order.id.length > 6
+        ? order.id.substring(0, 6).toUpperCase()
+        : order.id;
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'contact@trega.in',
+      queryParameters: {
+        'subject': 'Help with order #$shortId',
+        'body': 'Hi Trega team,\n\nI need help with my order.\n\n'
+            'Order ID: ${order.id}\n'
+            'Item: $title\n'
+            'Amount: ${formatINR(order.amount)}\n'
+            'Status: ${order.status.label}\n\n'
+            'What happened:\n',
+      },
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else if (context.mounted) {
+      await showTregaToast(
+        context,
+        'Write to contact@trega.in with order #$shortId, we reply within a day.',
+        title: 'Contact support',
+        kind: TregaToastKind.info,
+      );
+    }
   }
 
   /// Shares this specific order as text with a link to it, so it can be
