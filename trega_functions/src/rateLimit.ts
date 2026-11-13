@@ -55,6 +55,7 @@ const DEFAULT_RULES: Record<string, RateLimitRule> = {
   deleteAccount: { limit: 3, windowSec: 86400, blockBaseSec: 3600, blockMaxSec: 86400 },
   views: { limit: 300, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 1800 },
   listingDelete: { limit: 10, windowSec: 3600, blockBaseSec: 300, blockMaxSec: 3600 },
+  shipmentRetry: { limit: 20, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 1800 },
 };
 
 /**

@@ -97,6 +97,18 @@ export interface Order {
    * structured map, or a plain string for older listings. Null when the
    * listing has no pickup address saved. */
   pickupAddress?: DeliveryAddress | string | null;
+  /** Shiprocket shipment, created automatically when the order is paid. */
+  srOrderId?: number;
+  srShipmentId?: number;
+  awbCode?: string;
+  courierName?: string;
+  /** Creation state machine: creating, pickup_scheduled, failed. */
+  shipmentStatus?: string;
+  shipmentStep?: string;
+  shipmentError?: string;
+  pickupScheduledDate?: string;
+  /** Estimated delivery, as returned by Shiprocket (human date string). */
+  etd?: string;
   trackingNote?: string;
   createdAt: string; // ISO
 }

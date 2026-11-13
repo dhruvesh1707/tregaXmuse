@@ -185,6 +185,15 @@ export async function mapOrder(id: string, d: DocumentData): Promise<Order> {
     deliveryType: (d.deliveryType as Order['deliveryType']) ?? 'standard',
     deliveryAddress: toDeliveryAddress(d.deliveryAddress),
     pickupAddress,
+    srOrderId: d.srOrderId as number | undefined,
+    srShipmentId: d.srShipmentId as number | undefined,
+    awbCode: d.awbCode as string | undefined,
+    courierName: d.courierName as string | undefined,
+    shipmentStatus: d.shipmentStatus as string | undefined,
+    shipmentStep: d.shipmentStep as string | undefined,
+    shipmentError: d.shipmentError as string | undefined,
+    pickupScheduledDate: d.pickupScheduledDate as string | undefined,
+    etd: d.etd as string | undefined,
     trackingNote: d.trackingNote as string | undefined,
     createdAt: tsToIso(d.createdAt),
   };
@@ -778,6 +787,19 @@ export async function setUserKyc(uid: string, status: 'verified' | 'rejected', n
 export async function updateOrder(orderId: string, status?: string, trackingNote?: string): Promise<void> {
   try {
     await updateOrderFulfillmentFn({ orderId, status, trackingNote });
+  } catch (e) {
+    throw new Error(callableError(e));
+  }
+}
+
+const retryShipmentFn = httpsCallable<{ orderId: string }, { ok: boolean }>(
+  functions,
+  'retryShipment',
+);
+
+export async function retryShipment(orderId: string): Promise<void> {
+  try {
+    await retryShipmentFn({ orderId });
   } catch (e) {
     throw new Error(callableError(e));
   }

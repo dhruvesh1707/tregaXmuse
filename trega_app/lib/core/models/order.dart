@@ -97,6 +97,12 @@ class Order {
   /// bare listing id. Null on orders placed before the snapshot existed.
   final String? listingTitle;
   final String? listingPhotoUrl;
+  /// Shiprocket shipment details, written server-side when a paid order
+  /// gets a courier booking. Null until the shipment exists.
+  final String? awbCode;
+  final String? courierName;
+  final String? shipmentStatus;
+  final String? etd;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -111,6 +117,10 @@ class Order {
     this.deliveryAddress,
     this.listingTitle,
     this.listingPhotoUrl,
+    this.awbCode,
+    this.courierName,
+    this.shipmentStatus,
+    this.etd,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -150,7 +160,8 @@ class Order {
 ///
 /// Canonical fields: `listingId`, `bidId?`, `buyerId`, `sellerId`, `amount`,
 /// `currency`, `paymentStatus`, `status`, `cfOrderId?`, `trackingNote?`,
-/// `listingTitle?`, `listingPhotoUrl?`, `paidAt?`, `createdAt`.
+/// `listingTitle?`, `listingPhotoUrl?`, `awbCode?`, `courierName?`,
+/// `shipmentStatus?`, `etd?`, `paidAt?`, `createdAt`.
 ///
 /// Orders are created server-side by the `createCashfreeOrder` callable,
 /// clients never write order docs directly. The order doc carries no full
@@ -184,6 +195,10 @@ extension OrderFirestore on Order {
       trackingId: data['trackingNote'] as String?,
       listingTitle: data['listingTitle'] as String?,
       listingPhotoUrl: data['listingPhotoUrl'] as String?,
+      awbCode: data['awbCode'] as String?,
+      courierName: data['courierName'] as String?,
+      shipmentStatus: data['shipmentStatus'] as String?,
+      etd: data['etd'] as String?,
       createdAt: firestoreDate(data['createdAt']),
       updatedAt: firestoreDate(data['createdAt']),
     );

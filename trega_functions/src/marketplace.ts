@@ -13,13 +13,15 @@ export const NotificationType = {
   bidAccepted: "bid_accepted",
   bidRejected: "bid_rejected",
   listingFlagged: "listing_flagged",
+  shipmentUpdate: "shipment_update",
 } as const;
 
 /** Queues one inbox notification on a write batch. The matching FCM
  * push is delivered asynchronously by the `onNotificationCreate`
  * trigger firing on this doc, never awaited by the caller, so
- * accept/reject return the moment the batch commits. */
-function queueNotification(
+ * accept/reject return the moment the batch commits. Exported for the
+ * Shiprocket module, which queues pickup/delivery notifications. */
+export function queueNotification(
   batch: admin.firestore.WriteBatch,
   uid: string,
   n: {

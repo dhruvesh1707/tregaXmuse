@@ -220,6 +220,28 @@ class _TrackingContent extends ConsumerWidget {
                               style:
                                   Theme.of(context).textTheme.bodySmall,
                             ),
+                            if (order.courierName != null ||
+                                order.awbCode != null)
+                              Text(
+                                [
+                                  order.courierName,
+                                  order.awbCode != null
+                                      ? 'AWB ${order.awbCode}'
+                                      : null,
+                                ].whereType<String>().join(' · '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    Theme.of(context).textTheme.bodySmall,
+                              ),
+                            if (order.etd != null && order.etd!.isNotEmpty)
+                              Text(
+                                'Arriving by ${order.etd}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    Theme.of(context).textTheme.bodySmall,
+                              ),
                           ],
                         ),
                       ),

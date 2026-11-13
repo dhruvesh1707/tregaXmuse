@@ -20,6 +20,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
@@ -31,6 +32,9 @@ import {
   CASHFREE_SECRET_KEY,
   KYC_SALT,
   ADMIN_BOOTSTRAP_PHONE,
+  SHIPROCKET_API_EMAIL,
+  SHIPROCKET_API_PASSWORD,
+  SHIPROCKET_WEBHOOK_KEY,
 } from "./config";
 import { clientIp, rateLimit } from "./rateLimit";
 import { requestAadhaarOtpHandler, verifyAadhaarOtpHandler } from "./kyc";
@@ -60,6 +64,11 @@ import {
   updateOrderFulfillmentHandler,
 } from "./admin";
 import { deleteAccountHandler } from "./account";
+import {
+  handleShiprocketWebhook,
+  onOrderPaidHandler,
+  retryShipmentHandler,
+} from "./shiprocket";
 import {
   listingPageHandler,
   listingsSitemapHandler,
@@ -373,6 +382,73 @@ export const updateOrderFulfillment = onCall(async (request) => {
     trackingNote: request.data?.trackingNote,
   });
 });
+
+// ---------------------------------------------------------- Shiprocket ---
+// Courier integration (see shiprocket.ts). When an order's payment flips
+// to SUCCESS, onOrderPaid creates the Shiprocket shipment and schedules
+// pickup from the seller automatically; tracking updates arrive on the
+// courierTracking webhook and move the order forward. The webhook
+// function is deliberately NOT named *shiprocket*: Shiprocket rejects
+// callback URLs containing `shiprocket`, `kartrocket`, `sr` or `kr`.
+
+/**
+ * Paid order → Shiprocket shipment + seller pickup, fully automatic.
+ * No-ops on every update except the payment flip, and never throws:
+ * a failed shipment lands on the order doc for the admin to retry.
+ */
+export const onOrderPaid = onDocumentUpdated(
+  {
+    document: "orders/{orderId}",
+    secrets: [SHIPROCKET_API_EMAIL, SHIPROCKET_API_PASSWORD],
+  },
+  async (event) => {
+    await onOrderPaidHandler(
+      event.params.orderId,
+      event.data?.before.data() as Record<string, unknown> | undefined,
+      event.data?.after.data() as Record<string, unknown> | undefined
+    );
+  }
+);
+
+/** Admin retry for a failed shipment. Resumes from the stored step. */
+export const retryShipment = onCall(
+  { secrets: [SHIPROCKET_API_EMAIL, SHIPROCKET_API_PASSWORD] },
+  async (request) => {
+    const uid = requireAuthUid(request);
+    await rateLimit("shipmentRetry", { uid, ip: ipOf(request) });
+    const isAdmin = request.auth?.token?.admin === true;
+    return retryShipmentHandler(isAdmin, request.data?.orderId);
+  }
+);
+
+/**
+ * Shiprocket tracking webhook. Register this URL in the Shiprocket
+ * panel (Settings, API, Webhooks) with the SHIPROCKET_WEBHOOK_KEY
+ * security token. Always answers 200 for validly authenticated calls.
+ */
+export const courierTracking = onRequest(
+  { secrets: [SHIPROCKET_WEBHOOK_KEY] },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+    try {
+      await rateLimit("webhook", { ip: clientIp(req) });
+    } catch (e) {
+      if (e instanceof HttpsError && e.code === "resource-exhausted") {
+        res.status(429).send("Too many requests");
+        return;
+      }
+      throw e;
+    }
+    const result = await handleShiprocketWebhook(
+      req.header("x-api-key"),
+      req.body
+    );
+    res.status(result.status).send(result.ok ? "ok" : "unauthorized");
+  }
+);
 
 // ---------------------------------------------------------- Account --------
 /**

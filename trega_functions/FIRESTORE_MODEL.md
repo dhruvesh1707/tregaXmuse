@@ -223,6 +223,14 @@ Never on the public listing doc. Readable only by the seller and admins
 | deliveryAddress | map? | buyer delivery address from checkout: `name`, `phone`, `line1`, `line2?`, `city`, `state`, `pincode` (required when the order came from an accepted bid) |
 | deliveryType | string | `standard` \| `express`, set server-side; `express` only when same-city express eligibility validates |
 | trackingNote | string? | latest fulfillment note |
+| srOrderId / srShipmentId | number? | Shiprocket order / shipment ids, written when the shipment is created (see Shiprocket below) |
+| awbCode | string? | courier AWB, written on AWB assignment (this debits the Shiprocket wallet) |
+| courierName | string? | e.g. `Delhivery Surface` |
+| shipmentStatus | string? | creation state machine: `creating` \| `pickup_scheduled` \| `failed`; absent until the first creation attempt |
+| shipmentStep | string? | last step reached: `pickup_location` \| `create_order` \| `assign_awb` \| `request_pickup` \| `done` |
+| shipmentError | string? | failure message when `shipmentStatus` is `failed`; deleted on success |
+| pickupScheduledDate | string? | Shiprocket pickup date string |
+| etd | string? | estimated delivery date string from Shiprocket |
 | paidAt | timestamp? | |
 | createdAt | timestamp | |
 
@@ -411,6 +419,35 @@ Account (`trega_functions/src/account.ts`):
   by/about the user, reports filed, `kycVerifications/{uid}`, the user's
   `aadhaarIndex` claims (frees the Aadhaar for a future account), the avatar,
   and finally the Firebase Auth user. No undo; the app confirms explicitly.
+
+Shiprocket courier integration (`trega_functions/src/shiprocket.ts`):
+
+- `onOrderPaid` (Firestore trigger on `orders/{orderId}` updates): when
+  `paymentStatus` flips to `SUCCESS`, creates a Shiprocket shipment and
+  schedules pickup from the seller automatically. Steps: ensure the
+  seller pickup location (`TREGA-<sellerUid>`), create an adhoc order
+  (Shiprocket `order_id` is the Trega order doc id), pick a courier
+  from the serviceability response (Blue Dart for Rs 10,000+ orders
+  when available, else highest-rated with earliest ETD), assign an AWB
+  (debits the Shiprocket wallet), request pickup. Resumable from the
+  stored ids; failures land as `shipmentStatus: "failed"` on the order
+  doc and never break payment. No-ops entirely until the Shiprocket
+  secrets are set.
+- `retryShipment({orderId})` (admin-only callable, rate tier
+  `shipmentRetry`): retries a failed shipment from the stored step.
+- `courierTracking` (HTTPS webhook, `x-api-key` token auth): Shiprocket
+  tracking events move the order forward (pickup_scheduled, picked_up,
+  in_transit, delivered, cancelled, returned; forward-only, terminal
+  states stick) and refresh `trackingNote` / `etd`. Named
+  `courierTracking` because Shiprocket rejects callback URLs containing
+  `shiprocket`, `kartrocket`, `sr` or `kr`. Register the deployed URL
+  plus the `SHIPROCKET_WEBHOOK_KEY` token in the Shiprocket panel.
+- Secrets: `SHIPROCKET_API_EMAIL`, `SHIPROCKET_API_PASSWORD` (API user
+  created in the panel with Buyer Details Access ALLOWED),
+  `SHIPROCKET_WEBHOOK_KEY`. No sandbox exists: every call is live.
+- Parcel weight/dimensions come from category defaults in
+  `FREIGHT_DEFAULTS` (listings carry no weight); wrong weights cause
+  Shiprocket weight discrepancy charges.
 
 ## Storage
 `listingMedia/{listingId}/{filename}`, listing photos and videos.

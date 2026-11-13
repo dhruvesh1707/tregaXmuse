@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useOrders, updateOrder } from '../lib/firestore';
+import { useOrders, updateOrder, retryShipment } from '../lib/firestore';
 import type { Order, OrderStatus } from '../api/types';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
@@ -46,6 +46,7 @@ export default function Orders() {
   const [newStatus, setNewStatus] = useState<OrderStatus>('placed');
   const [trackingNote, setTrackingNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const { rows, total, loading, error, refresh } = useOrders(status, page, PAGE_SIZE, query, expressOnly);
 
   const openEdit = (o: Order) => {
@@ -66,6 +67,20 @@ export default function Orders() {
       alert(err instanceof Error ? err.message : 'Update failed.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const retry = async () => {
+    if (!editing) return;
+    setRetrying(true);
+    try {
+      await retryShipment(editing.id);
+      setEditing(null);
+      refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Retry failed.');
+    } finally {
+      setRetrying(false);
     }
   };
 
@@ -283,6 +298,54 @@ export default function Orders() {
                     </div>
                   )}
                 </div>
+              </div>
+              <div className="mt-3 border-t border-stone-200 pt-3">
+                <div className="mb-1 text-xs font-semibold text-stone-700">
+                  Shipment (Shiprocket)
+                </div>
+                {editing.awbCode ? (
+                  <div className="text-xs leading-relaxed text-stone-600">
+                    <div>
+                      {editing.courierName} · AWB {editing.awbCode}
+                    </div>
+                    {editing.etd && <div>Expected by {editing.etd}</div>}
+                    {editing.pickupScheduledDate && (
+                      <div>Pickup: {editing.pickupScheduledDate}</div>
+                    )}
+                  </div>
+                ) : editing.shipmentStatus === 'failed' ? (
+                  <div className="text-xs leading-relaxed">
+                    <div className="text-red-600">
+                      Shipment failed
+                      {editing.shipmentStep
+                        ? ` at ${editing.shipmentStep}`
+                        : ''}
+                      .
+                    </div>
+                    {editing.shipmentError && (
+                      <div className="text-stone-600">
+                        {editing.shipmentError}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={retry}
+                      disabled={retrying}
+                      className="mt-2 rounded-lg bg-trega-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-trega-700 disabled:opacity-60"
+                    >
+                      {retrying ? 'Retrying…' : 'Retry shipment'}
+                    </button>
+                  </div>
+                ) : editing.shipmentStatus === 'creating' ? (
+                  <div className="text-xs text-stone-400">
+                    Shipment is being created…
+                  </div>
+                ) : (
+                  <div className="text-xs text-stone-400">
+                    No shipment yet. Created automatically when the order is
+                    paid.
+                  </div>
+                )}
               </div>
             </div>
 
