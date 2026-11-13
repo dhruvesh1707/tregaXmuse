@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
 import { assertDocId, assertText } from "./validate";
+import { queueNotification, NotificationType } from "./notify";
 
 /**
  * Admin-only operations for the Trega admin panel.
@@ -21,10 +22,24 @@ const ORDER_STATUSES = [
   "pickup_scheduled",
   "picked_up",
   "in_transit",
+  "out_for_delivery",
   "delivered",
   "cancelled",
   "returned",
 ] as const;
+
+/** Human line per fulfillment status, for the update notification. */
+const STATUS_LINES: Record<string, string> = {
+  placed: "Your order was placed.",
+  pickup_scheduled: "Pickup has been scheduled with the seller.",
+  picked_up: "The item was picked up from the seller.",
+  in_transit: "Your order is in transit.",
+  out_for_delivery: "Your order is out for delivery.",
+  delivered:
+    "Your order has been delivered. You have 72 hours to report a problem from the tracking screen.",
+  cancelled: "Your order was cancelled.",
+  returned: "The shipment is on its way back to the seller.",
+};
 
 /**
  * One-shot self-service admin bootstrap. Grants `{admin: true}` to the
@@ -170,8 +185,54 @@ export async function updateOrderFulfillmentHandler(
   if (Object.keys(update).length === 0) {
     throw new HttpsError("invalid-argument", "Nothing to update.");
   }
-  await ref.update(update);
-  return { status: (snap.data()?.status as string) ?? "placed" };
+  const data = snap.data() ?? {};
+  const statusChanged = status !== undefined && status !== data.status;
+  // First delivery stamps the clock the 72-hour support window runs on,
+  // and opens the settlement record. Both are set-once: a later status
+  // change must never restart the window or the payout.
+  if (status === "delivered") {
+    if (!data.deliveredAt) {
+      update.deliveredAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+    if (!data.settlementStatus) {
+      update.settlementStatus = "pending";
+    }
+  }
+  // A return after delivery holds the payout: no money goes out on an
+  // order that is coming back. (A return before delivery never had a
+  // settlement record, so there is nothing to hold.)
+  if (
+    status === "returned" &&
+    (data.settlementStatus === "pending" ||
+      data.settlementStatus === "eligible")
+  ) {
+    update.settlementStatus = "held";
+  }
+  const batch = admin.firestore().batch();
+  batch.update(ref, update);
+  // Manual updates used to be silent; both parties now hear about them
+  // (the Shiprocket webhook writes directly, never through here, so
+  // nothing is notified twice).
+  if (statusChanged || trackingNote !== undefined) {
+    const title = (data.listingTitle as string | undefined) || "the item";
+    const line =
+      (status !== undefined ? STATUS_LINES[status] : undefined) ??
+      "There is an update on your order.";
+    const body =
+      trackingNote !== undefined && update.trackingNote
+        ? `${line} ${update.trackingNote as string}`
+        : `${line} Order: “${title}”.`;
+    for (const uid of [data.buyerId as string, data.sellerId as string]) {
+      queueNotification(batch, uid, {
+        type: NotificationType.fulfillmentUpdate,
+        data: { orderId },
+        title: "Order update",
+        body,
+      });
+    }
+  }
+  await batch.commit();
+  return { status: (status ?? (data.status as string)) || "placed" };
 }
 
 /**

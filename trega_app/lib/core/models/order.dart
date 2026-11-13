@@ -6,9 +6,9 @@ import 'user.dart';
 /// Order lifecycle, matching the Cloud Functions data model.
 ///
 /// Firestore `status` values: `placed` → `pickup_scheduled` → `picked_up` →
-/// `in_transit` → `delivered`, plus `cancelled` and `returned`. Payment state
-/// is tracked separately in `paymentStatus` (`PENDING`|`SUCCESS`|`FAILED`|
-/// `USER_DROPPED`).
+/// `in_transit` → `out_for_delivery` → `delivered`, plus `cancelled` and
+/// `returned`. Payment state is tracked separately in `paymentStatus`
+/// (`PENDING`|`SUCCESS`|`FAILED`|`USER_DROPPED`).
 enum OrderStatus {
   paymentPending,
   confirmed,
@@ -62,6 +62,8 @@ extension OrderStatusLabel on OrderStatus {
         return OrderStatus.pickedUp;
       case 'in_transit':
         return OrderStatus.inTransit;
+      case 'out_for_delivery':
+        return OrderStatus.outForDelivery;
       case 'delivered':
         return OrderStatus.delivered;
       case 'cancelled':
@@ -110,6 +112,26 @@ class Order {
   /// Cashfree payment state: `PENDING`, `SUCCESS`, `FAILED`,
   /// `USER_DROPPED`. Only `SUCCESS` means the buyer paid.
   final String? paymentStatus;
+  /// First delivery, stamped server-side when the order first reaches
+  /// delivered (courier webhook or admin update). Starts the 72-hour
+  /// support window. Null on orders delivered before delivery
+  /// timestamps shipped.
+  final DateTime? deliveredAt;
+  /// Delivery-report state: `open`, `resolved`, or null when no report
+  /// was ever filed. Written only by the dispute callables.
+  final String? disputeStatus;
+  /// Payout record: `pending`, `eligible`, `held`, `paid`, `cancelled`,
+  /// or null on orders delivered before settlement tracking shipped.
+  final String? settlementStatus;
+  /// UPI payment reference recorded by the admin when the payout was
+  /// marked sent.
+  final String? settlementReference;
+  /// `refunded` when a delivery report resolved in the buyer's favor.
+  final String? refundStatus;
+  /// What the seller receives for this order (price minus commission,
+  /// GST, delivery share and TDS), computed server-side at checkout.
+  /// Shown to the seller only, on the tracking screen.
+  final double? sellerPayout;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -130,6 +152,12 @@ class Order {
     this.etd,
     this.bidId,
     this.paymentStatus,
+    this.deliveredAt,
+    this.disputeStatus,
+    this.settlementStatus,
+    this.settlementReference,
+    this.refundStatus,
+    this.sellerPayout,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -170,7 +198,9 @@ class Order {
 /// Canonical fields: `listingId`, `bidId?`, `buyerId`, `sellerId`, `amount`,
 /// `currency`, `paymentStatus`, `status`, `cfOrderId?`, `trackingNote?`,
 /// `listingTitle?`, `listingPhotoUrl?`, `awbCode?`, `courierName?`,
-/// `shipmentStatus?`, `etd?`, `paidAt?`, `createdAt`.
+/// `shipmentStatus?`, `etd?`, `paidAt?`, `deliveredAt?`, `disputeStatus?`,
+/// `settlementStatus?`, `settlementReference?`, `refundStatus?`,
+/// `fees.sellerPayout?`, `createdAt`.
 /// Orders are created server-side by the `createCashfreeOrder` callable,
 /// clients never write order docs directly. The order doc carries no full
 /// listing snapshot, so the nested [Listing] is a minimal placeholder (id
@@ -209,6 +239,16 @@ extension OrderFirestore on Order {
       etd: data['etd'] as String?,
       bidId: data['bidId'] as String?,
       paymentStatus: data['paymentStatus'] as String?,
+      deliveredAt: data['deliveredAt'] == null
+          ? null
+          : firestoreDate(data['deliveredAt']),
+      disputeStatus: data['disputeStatus'] as String?,
+      settlementStatus: data['settlementStatus'] as String?,
+      settlementReference: data['settlementReference'] as String?,
+      refundStatus: data['refundStatus'] as String?,
+      sellerPayout: data['fees'] is Map
+          ? ((data['fees'] as Map)['sellerPayout'] as num?)?.toDouble()
+          : null,
       createdAt: firestoreDate(data['createdAt']),
       updatedAt: firestoreDate(data['createdAt']),
     );

@@ -20,6 +20,7 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
+import '../../../core/models/order.dart';
 import '../../../core/models/product.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
@@ -35,6 +36,7 @@ import '../../../core/widgets/trega_toast.dart';
 import '../widgets/gallery_viewer.dart';
 import '../../bids/screens/bids_offers_screen.dart';
 import '../../checkout/screens/checkout_screen.dart';
+import '../../orders/screens/order_tracking_screen.dart';
 import '../../home/providers/listing_providers.dart';
 
 
@@ -594,10 +596,11 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen>
       );
     }
 
-    // Sold listings: nothing to do.
+    // Sold listings: the buyer and the seller get a Track order entry
+    // to the paid order; everyone else gets the disabled button.
     if (listing.status != ListingStatus.live) {
       return bar(
-        const TregaButton(label: 'This item is sold', onPressed: null),
+        _SoldAction(listing: listing, uid: uid, isSeller: isSeller),
       );
     }
 
@@ -997,6 +1000,55 @@ class _ReportSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Action for a non-live listing: the buyer or seller of a sold item
+/// gets a Track order button to the paid order, everyone else (and
+/// signed-out viewers) gets the disabled sold button. The order lookup
+/// reuses the same single-field streams as the Bids & Offers paid-card
+/// join, so no new query or index is needed.
+class _SoldAction extends ConsumerWidget {
+  final Listing listing;
+  final String? uid;
+  final bool isSeller;
+
+  const _SoldAction({
+    required this.listing,
+    required this.uid,
+    required this.isSeller,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    const soldButton =
+        TregaButton(label: 'This item is sold', onPressed: null);
+    final viewer = uid;
+    if (viewer == null) return soldButton;
+    final stream = isSeller
+        ? ref.watch(firestoreServiceProvider).watchSellerOrders(viewer)
+        : ref.watch(firestoreServiceProvider).watchMyOrders(viewer);
+    return StreamBuilder<List<Order>>(
+      stream: stream,
+      builder: (context, snap) {
+        Order? paid;
+        for (final o in snap.data ?? const <Order>[]) {
+          if (o.listing.id == listing.id && o.paymentStatus == 'SUCCESS') {
+            paid = o;
+            break;
+          }
+        }
+        if (paid == null) return soldButton;
+        final orderId = paid.id;
+        return TregaButton(
+          label: 'Track order',
+          onPressed: () => Navigator.of(context).pushNamed(
+            OrderTrackingScreen.routeName,
+            arguments: orderId,
+          ),
+        );
+      },
     );
   }
 }

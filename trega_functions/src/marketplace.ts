@@ -2,50 +2,10 @@ import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
 import { assertAmount, assertDocId, assertText } from "./validate";
 import { minListPrice, readFeeConfig } from "./payments";
+import { queueNotification, NotificationType } from "./notify";
 
 export type ListingStatus = "draft" | "pending" | "live" | "sold" | "archived" | "rejected";
 export type BidStatus = "open" | "accepted" | "rejected" | "expired" | "countered";
-
-/** Notification kinds written to `users/{uid}/notifications`. */
-export const NotificationType = {
-  bidReceived: "bid_received",
-  outbid: "outbid",
-  bidAccepted: "bid_accepted",
-  bidRejected: "bid_rejected",
-  listingFlagged: "listing_flagged",
-  shipmentUpdate: "shipment_update",
-} as const;
-
-/** Queues one inbox notification on a write batch. The matching FCM
- * push is delivered asynchronously by the `onNotificationCreate`
- * trigger firing on this doc, never awaited by the caller, so
- * accept/reject return the moment the batch commits. Exported for the
- * Shiprocket module, which queues pickup/delivery notifications. */
-export function queueNotification(
-  batch: admin.firestore.WriteBatch,
-  uid: string,
-  n: {
-    type: string;
-    title: string;
-    body: string;
-    /** Deep-link payload, the app opens the matching screen on tap. */
-    data?: { listingId?: string; bidId?: string; orderId?: string };
-  }
-): void {
-  batch.set(
-    admin
-      .firestore()
-      .collection("users")
-      .doc(uid)
-      .collection("notifications")
-      .doc(),
-    {
-      ...n,
-      read: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    }
-  );
-}
 
 /** One FCM push job, built from an inbox notification doc by the
  * `onNotificationCreate` trigger. */
@@ -392,6 +352,94 @@ export async function archiveSoldListingsHandler(): Promise<{
 }
 
 /**
+ * Hourly: expire accepted offers whose buyer never paid within 24 hours
+ * of acceptance (the payment window in the refund policy). The bid goes
+ * to `expired`, distinct from seller-rejected so the app can say the
+ * offer expired, the listing's `acceptedBidId` reservation is cleared,
+ * and both parties are notified. The buyer may offer again afterwards.
+ *
+ * Guards: a bid is skipped when a SUCCESS order already exists for it
+ * (paid, even if the payment landed in the same minute), and when a
+ * PENDING order was created in the last 30 minutes (payment may be in
+ * flight in the Cashfree sheet). Bids without `acceptedAt` (accepted
+ * before the field existed) are skipped, their age cannot be proven.
+ * Single-field query + in-code filters, no composite index needed.
+ * At most 100 expirations per run, four batch writes each, so the
+ * 500-write batch limit is never approached; the next hourly run
+ * catches the rest.
+ */
+export async function expireAcceptancesHandler(): Promise<{
+  expired: number;
+}> {
+  const db = admin.firestore();
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const inFlightCutoff = Date.now() - 30 * 60 * 1000;
+  const snap = await db
+    .collection("bids")
+    .where("status", "==", "accepted")
+    .limit(200)
+    .get();
+  let expired = 0;
+  const batch = db.batch();
+  for (const doc of snap.docs) {
+    if (expired >= 100) break;
+    const b = doc.data();
+    const acceptedAt = b.acceptedAt as admin.firestore.Timestamp | undefined;
+    const acceptedMs = acceptedAt?.toMillis?.() ?? 0;
+    if (acceptedMs === 0 || acceptedMs > cutoff) continue;
+    // Paid, or paying right now: never expire.
+    const ordersSnap = await db
+      .collection("orders")
+      .where("bidId", "==", doc.id)
+      .limit(5)
+      .get();
+    let skip = false;
+    for (const o of ordersSnap.docs) {
+      const od = o.data();
+      if (od.paymentStatus === "SUCCESS") {
+        skip = true;
+        break;
+      }
+      if (od.paymentStatus === "PENDING") {
+        const createdMs =
+          (od.createdAt as admin.firestore.Timestamp | undefined)?.toMillis?.() ?? 0;
+        if (createdMs > inFlightCutoff) {
+          skip = true;
+          break;
+        }
+      }
+    }
+    if (skip) continue;
+    const listingRef = db.collection("listings").doc(b.listingId as string);
+    const listingSnap = await listingRef.get();
+    const listing = listingSnap.data();
+    batch.update(doc.ref, { status: "expired" satisfies BidStatus });
+    // Clear the reservation only if it still points at this bid.
+    if (listing && listing.acceptedBidId === doc.id) {
+      batch.update(listingRef, {
+        acceptedBidId: admin.firestore.FieldValue.delete(),
+      });
+    }
+    const title = (listing?.title as string | undefined) ?? "the item";
+    queueNotification(batch, b.buyerId as string, {
+      type: NotificationType.acceptanceExpired,
+      data: { listingId: b.listingId as string, bidId: doc.id },
+      title: "Your accepted offer expired",
+      body: `Your ${formatINR(b.amount as number)} offer on “${title}” expired after 24 hours without payment. You can send a new offer.`,
+    });
+    queueNotification(batch, b.sellerId as string, {
+      type: NotificationType.acceptanceExpired,
+      data: { listingId: b.listingId as string, bidId: doc.id },
+      title: "An accepted offer expired",
+      body: `The accepted ${formatINR(b.amount as number)} offer on “${title}” expired without payment. Your listing is open for offers again.`,
+    });
+    expired++;
+  }
+  if (expired > 0) await batch.commit();
+  return { expired };
+}
+
+/**
  * Runs on every new bid: notifies the seller, and notifies the previous
  * highest bidder if they have just been outbid.
  */
@@ -637,7 +685,7 @@ export async function acceptBidHandler(
     type: NotificationType.bidAccepted,
     data: { listingId: acceptedListingId, bidId },
     title: "Your offer was accepted!",
-    body: `The seller accepted your ${formatINR(winnerAmount)} offer on “${listingTitle}”. Open the listing to pay ${formatINR(winnerAmount)} and complete your purchase.`,
+    body: `The seller accepted your ${formatINR(winnerAmount)} offer on “${listingTitle}”. Pay within 24 hours to complete your purchase, or the offer expires.`,
   });
   for (const loser of losers) {
     queueNotification(batch, loser.buyerId, {

@@ -49,6 +49,7 @@ import {
   cancelAcceptanceHandler,
   deleteListingHandler,
   deleteOwnListingHandler,
+  expireAcceptancesHandler,
   onBidCreateHandler,
   onListingCreateHandler,
   onNotificationCreateHandler,
@@ -69,6 +70,12 @@ import {
   onOrderPaidHandler,
   retryShipmentHandler,
 } from "./shiprocket";
+import {
+  fileDisputeHandler,
+  markSettlementPaidHandler,
+  releaseSettlementsHandler,
+  resolveDisputeHandler,
+} from "./disputes";
 import {
   listingPageHandler,
   listingsSitemapHandler,
@@ -236,6 +243,22 @@ export const archiveSoldListings = onSchedule(
   async () => {
     const { archived } = await archiveSoldListingsHandler();
     logger.info("archiveSoldListings: archived listings", { archived });
+  }
+);
+
+/**
+ * Hourly: expire accepted offers unpaid for 24 hours, freeing the
+ * listing for offers again. Skips bids with a SUCCESS order or a
+ * payment in flight (see expireAcceptancesHandler).
+ */
+export const expireAcceptances = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    region: "asia-south1",
+  },
+  async () => {
+    const { expired } = await expireAcceptancesHandler();
+    logger.info("expireAcceptances: expired offers", { expired });
   }
 );
 
@@ -447,6 +470,64 @@ export const courierTracking = onRequest(
       req.body
     );
     res.status(result.status).send(result.ok ? "ok" : "unauthorized");
+  }
+);
+
+// ------------------------------------------------- Disputes + settlement -
+// Post-delivery support (see disputes.ts): the buyer has 72 hours after
+// delivery to report a problem; filing freezes the seller's settlement
+// until the admin resolves it. Payouts move by manual UPI transfer;
+// `markSettlementPaid` is the record, and `releaseSettlements` flips
+// delivered orders to payout-eligible once the window passes.
+
+/** Buyer reports a problem with a delivered order, inside 72 hours. */
+export const fileDispute = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("disputes", { uid, ip: ipOf(request) });
+  return fileDisputeHandler(uid, {
+    orderId: request.data?.orderId,
+    reason: request.data?.reason,
+    description: request.data?.description,
+    photoUrls: request.data?.photoUrls,
+  });
+});
+
+/** Admin resolves an open report, buyer favor (refund) or seller favor. */
+export const resolveDispute = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("adminOps", { uid, ip: ipOf(request) });
+  const isAdmin = request.auth?.token?.admin === true;
+  return resolveDisputeHandler(isAdmin, {
+    orderId: request.data?.orderId,
+    decision: request.data?.decision,
+    note: request.data?.note,
+    refundReference: request.data?.refundReference,
+  });
+});
+
+/** Admin marks a payout as sent, with the payment reference. */
+export const markSettlementPaid = onCall(async (request) => {
+  const uid = requireAuthUid(request);
+  await rateLimit("adminOps", { uid, ip: ipOf(request) });
+  const isAdmin = request.auth?.token?.admin === true;
+  return markSettlementPaidHandler(isAdmin, {
+    orderId: request.data?.orderId,
+    reference: request.data?.reference,
+  });
+});
+
+/**
+ * Hourly: flip delivered orders whose 72-hour window passed with no
+ * open report from `pending` to `eligible`, so the admin can pay them.
+ */
+export const releaseSettlements = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    region: "asia-south1",
+  },
+  async () => {
+    const { released } = await releaseSettlementsHandler();
+    logger.info("releaseSettlements: released payouts", { released });
   }
 );
 

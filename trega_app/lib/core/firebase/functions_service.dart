@@ -30,6 +30,9 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// - `acceptBid` ({bidId}) -> {success}
 /// - `rejectBid` ({bidId}) -> {success}
 /// - `cancelAcceptance` ({bidId}) -> {success}
+/// - `fileDispute` ({orderId, reason, description, photoUrls?}) ->
+///   {filed}, buyer reports a problem with a delivered order inside
+///   the 72-hour window; one report per order, enforced server-side
 /// - `recordListingView` ({listingId}) -> {counted, viewCount}, IG-style
 ///   view counter: call only after 3s of continuous detail visibility
 /// - `deleteAccount` () -> {deleted}, wipes the account completely
@@ -133,6 +136,24 @@ class FunctionsService {
   /// The listing opens up for offers again.
   Future<void> cancelAcceptance({required String bidId}) async {
     await _functions.httpsCallable('cancelAcceptance').call({'bidId': bidId});
+  }
+
+  /// Reports a problem with a delivered order (buyer only). The server
+  /// enforces the 72-hour window from delivery and the one-report-per-
+  /// order rule; filing freezes the seller's settlement until the
+  /// admin resolves the report.
+  Future<void> fileDispute({
+    required String orderId,
+    required String reason,
+    required String description,
+    List<String> photoUrls = const [],
+  }) async {
+    await _functions.httpsCallable('fileDispute').call({
+      'orderId': orderId,
+      'reason': reason,
+      'description': description,
+      'photoUrls': photoUrls,
+    });
   }
 
   // ------------------------------------------------------- listing views

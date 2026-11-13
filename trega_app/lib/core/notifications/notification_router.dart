@@ -35,6 +35,9 @@ NotificationTarget? pendingNotificationTarget;
 /// - listing_flagged -> My Listings (the listing itself is down)
 /// - kyc_verified / kyc_rejected -> KYC screen
 /// - order         -> order tracking (or Orders when no order id)
+/// - shipment_update / payment_received / fulfillment_update /
+///   dispute_filed / dispute_resolved / settlement_paid -> order tracking
+/// - acceptance_expired -> Bids & Offers
 /// - campaign      -> the linked listing or category (admin broadcasts)
 NotificationTarget? targetForNotification({
   required String type,
@@ -82,10 +85,19 @@ NotificationTarget? targetForNotification({
     case 'kyc_rejected':
       return const NotificationTarget(KycScreen.routeName);
     case 'order':
+    case 'order_update':
+    case 'shipment_update':
+    case 'payment_received':
+    case 'fulfillment_update':
+    case 'dispute_filed':
+    case 'dispute_resolved':
+    case 'settlement_paid':
       if (orderId != null) {
         return NotificationTarget(OrderTrackingScreen.routeName, orderId);
       }
       return const NotificationTarget(OrdersScreen.routeName);
+    case 'acceptance_expired':
+      return const NotificationTarget(BidsOffersScreen.routeName);
     case 'campaign':
       // Admin broadcast: opens the linked listing or category, if any.
       if (listingId != null) {

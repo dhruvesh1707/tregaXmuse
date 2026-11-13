@@ -12,6 +12,7 @@ import 'features/checkout/screens/checkout_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/listing_detail/screens/listing_detail_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart';
+import 'features/orders/screens/dispute_screen.dart';
 import 'features/orders/screens/order_tracking_screen.dart';
 import 'features/orders/screens/orders_screen.dart';
 import 'features/profile/screens/help_screen.dart';
@@ -110,6 +111,9 @@ class TregaApp extends StatelessWidget {
       case OrderTrackingScreen.routeName:
         final orderId = settings.arguments as String?;
         builder = (_) => OrderTrackingScreen(orderId: orderId);
+      case DisputeScreen.routeName:
+        final disputeOrderId = settings.arguments as String?;
+        builder = (_) => DisputeScreen(orderId: disputeOrderId);
       case WishlistScreen.routeName:
         builder = (_) => const WishlistScreen();
       case NotificationsScreen.routeName:

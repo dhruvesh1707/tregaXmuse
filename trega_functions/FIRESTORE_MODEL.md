@@ -216,7 +216,8 @@ Never on the public listing doc. Readable only by the seller and admins
 | fees | map | full breakdown, all INR, computed server-side by `quoteFees`: `promoActive`, `sellerPct`, `buyerPct`, `gstPct`, `sellerCommission`, `sellerCommissionGst`, `buyerFee`, `buyerFeeGst`, `deliveryFlat`, `deliveryBuyerShare`, `deliverySellerShare`, `tds` (1% of gross), `sellerPayout` (what the seller receives), `buyerTotal` |
 | currency | string | `INR` |
 | paymentStatus | string | `PENDING` \| `SUCCESS` \| `FAILED` \| `USER_DROPPED` |
-| status | string | `placed` → `pickup_scheduled` → `picked_up` → `in_transit` → `delivered`, plus `cancelled`, `returned` |
+| status | string | `placed` → `pickup_scheduled` → `picked_up` → `in_transit` → `out_for_delivery` → `delivered`, plus `cancelled`, `returned` |
+| deliveredAt | timestamp? | first delivery only, stamped by the Shiprocket webhook or the admin manual update, whichever delivers first; starts the 72-hour support window and the settlement clock, never rewritten |
 | cfOrderId | number? | Cashfree order id |
 | cfOrderRef | string? | our `trega_<orderId>` reference |
 | paymentSessionId | string? | for the Cashfree SDK |
@@ -232,7 +233,37 @@ Never on the public listing doc. Readable only by the seller and admins
 | pickupScheduledDate | string? | Shiprocket pickup date string |
 | etd | string? | estimated delivery date string from Shiprocket |
 | paidAt | timestamp? | |
+| disputeStatus | string? | `open` \| `resolved`; absent = no report. Set by the dispute callables, never by clients |
+| settlementStatus | string? | payout record: `pending` (delivered, inside the window) → `eligible` (window passed, no open report) → `paid`; `held` while a report is open or the order was returned after delivery; `cancelled` when a report resolves in the buyer's favor. Absent on orders delivered before settlement tracking shipped (the admin may mark those paid directly) |
+| settlementPaidAt | timestamp? | when the admin marked the payout sent |
+| settlementReference | string? | UPI payment reference recorded by the admin |
+| refundStatus | string? | `refunded` when a report resolves in the buyer's favor; the money itself is returned through the Cashfree dashboard |
+| refundReference | string? | refund reference recorded by the admin |
 | createdAt | timestamp | |
+
+### `disputes/{orderId}` (one report per order, doc id = order id)
+
+Written only by the `fileDispute` / `resolveDispute` callables; clients
+never write dispute docs directly (see `firestore.rules`).
+
+| Field | Type | Notes |
+|---|---|---|
+| orderId / listingId | string | |
+| buyerId / sellerId | string | |
+| amount | number | INR, the order amount |
+| reason | string | `not_as_described` \| `damaged` \| `wrong_item` \| `other` |
+| description | string | 10 to 1000 chars, the buyer's account of the problem |
+| photoUrls | string[] | 0 to 4 evidence photos under `disputeEvidence/{orderId}/` in Storage |
+| status | string | `open` \| `resolved_buyer` \| `resolved_seller` |
+| filedAt | timestamp | must be within 72 hours of the order's `deliveredAt`, enforced server-side |
+| resolvedAt | timestamp? | |
+| resolutionNote | string? | admin's note |
+| refundReference | string? | recorded when resolved in the buyer's favor |
+
+Filing freezes the settlement (`settlementStatus: held`) until resolved.
+Resolving in the seller's favor releases it (`eligible`) at once, the
+single allowed report is spent. Resolving in the buyer's favor cancels
+the payout and records the refund.
 
 ### `kycVerifications/{uid}`
 | Field | Type | Notes |
@@ -278,7 +309,7 @@ Never store `photo_link` / XML blobs here.
 | Field | Type | Notes |
 |---|---|---|
 | title / body | string | |
-| type | string | `bid_received` \| `outbid` \| `bid_accepted` \| `bid_rejected` \| `listing_flagged` \| `kyc_verified` \| `kyc_rejected` \| `order_update` \| legacy `bid`/`order`/`listing` |
+| type | string | `bid_received` \| `outbid` \| `bid_accepted` \| `bid_rejected` \| `listing_flagged` \| `kyc_verified` \| `kyc_rejected` \| `order_update` \| `shipment_update` \| `payment_received` \| `fulfillment_update` \| `dispute_filed` \| `dispute_resolved` \| `settlement_paid` \| `acceptance_expired` \| legacy `bid`/`order`/`listing` |
 | read | boolean | clients may only flip this (see `firestore.rules`) |
 | createdAt | timestamp | |
 | data | map | deep-link payload the app opens on tap: `listingId` / `bidId` / `orderId` (only the relevant keys are set) |
@@ -300,10 +331,31 @@ Writers (all in `trega_functions/src/marketplace.ts`):
 - `acceptBid` callable → `bid_accepted` to the winner ("pay within 24h");
   `bid_rejected` to the auto-rejected losers.
 - `reviewListing` callable → `listing_flagged` to the seller on takedown.
+- `expireAcceptances` schedule → `acceptance_expired` to the buyer and
+  the seller when an accepted offer lapses unpaid after 24 hours.
+
+Writers (in `trega_functions/src/payments.ts`):
+- `applyPaymentSuccess` (webhook + `verifyPayment`) → `payment_received`
+  to the buyer ("Order confirmed") and the seller ("Your item sold").
 
 Writers (in `trega_functions/src/admin.ts`):
 - `setUserKycStatus` callable → `kyc_verified` / `kyc_rejected` to the user
   when the admin manually verifies or rejects their KYC.
+- `updateOrderFulfillment` callable → `fulfillment_update` to the buyer
+  and the seller on every manual status or tracking-note change.
+
+Writers (in `trega_functions/src/disputes.ts`):
+- `fileDispute` callable → `dispute_filed` to the seller.
+- `resolveDispute` callable → `dispute_resolved` to the buyer and the
+  seller, with the outcome.
+- `markSettlementPaid` callable → `settlement_paid` to the seller.
+
+Writers (in `trega_functions/src/shiprocket.ts`):
+- `onOrderPaid` trigger → `shipment_update` to the buyer and the seller
+  when pickup is scheduled.
+- `courierTracking` webhook → `shipment_update` to the buyer on
+  delivery (with the 72-hour window note), and to both parties on a
+  return.
 
 ### `reports/{listingId}_{reporterId}` (user-submitted, reactive moderation)
 
@@ -354,7 +406,10 @@ Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
   `acceptedBidId` yet (accepting is exclusive). Marks the bid `accepted`,
   sets `listings/{id}.acceptedBidId` (reserves the listing for the winner
   until they pay), rejects the other open bids. The winner's listing page
-  then shows the single "Buy Now at ₹X" button → checkout.
+  then shows the single "Buy Now at ₹X" button → checkout. The winner has
+  24 hours to pay: the hourly `expireAcceptances` schedule flips unpaid
+  accepted bids to `expired` and clears the reservation (skipping bids
+  with a SUCCESS order, or a payment in flight in the last 30 minutes).
 - `rejectBid({bidId})`, seller only; bid must be `open`. Marks it
   `rejected`; the buyer is notified and may send a new offer.
 - `cancelAcceptance({bidId})`, seller only; bid must be `accepted` and the
@@ -371,7 +426,9 @@ Offer / checkout flow (`trega_functions/src/marketplace.ts`, `payments.ts`):
 - `createCashfreeOrder({listingId?, bidId?, customerPhone, deliveryAddress?})`
  `deliveryAddress` is required when `bidId` is set (accepted-offer
   checkout), validated server-side and stored on the order; the `bidId` path
-  charges exactly the accepted bid amount.
+  charges exactly the accepted bid amount. The listing must still be
+  `live`: the bid stays `accepted` after payment, so without this check
+  a second checkout on the same bid would charge again for a sold item.
 - `verifyPayment({orderId})`, server-side payment verification. The app
   calls this after the Cashfree SDK reports success and shows its success UI
   ONLY when this returns `paymentStatus: "SUCCESS"`. The server asks
@@ -403,13 +460,34 @@ Admin (`trega_functions/src/admin.ts`, `admin` custom claim required):
   making offers needs no KYC since 2026-11-04).
 - `updateOrderFulfillment({orderId, status?, trackingNote?})`, advances
   order fulfillment from the admin panel's Orders page. Payment status is
-  owned by the Cashfree webhook and cannot be set here.
+  owned by the Cashfree webhook and cannot be set here. Setting `delivered`
+  stamps `deliveredAt` (first delivery only) and opens the settlement
+  record; setting `returned` after delivery holds the payout. Every
+  status or note change notifies the buyer and the seller.
+- `resolveDispute({orderId, decision: "buyer" | "seller", note?,
+  refundReference?})`, resolves an open delivery report. Buyer favor
+  records the refund and cancels the payout; seller favor releases the
+  payout at once. Both parties are notified with the outcome.
+- `markSettlementPaid({orderId, reference})`, records a payout the team
+  sent by UPI (the transfer itself happens outside this system).
+  Requires `eligible`, except orders delivered before settlement
+  tracking shipped, which may be marked paid directly. Notifies the
+  seller with the amount and reference.
 - `sendCampaign({title, body, imageUrl?, linkType?, listingId?, categoryId?})`
  broadcasts a custom campaign push to every user with a saved FCM
   token (batched multicast, dead tokens pruned). `linkType: "listing"`
   requires a live listing; `"category"` resolves the category name
   server-side. Writes one `campaigns/{id}` history doc with delivery
   counts; the push is tray-only (never copied into user inboxes).
+
+Disputes + settlement (`trega_functions/src/disputes.ts`):
+
+- `fileDispute({orderId, reason, description, photoUrls?})`, buyer only.
+  The order must be `delivered` and inside the 72-hour window from
+  `deliveredAt`; one report per order. Filing freezes the settlement
+  (`held`) and notifies the seller. Rate tier `disputes`.
+- `releaseSettlements` (hourly schedule): flips delivered orders whose
+  window passed with no open report from `pending` to `eligible`.
 
 Account (`trega_functions/src/account.ts`):
 

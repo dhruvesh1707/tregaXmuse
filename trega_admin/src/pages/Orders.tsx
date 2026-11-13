@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useOrders, updateOrder, retryShipment } from '../lib/firestore';
-import type { Order, OrderStatus } from '../api/types';
+import { useOrders, updateOrder, retryShipment, fetchDispute, resolveDispute, markSettlementPaid } from '../lib/firestore';
+import type { Dispute, Order, OrderStatus } from '../api/types';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import StatusBadge, { prettyStatus } from '../components/StatusBadge';
@@ -17,6 +17,7 @@ const TABS: Array<{ key: string; label: string }> = [
   { key: 'in_transit', label: 'In transit' },
   { key: 'delivered', label: 'Delivered' },
   { key: 'cancelled', label: 'Cancelled' },
+  { key: 'reports', label: 'Reports' },
 ];
 
 const ORDER_STATUSES: OrderStatus[] = [
@@ -24,10 +25,26 @@ const ORDER_STATUSES: OrderStatus[] = [
   'pickup_scheduled',
   'picked_up',
   'in_transit',
+  'out_for_delivery',
   'delivered',
   'cancelled',
   'returned',
 ];
+
+const SETTLEMENT_LABELS: Record<string, string> = {
+  pending: 'Pending, inside the 72 hour support window',
+  eligible: 'Eligible, ready to pay out',
+  held: 'On hold',
+  paid: 'Paid',
+  cancelled: 'Cancelled (refunded)',
+};
+
+const DISPUTE_REASON_LABELS: Record<string, string> = {
+  not_as_described: 'Item not as described',
+  damaged: 'Damaged or defective',
+  wrong_item: 'Wrong item received',
+  other: 'Something else',
+};
 
 const PAYMENT_TONE: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-800 ring-amber-200',
@@ -47,7 +64,32 @@ export default function Orders() {
   const [trackingNote, setTrackingNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [dispute, setDispute] = useState<Dispute | null | undefined>(undefined);
+  const [resolveNote, setResolveNote] = useState('');
+  const [refundReference, setRefundReference] = useState('');
+  const [settlementReference, setSettlementReference] = useState('');
+  const [resolving, setResolving] = useState(false);
+  const [paying, setPaying] = useState(false);
   const { rows, total, loading, error, refresh } = useOrders(status, page, PAGE_SIZE, query, expressOnly);
+
+  const editingId = editing?.id;
+  useEffect(() => {
+    if (!editingId) {
+      setDispute(undefined);
+      return;
+    }
+    let cancelled = false;
+    setDispute(undefined);
+    setResolveNote('');
+    setRefundReference('');
+    setSettlementReference('');
+    void fetchDispute(editingId).then((d) => {
+      if (!cancelled) setDispute(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editingId]);
 
   const openEdit = (o: Order) => {
     setEditing(o);
@@ -81,6 +123,39 @@ export default function Orders() {
       alert(err instanceof Error ? err.message : 'Retry failed.');
     } finally {
       setRetrying(false);
+    }
+  };
+
+  const resolve = async (decision: 'buyer' | 'seller') => {
+    if (!editing) return;
+    setResolving(true);
+    try {
+      await resolveDispute(
+        editing.id,
+        decision,
+        resolveNote.trim() || undefined,
+        refundReference.trim() || undefined,
+      );
+      setEditing(null);
+      refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Resolution failed.');
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  const markPaid = async () => {
+    if (!editing || !settlementReference.trim()) return;
+    setPaying(true);
+    try {
+      await markSettlementPaid(editing.id, settlementReference.trim());
+      setEditing(null);
+      refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Update failed.');
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -146,7 +221,16 @@ export default function Orders() {
           </span>
         ),
     },
-    { key: 'status', header: 'Status', render: (o) => <StatusBadge value={o.status} /> },
+    { key: 'status', header: 'Status', render: (o) => (
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <StatusBadge value={o.status} />
+        {o.disputeStatus === 'open' && (
+          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">
+            Report
+          </span>
+        )}
+      </span>
+    ) },
     {
       key: 'actions',
       header: '',
@@ -347,6 +431,142 @@ export default function Orders() {
                   </div>
                 )}
               </div>
+              {editing.paymentStatus === 'SUCCESS' && (
+                <div className="mt-3 border-t border-stone-200 pt-3">
+                  <div className="mb-1 text-xs font-semibold text-stone-700">
+                    Settlement (seller payout)
+                  </div>
+                  <div className="text-xs leading-relaxed text-stone-600">
+                    <div>
+                      Payout:{' '}
+                      {editing.sellerPayout != null
+                        ? formatINR(editing.sellerPayout)
+                        : '-'}
+                      {' · '}
+                      {editing.settlementStatus
+                        ? SETTLEMENT_LABELS[editing.settlementStatus] ??
+                          editing.settlementStatus
+                        : 'No payout record yet'}
+                    </div>
+                    <div>
+                      UPI: {editing.payoutUpi ?? 'not saved by the seller'}
+                    </div>
+                    {editing.settlementStatus === 'paid' && (
+                      <div>
+                        Paid {editing.settlementPaidAt
+                          ? timeAgo(editing.settlementPaidAt)
+                          : ''}
+                        {editing.settlementReference
+                          ? ` · Ref ${editing.settlementReference}`
+                          : ''}
+                      </div>
+                    )}
+                    {editing.refundStatus === 'refunded' && (
+                      <div>
+                        Refunded to the buyer
+                        {editing.refundReference
+                          ? ` · Ref ${editing.refundReference}`
+                          : ''}
+                      </div>
+                    )}
+                  </div>
+                  {(editing.settlementStatus === 'eligible' ||
+                    (editing.settlementStatus == null &&
+                      editing.status === 'delivered' &&
+                      editing.disputeStatus !== 'open')) && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        value={settlementReference}
+                        onChange={(e) => setSettlementReference(e.target.value)}
+                        placeholder="UPI payment reference"
+                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-trega-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={markPaid}
+                        disabled={paying || !settlementReference.trim()}
+                        className="shrink-0 rounded-lg bg-trega-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-trega-700 disabled:opacity-60"
+                      >
+                        {paying ? 'Saving…' : 'Mark paid'}
+                      </button>
+                    </div>
+                  )}
+                  {editing.settlementStatus === 'held' && (
+                    <div className="mt-1 text-xs text-amber-700">
+                      Payout is on hold until the open report is resolved.
+                    </div>
+                  )}
+                </div>
+              )}
+              {dispute && (
+                <div className="mt-3 border-t border-stone-200 pt-3">
+                  <div className="mb-1 text-xs font-semibold text-stone-700">
+                    Delivery report · {DISPUTE_REASON_LABELS[dispute.reason] ?? dispute.reason}
+                  </div>
+                  <div className="text-xs leading-relaxed text-stone-600">
+                    <div>{dispute.description}</div>
+                    <div className="mt-1 text-stone-400">
+                      Filed {timeAgo(dispute.filedAt)} · Status: {dispute.status}
+                    </div>
+                    {dispute.resolutionNote && (
+                      <div className="mt-1">Note: {dispute.resolutionNote}</div>
+                    )}
+                  </div>
+                  {dispute.photoUrls.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {dispute.photoUrls.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer">
+                          <img
+                            src={url}
+                            alt="Report evidence"
+                            className="h-16 w-16 rounded-lg object-cover ring-1 ring-stone-200"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {dispute.status === 'open' && (
+                    <div className="mt-3 space-y-2">
+                      <input
+                        value={resolveNote}
+                        onChange={(e) => setResolveNote(e.target.value)}
+                        placeholder="Resolution note (optional)"
+                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-trega-500"
+                      />
+                      <input
+                        value={refundReference}
+                        onChange={(e) => setRefundReference(e.target.value)}
+                        placeholder="Refund reference (only when resolving for the buyer)"
+                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs outline-none focus:border-trega-500"
+                      />
+                      <p className="text-xs text-stone-400">
+                        Resolving for the buyer records the refund here; the
+                        money itself is returned through the Cashfree
+                        dashboard. Resolving for the seller releases the
+                        payout at once.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => resolve('buyer')}
+                          disabled={resolving}
+                          className="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                        >
+                          {resolving ? 'Saving…' : 'Resolve for buyer (refund)'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => resolve('seller')}
+                          disabled={resolving}
+                          className="flex-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          {resolving ? 'Saving…' : 'Resolve for seller'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>

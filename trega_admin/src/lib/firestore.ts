@@ -28,6 +28,7 @@ import type {
   DashboardStats,
   DeliveryAddress,
   DeliveryConfig,
+  Dispute,
   FeeConfig,
   KycStatus,
   Listing,
@@ -104,6 +105,7 @@ async function fetchListingLite(id: string) {
 
 // Pickup addresses never change; cache them like users/listings.
 const pickupCache = new Map<string, DeliveryAddress | string | null>();
+const payoutUpiCache = new Map<string, string | null>();
 
 /** Coerces a Firestore value to a structured address, or undefined when
  * it is not a map with at least a first address line. */
@@ -141,6 +143,22 @@ async function fetchPickupAddress(listingId: string): Promise<DeliveryAddress | 
   }
 }
 
+/** Seller payout UPI from `listings/{id}/private/details`, snapshotted
+ * at publish time. Never throws, a missing doc just means no UPI. */
+async function fetchPayoutUpi(listingId: string): Promise<string | null> {
+  const hit = payoutUpiCache.get(listingId);
+  if (hit !== undefined) return hit;
+  try {
+    const snap = await getDoc(doc(db, 'listings', listingId, 'private', 'details'));
+    const raw = snap.exists() ? snap.data().payoutUpi : undefined;
+    const value = typeof raw === 'string' && raw ? raw : null;
+    payoutUpiCache.set(listingId, value);
+    return value;
+  } catch {
+    return null;
+  }
+}
+
 export function mapListing(id: string, d: DocumentData, seller: UserLite, categoryName: string): Listing {
   return {
     id,
@@ -163,12 +181,14 @@ export function mapListing(id: string, d: DocumentData, seller: UserLite, catego
 }
 
 export async function mapOrder(id: string, d: DocumentData): Promise<Order> {
-  const [listing, buyer, seller, pickupAddress] = await Promise.all([
+  const [listing, buyer, seller, pickupAddress, payoutUpi] = await Promise.all([
     fetchListingLite(d.listingId as string),
     fetchUserLite(d.buyerId as string),
     fetchUserLite(d.sellerId as string),
     fetchPickupAddress(d.listingId as string),
+    fetchPayoutUpi(d.listingId as string),
   ]);
+  const fees = (d.fees as Record<string, unknown> | undefined) ?? {};
   return {
     id,
     listingId: (d.listingId as string) ?? '',
@@ -195,6 +215,16 @@ export async function mapOrder(id: string, d: DocumentData): Promise<Order> {
     pickupScheduledDate: d.pickupScheduledDate as string | undefined,
     etd: d.etd as string | undefined,
     trackingNote: d.trackingNote as string | undefined,
+    deliveredAt: tsToIso(d.deliveredAt) || undefined,
+    disputeStatus: d.disputeStatus as string | undefined,
+    settlementStatus: d.settlementStatus as string | undefined,
+    settlementPaidAt: tsToIso(d.settlementPaidAt) || undefined,
+    settlementReference: d.settlementReference as string | undefined,
+    refundStatus: d.refundStatus as string | undefined,
+    refundReference: d.refundReference as string | undefined,
+    buyerTotal: d.buyerTotal as number | undefined,
+    sellerPayout: fees.sellerPayout as number | undefined,
+    payoutUpi,
     createdAt: tsToIso(d.createdAt),
   };
 }
@@ -480,8 +510,16 @@ export function useOrders(
   search: string,
   expressOnly = false,
 ): Paged<Order> {
-  const constraints: QueryConstraint[] = status === 'all' ? [] : [where('status', '==', status)];
-  if (expressOnly) constraints.push(where('deliveryType', '==', 'express'));
+  // The 'reports' tab lists orders with an open delivery report. It
+  // replaces the status filter (never combines with it), so the query
+  // stays single-field and needs no composite index.
+  const constraints: QueryConstraint[] =
+    status === 'reports'
+      ? [where('disputeStatus', '==', 'open')]
+      : status === 'all'
+        ? []
+        : [where('status', '==', status)];
+  if (expressOnly && status !== 'reports') constraints.push(where('deliveryType', '==', 'express'));
   return usePagedQuery<Order>(
     'orders',
     constraints,
@@ -800,6 +838,61 @@ const retryShipmentFn = httpsCallable<{ orderId: string }, { ok: boolean }>(
 export async function retryShipment(orderId: string): Promise<void> {
   try {
     await retryShipmentFn({ orderId });
+  } catch (e) {
+    throw new Error(callableError(e));
+  }
+}
+
+/** Delivery report for one order, or null when none was filed. */
+export async function fetchDispute(orderId: string): Promise<Dispute | null> {
+  const snap = await getDoc(doc(db, 'disputes', orderId));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    orderId,
+    listingId: (d.listingId as string) ?? '',
+    buyerId: (d.buyerId as string) ?? '',
+    sellerId: (d.sellerId as string) ?? '',
+    amount: (d.amount as number) ?? 0,
+    reason: (d.reason as Dispute['reason']) ?? 'other',
+    description: (d.description as string) ?? '',
+    photoUrls: Array.isArray(d.photoUrls)
+      ? (d.photoUrls as unknown[]).filter((u): u is string => typeof u === 'string')
+      : [],
+    status: (d.status as Dispute['status']) ?? 'open',
+    filedAt: tsToIso(d.filedAt),
+    resolvedAt: tsToIso(d.resolvedAt) || undefined,
+    resolutionNote: (d.resolutionNote as string | null) ?? null,
+    refundReference: d.refundReference as string | undefined,
+  };
+}
+
+const resolveDisputeFn = httpsCallable<
+  { orderId: string; decision: 'buyer' | 'seller'; note?: string; refundReference?: string },
+  { resolved: boolean }
+>(functions, 'resolveDispute');
+
+export async function resolveDispute(
+  orderId: string,
+  decision: 'buyer' | 'seller',
+  note?: string,
+  refundReference?: string,
+): Promise<void> {
+  try {
+    await resolveDisputeFn({ orderId, decision, note, refundReference });
+  } catch (e) {
+    throw new Error(callableError(e));
+  }
+}
+
+const markSettlementPaidFn = httpsCallable<{ orderId: string; reference: string }, { paid: boolean }>(
+  functions,
+  'markSettlementPaid',
+);
+
+export async function markSettlementPaid(orderId: string, reference: string): Promise<void> {
+  try {
+    await markSettlementPaidFn({ orderId, reference });
   } catch (e) {
     throw new Error(callableError(e));
   }

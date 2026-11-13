@@ -448,6 +448,12 @@ class _MyOfferCard extends StatelessWidget {
                   secondary: true,
                   onPressed: () => _openListing(context, bid.listingId),
                 ),
+              // Expired unpaid after 24 hours, the buyer may offer again.
+              BidStatus.expired => TregaButton(
+                  label: 'Offer again',
+                  secondary: true,
+                  onPressed: () => _openListing(context, bid.listingId),
+                ),
               // Accepted, only this buyer gets to buy, at this price.
               // Once paid, the card shows the fulfillment state and a
               // Track order button instead of the Pay button.
@@ -479,12 +485,25 @@ class _MyOfferCard extends StatelessWidget {
                         ),
                       ],
                     )
-                  : TregaButton(
-                      label: 'Pay ${formatINR(bid.amount)} now',
-                      onPressed: () => Navigator.of(context).pushNamed(
-                        CheckoutScreen.routeName,
-                        arguments: CheckoutArgs(bidId: bid.id),
-                      ),
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pay within 24 hours of acceptance, or the '
+                          'offer expires.',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TregaButton(
+                          label: 'Pay ${formatINR(bid.amount)} now',
+                          onPressed: () => Navigator.of(context).pushNamed(
+                            CheckoutScreen.routeName,
+                            arguments: CheckoutArgs(bidId: bid.id),
+                          ),
+                        ),
+                      ],
                     ),
               _ => Text(
                   'This offer is closed.',
@@ -815,8 +834,10 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
             b.status == BidStatus.accepted ||
             _acceptedOptimistic.contains(b.id))
         .toList();
-    final past =
-        widget.bids.where((b) => b.status == BidStatus.rejected).toList();
+    final past = widget.bids
+        .where((b) =>
+            b.status == BidStatus.rejected || b.status == BidStatus.expired)
+        .toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1022,7 +1043,8 @@ class _AcceptedOfferBanner extends StatelessWidget {
             ),
           ] else ...[
             Text(
-              'Reserved for this buyer until they pay.',
+              'Reserved for this buyer. If they do not pay within 24 '
+              'hours of acceptance, the offer expires automatically.',
               style: textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),

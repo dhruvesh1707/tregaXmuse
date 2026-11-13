@@ -22,3 +22,27 @@ String timeAgo(DateTime dateTime) {
   return 'Just now';
 }
 
+/// Short readable date and time, e.g. "14 Nov, 3:30 PM". The app has no
+/// intl dependency, so month names are spelled out here.
+String formatDayTime(DateTime dateTime) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final hour12 = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
+  final ampm = dateTime.hour < 12 ? 'AM' : 'PM';
+  final minute = dateTime.minute.toString().padLeft(2, '0');
+  return '${dateTime.day} ${months[dateTime.month - 1]}, '
+      '$hour12:$minute $ampm';
+}
+

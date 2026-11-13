@@ -18,7 +18,8 @@
  *
  * Tracking updates arrive on the `courierTracking` webhook (panel
  * configured, `x-api-key` token auth, no HMAC) and move the order
- * forward through pickup_scheduled, picked_up, in_transit, delivered.
+ * forward through pickup_scheduled, picked_up, in_transit,
+ * out_for_delivery, delivered.
  * The webhook URL must not contain `shiprocket`, `kartrocket`, `sr`
  * or `kr`, which is why the function is named `courierTracking`.
  *
@@ -54,7 +55,7 @@ import {
   SHIPROCKET_WEBHOOK_KEY,
   SHIPROCKET_BASE,
 } from "./config";
-import { queueNotification, NotificationType } from "./marketplace";
+import { queueNotification, NotificationType } from "./notify";
 
 type AddressMap = {
   name?: string;
@@ -756,7 +757,8 @@ const STATUS_RANK: Record<string, number> = {
   pickup_scheduled: 1,
   picked_up: 2,
   in_transit: 3,
-  delivered: 4,
+  out_for_delivery: 4,
+  delivered: 5,
   cancelled: 99,
   returned: 99,
 };
@@ -768,7 +770,7 @@ const SR_STATUS_MAP: Record<number, string> = {
   13: "pickup_scheduled",
   6: "picked_up",
   20: "in_transit",
-  19: "in_transit",
+  19: "out_for_delivery",
   7: "delivered",
   5: "cancelled",
   9: "returned",
@@ -876,6 +878,19 @@ export async function handleShiprocketWebhook(
     }
     if (Object.keys(update).length > 0) tx.update(orderRef, update);
     if (update.status === "delivered") {
+      // First delivery stamps the clock the 72-hour support window runs
+      // on, and opens the settlement record. Set-once: a later status
+      // change must never restart the window or the payout. (The admin
+      // manual-update path stamps the same fields; whichever delivers
+      // first wins, the other sees them already set.)
+      if (!d.deliveredAt) {
+        tx.update(orderRef, {
+          deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+      if (!d.settlementStatus) {
+        tx.update(orderRef, { settlementStatus: "pending" });
+      }
       tx.set(
         db
           .collection("users")
@@ -885,7 +900,7 @@ export async function handleShiprocketWebhook(
         notificationDoc(
           NotificationType.shipmentUpdate,
           "Order delivered",
-          "Your order has been delivered.",
+          "Your order has been delivered. You have 72 hours to report a problem from the tracking screen.",
           orderRef.id
         )
       );

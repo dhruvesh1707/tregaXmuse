@@ -13,6 +13,7 @@ export type OrderStatus =
   | 'pickup_scheduled'
   | 'picked_up'
   | 'in_transit'
+  | 'out_for_delivery'
   | 'delivered'
   | 'cancelled'
   | 'returned';
@@ -110,7 +111,46 @@ export interface Order {
   /** Estimated delivery, as returned by Shiprocket (human date string). */
   etd?: string;
   trackingNote?: string;
+  /** First delivery (ISO), starts the 72-hour support window. */
+  deliveredAt?: string;
+  /** Delivery-report state: open, resolved, or absent. */
+  disputeStatus?: string;
+  /** Payout record: pending, eligible, held, paid, cancelled, or
+   * absent on orders delivered before settlement tracking shipped. */
+  settlementStatus?: string;
+  /** When the payout was marked sent (ISO). */
+  settlementPaidAt?: string;
+  /** UPI payment reference recorded by the admin. */
+  settlementReference?: string;
+  /** 'refunded' when a report resolved in the buyer's favor. */
+  refundStatus?: string;
+  refundReference?: string;
+  /** What the buyer paid in total (item + fees + delivery share). */
+  buyerTotal?: number;
+  /** What the seller receives (price minus commission, GST, delivery
+   * share and TDS), computed server-side at checkout. */
+  sellerPayout?: number;
+  /** Seller payout UPI from the listing's private details snapshot. */
+  payoutUpi?: string | null;
   createdAt: string; // ISO
+}
+
+/** Delivery report (disputes/{orderId}), one per order. Written only
+ * by the fileDispute / resolveDispute callables. */
+export interface Dispute {
+  orderId: string;
+  listingId: string;
+  buyerId: string;
+  sellerId: string;
+  amount: number;
+  reason: 'not_as_described' | 'damaged' | 'wrong_item' | 'other';
+  description: string;
+  photoUrls: string[];
+  status: 'open' | 'resolved_buyer' | 'resolved_seller';
+  filedAt: string; // ISO
+  resolvedAt?: string; // ISO
+  resolutionNote?: string | null;
+  refundReference?: string;
 }
 
 /** Bid row (bids/{id}), enriched client-side. */

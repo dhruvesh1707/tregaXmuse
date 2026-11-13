@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { assertDocId, assertPhone } from "./validate";
+import { queueNotification, NotificationType } from "./notify";
 import {
   CASHFREE_API_VERSION,
   CASHFREE_APP_ID,
@@ -27,6 +28,7 @@ export type OrderStatus =
   | "pickup_scheduled"
   | "picked_up"
   | "in_transit"
+  | "out_for_delivery"
   | "delivered"
   | "cancelled"
   | "returned";
@@ -361,6 +363,17 @@ export async function createCashfreeOrderHandler(
   if (!listingSnap.exists || !listing) {
     throw new HttpsError("not-found", "This listing is no longer available.");
   }
+  // The listing must still be live. The bid stays `accepted` after a
+  // successful payment, so without this check a second checkout on the
+  // same bid would create a second order and charge again for an item
+  // that is already sold. The app hides the Pay button once paid, but
+  // the server is the guard that cannot be bypassed.
+  if (listing.status !== "live") {
+    throw new HttpsError(
+      "failed-precondition",
+      "This listing is no longer available."
+    );
+  }
   const listingPhotos = Array.isArray(listing.photos) ? listing.photos : [];
   const listingPhotoUrl =
     typeof listingPhotos[0] === "string" ? listingPhotos[0] : undefined;
@@ -571,6 +584,28 @@ async function applyPaymentSuccess(
       batch.update(b.ref, { status: "rejected" });
     }
   }
+  // Tell both parties the money moved. Before this, the seller learned
+  // of a sale only by opening the app and the buyer got only the
+  // on-screen celebration; the first notification arrived at pickup.
+  const title = (order.listingTitle as string | undefined) || "the item";
+  const amount = order.amount as number;
+  const total =
+    typeof order.buyerTotal === "number"
+      ? (order.buyerTotal as number)
+      : amount;
+  const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+  queueNotification(batch, order.buyerId as string, {
+    type: NotificationType.paymentReceived,
+    data: { orderId: orderRef.id, listingId: order.listingId as string },
+    title: "Order confirmed",
+    body: `Payment of ${inr(total)} received for “${title}”. Pickup will be scheduled from the seller.`,
+  });
+  queueNotification(batch, order.sellerId as string, {
+    type: NotificationType.paymentReceived,
+    data: { orderId: orderRef.id, listingId: order.listingId as string },
+    title: "Your item sold",
+    body: `Payment of ${inr(amount)} received for “${title}”. Keep it packed, pickup will be scheduled.`,
+  });
   await batch.commit();
 }
 

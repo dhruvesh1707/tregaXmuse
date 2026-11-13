@@ -99,7 +99,7 @@ const Map<String, LegalPage> legalPages = {
       ),
       LegalSection(
         'Contact us',
-        'For privacy questions or requests, reach us at support@trega.in.',
+        'For privacy questions or requests, reach us at contact@trega.in.',
       ),
     ],
   ),
@@ -202,7 +202,7 @@ const Map<String, LegalPage> legalPages = {
       ),
       LegalSection(
         'How to request a refund',
-        'Raise the issue through Help & Support within 48 hours of delivery '
+        'Raise the issue through Help & Support within 72 hours of delivery '
         '(or of the failed pickup/delivery). Include your order ID and '
         'photos if the item is not as described.',
       ),
@@ -240,7 +240,7 @@ const Map<String, LegalPage> legalPages = {
       ),
       LegalSection(
         'Built on trust',
-        'Every buyer and seller is Aadhaar-verified, payments run through '
+        'Every seller is Aadhaar-verified, payments run through '
         'Cashfree\'s secure gateway, and our review team moderates listings '
         ', so you can trade pre-owned with confidence.',
       ),
@@ -255,24 +255,24 @@ const Map<String, LegalPage> legalPages = {
       LegalSection(
         'Support',
         'Questions about an order, a payment, verification or anything else? '
-        'Write to support@trega.in and we\'ll get back to you within 2 '
+        'Write to contact@trega.in and we\'ll get back to you within 2 '
         'business days.',
       ),
       LegalSection(
         'Refunds and disputes',
         'For refund requests or disputes, raise the issue through Help & '
-        'Support in the app within 48 hours of delivery (or of the failed '
+        'Support in the app within 72 hours of delivery (or of the failed '
         'pickup/delivery), and include your order ID.',
       ),
       LegalSection(
         'Privacy requests',
         'For access, correction or deletion of your personal data, write to '
-        'support@trega.in with the subject "Privacy request". We respond '
+        'contact@trega.in with the subject "Privacy request". We respond '
         'within 30 days.',
       ),
       LegalSection(
         'Feedback',
-        'Ideas to make Trega better are always welcome at support@trega.in.',
+        'Ideas to make Trega better are always welcome at contact@trega.in.',
       ),
     ],
   ),

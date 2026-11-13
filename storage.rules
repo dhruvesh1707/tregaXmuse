@@ -36,5 +36,26 @@ service firebase.storage {
         && isImage()
         && under10MB();
     }
+
+    // ── disputeEvidence/{orderId}/… ─────────────────────────────
+    // Evidence photos for a delivery report. Only the order's buyer
+    // may upload (images under 10 MB); the buyer, the seller and
+    // admins may read them.
+    match /disputeEvidence/{orderId}/{fileName} {
+      allow read: if signedIn()
+        && (firestore.get(
+             /databases/(default)/documents/orders/$(orderId)
+           ).data.buyerId == request.auth.uid
+           || firestore.get(
+             /databases/(default)/documents/orders/$(orderId)
+           ).data.sellerId == request.auth.uid
+           || request.auth.token.admin == true);
+      allow write: if signedIn()
+        && isImage()
+        && under10MB()
+        && firestore.get(
+             /databases/(default)/documents/orders/$(orderId)
+           ).data.buyerId == request.auth.uid;
+    }
   }
 }
