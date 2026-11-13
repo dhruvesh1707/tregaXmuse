@@ -103,6 +103,13 @@ class Order {
   final String? courierName;
   final String? shipmentStatus;
   final String? etd;
+  /// The accepted bid this order was placed from, when the order came
+  /// from an accepted bid. Lets the Bids & Offers screen match a paid
+  /// order back to its offer.
+  final String? bidId;
+  /// Cashfree payment state: `PENDING`, `SUCCESS`, `FAILED`,
+  /// `USER_DROPPED`. Only `SUCCESS` means the buyer paid.
+  final String? paymentStatus;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -121,6 +128,8 @@ class Order {
     this.courierName,
     this.shipmentStatus,
     this.etd,
+    this.bidId,
+    this.paymentStatus,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -162,7 +171,6 @@ class Order {
 /// `currency`, `paymentStatus`, `status`, `cfOrderId?`, `trackingNote?`,
 /// `listingTitle?`, `listingPhotoUrl?`, `awbCode?`, `courierName?`,
 /// `shipmentStatus?`, `etd?`, `paidAt?`, `createdAt`.
-///
 /// Orders are created server-side by the `createCashfreeOrder` callable,
 /// clients never write order docs directly. The order doc carries no full
 /// listing snapshot, so the nested [Listing] is a minimal placeholder (id
@@ -199,6 +207,8 @@ extension OrderFirestore on Order {
       courierName: data['courierName'] as String?,
       shipmentStatus: data['shipmentStatus'] as String?,
       etd: data['etd'] as String?,
+      bidId: data['bidId'] as String?,
+      paymentStatus: data['paymentStatus'] as String?,
       createdAt: firestoreDate(data['createdAt']),
       updatedAt: firestoreDate(data['createdAt']),
     );

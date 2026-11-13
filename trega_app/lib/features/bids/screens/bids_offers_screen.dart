@@ -8,6 +8,7 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/bid.dart';
 import '../../../core/models/listing.dart';
+import '../../../core/models/order.dart';
 import '../../../core/models/user.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
@@ -21,6 +22,7 @@ import '../../../core/widgets/trega_button.dart';
 import '../../../core/widgets/trega_toast.dart';
 import '../../checkout/screens/checkout_screen.dart';
 import '../../listing_detail/screens/listing_detail_screen.dart';
+import '../../orders/screens/order_tracking_screen.dart';
 
 /// Arguments for [BidsOffersScreen].
 class BidsOffersArgs {
@@ -41,6 +43,10 @@ class BidsOffersArgs {
 /// Accepting is exclusive, once one offer is accepted the listing is
 /// reserved for that buyer until they pay. The seller can cancel the
 /// acceptance if the buyer never pays, reopening the listing for offers.
+/// Once the buyer pays, the offer shows payment completed with the
+/// order's fulfillment state and a Track order button instead, on both
+/// tabs, and Cancel acceptance disappears (the server refuses it too,
+/// since the listing is sold by then).
 ///
 /// Negotiation is structured (accept / reject), there is intentionally no
 /// buyer↔seller chat in Trega.
@@ -119,11 +125,14 @@ class _BidsOffersScreenState extends ConsumerState<BidsOffersScreen>
         children: [
           _MyOffersTab(
             stream: uid == null ? null : service.watchMyBids(uid),
+            ordersStream: uid == null ? null : service.watchMyOrders(uid),
             nonce: _nonce,
             onRetry: () => setState(() => _nonce++),
           ),
           _OffersReceivedTab(
             stream: uid == null ? null : service.watchOffersReceived(uid),
+            ordersStream:
+                uid == null ? null : service.watchSellerOrders(uid),
             nonce: _nonce,
             onRetry: () => setState(() => _nonce++),
           ),
@@ -162,6 +171,41 @@ void _openListing(BuildContext context, String listingId) {
     ListingDetailScreen.routeName,
     arguments: ListingDetailArgs(listingId: listingId),
   );
+}
+
+void _openTracking(BuildContext context, String orderId) {
+  Navigator.of(context).pushNamed(
+    OrderTrackingScreen.routeName,
+    arguments: orderId,
+  );
+}
+
+/// True only when the buyer actually paid. An order doc existing is not
+/// enough: one is created before payment, and abandoned checkouts leave
+/// PENDING / FAILED / USER_DROPPED docs behind.
+bool _isPaid(Order? order) => order?.paymentStatus == 'SUCCESS';
+
+Widget _paidChip() {
+  return StatusChip(
+    label: 'Paid',
+    background: AppColors.success.withValues(alpha: 0.12),
+    foreground: AppColors.success,
+  );
+}
+
+/// Maps each bid id to its order, preferring a paid (SUCCESS) order when
+/// a bid has several attempts, since payment retries create new docs.
+Map<String, Order> _ordersByBid(List<Order> orders) {
+  final map = <String, Order>{};
+  for (final order in orders) {
+    final bidId = order.bidId;
+    if (bidId == null || bidId.isEmpty) continue;
+    final existing = map[bidId];
+    if (existing == null || order.paymentStatus == 'SUCCESS') {
+      map[bidId] = order;
+    }
+  }
+  return map;
 }
 
 /// The other party's display name on an offer card.
@@ -247,6 +291,10 @@ class _ListingTitle extends ConsumerWidget {
 class _MyOffersTab extends ConsumerWidget {
   final Stream<List<Bid>>? stream;
 
+  /// The buyer's orders, joined to offers by bid id so a paid offer
+  /// shows payment completed with tracking instead of the Pay button.
+  final Stream<List<Order>>? ordersStream;
+
   /// Bumped by the parent on retry; keys the StreamBuilder so it
   /// resubscribes with a fresh stream.
   final int nonce;
@@ -254,6 +302,7 @@ class _MyOffersTab extends ConsumerWidget {
 
   const _MyOffersTab({
     required this.stream,
+    required this.ordersStream,
     required this.nonce,
     required this.onRetry,
   });
@@ -295,15 +344,28 @@ class _MyOffersTab extends ConsumerWidget {
             subtitle: 'Make an offer on a listing and track it here.',
           );
         }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: bids.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, i) {
-            final bid = bids[i];
-            return Entrance(
-              index: i % 6,
-              child: _MyOfferCard(bid: bid),
+        // Orders load independently: the offers list never waits on them,
+        // and a failed orders stream just means paid states stay hidden
+        // until the next load instead of breaking the tab.
+        return StreamBuilder<List<Order>>(
+          key: ValueKey(nonce),
+          stream: ordersStream,
+          builder: (context, orderSnap) {
+            final ordersByBid = _ordersByBid(orderSnap.data ?? const <Order>[]);
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: bids.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, i) {
+                final bid = bids[i];
+                return Entrance(
+                  index: i % 6,
+                  child: _MyOfferCard(
+                    bid: bid,
+                    order: ordersByBid[bid.id],
+                  ),
+                );
+              },
             );
           },
         );
@@ -315,11 +377,15 @@ class _MyOffersTab extends ConsumerWidget {
 class _MyOfferCard extends StatelessWidget {
   final Bid bid;
 
-  const _MyOfferCard({required this.bid});
+  /// The order placed from this bid, when one exists.
+  final Order? order;
+
+  const _MyOfferCard({required this.bid, this.order});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final paidOrder = _isPaid(order) ? order : null;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -345,7 +411,7 @@ class _MyOfferCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                _statusChip(bid.status),
+                if (paidOrder != null) _paidChip() else _statusChip(bid.status),
               ],
             ),
             const SizedBox(height: 4),
@@ -383,13 +449,43 @@ class _MyOfferCard extends StatelessWidget {
                   onPressed: () => _openListing(context, bid.listingId),
                 ),
               // Accepted, only this buyer gets to buy, at this price.
-              BidStatus.accepted => TregaButton(
-                  label: 'Pay ${formatINR(bid.amount)} now',
-                  onPressed: () => Navigator.of(context).pushNamed(
-                    CheckoutScreen.routeName,
-                    arguments: CheckoutArgs(bidId: bid.id),
-                  ),
-                ),
+              // Once paid, the card shows the fulfillment state and a
+              // Track order button instead of the Pay button.
+              BidStatus.accepted => paidOrder != null
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Payment completed · ${paidOrder.status.label}',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        if (paidOrder.trackingId != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            paidOrder.trackingId!,
+                            style: textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        TregaButton(
+                          label: 'Track order',
+                          secondary: true,
+                          onPressed: () =>
+                              _openTracking(context, paidOrder.id),
+                        ),
+                      ],
+                    )
+                  : TregaButton(
+                      label: 'Pay ${formatINR(bid.amount)} now',
+                      onPressed: () => Navigator.of(context).pushNamed(
+                        CheckoutScreen.routeName,
+                        arguments: CheckoutArgs(bidId: bid.id),
+                      ),
+                    ),
               _ => Text(
                   'This offer is closed.',
                   style: textTheme.bodySmall?.copyWith(
@@ -410,6 +506,10 @@ class _MyOfferCard extends StatelessWidget {
 class _OffersReceivedTab extends ConsumerWidget {
   final Stream<List<Bid>>? stream;
 
+  /// The seller's orders, joined to offers by bid id so a paid offer
+  /// shows payment completed with tracking instead of Cancel acceptance.
+  final Stream<List<Order>>? ordersStream;
+
   /// Bumped by the parent on retry; keys the StreamBuilder so it
   /// resubscribes with a fresh stream.
   final int nonce;
@@ -417,6 +517,7 @@ class _OffersReceivedTab extends ConsumerWidget {
 
   const _OffersReceivedTab({
     required this.stream,
+    required this.ordersStream,
     required this.nonce,
     required this.onRetry,
   });
@@ -465,18 +566,28 @@ class _OffersReceivedTab extends ConsumerWidget {
           groups.putIfAbsent(bid.listingId, () => []).add(bid);
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: groups.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 16),
-          itemBuilder: (context, i) {
-            final entry = groups.entries.elementAt(i);
-            return Entrance(
-              index: i % 6,
-              child: _ListingOffersGroup(
-                listingId: entry.key,
-                bids: entry.value,
-              ),
+        // Orders load independently: the offers list never waits on them.
+        return StreamBuilder<List<Order>>(
+          key: ValueKey(nonce),
+          stream: ordersStream,
+          builder: (context, orderSnap) {
+            final ordersByBid =
+                _ordersByBid(orderSnap.data ?? const <Order>[]);
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: groups.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemBuilder: (context, i) {
+                final entry = groups.entries.elementAt(i);
+                return Entrance(
+                  index: i % 6,
+                  child: _ListingOffersGroup(
+                    listingId: entry.key,
+                    bids: entry.value,
+                    ordersByBid: ordersByBid,
+                  ),
+                );
+              },
             );
           },
         );
@@ -489,9 +600,13 @@ class _ListingOffersGroup extends ConsumerStatefulWidget {
   final String listingId;
   final List<Bid> bids;
 
+  /// Orders keyed by bid id, for the paid state of accepted offers.
+  final Map<String, Order> ordersByBid;
+
   const _ListingOffersGroup({
     required this.listingId,
     required this.bids,
+    this.ordersByBid = const {},
   });
 
   @override
@@ -740,73 +855,16 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
             ),
             const SizedBox(height: 12),
 
-            // Accepted offer banner (exclusive reservation).
+            // Accepted offer banner (exclusive reservation, or the paid
+            // state with fulfillment tracking once the buyer paid).
             for (final bid in accepted) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.tileBackground,
-                  border: Border.all(color: AppColors.divider),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Wrap(
-                            children: [
-                              Text(
-                                'Accepted: ${formatINR(bid.amount)} from ',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              _CounterpartyName(
-                                uid: bid.buyerId,
-                                fallback: 'buyer',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _statusChip(_acceptedOptimistic.contains(bid.id)
-                            ? BidStatus.accepted
-                            : bid.status),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Reserved for this buyer until they pay.',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (_busyIds.contains(bid.id))
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Confirming…'),
-                        ],
-                      )
-                    else
-                      TextButton(
-                        onPressed: () =>
-                            _cancelAcceptance(context, ref, bid),
-                        child: const Text('Cancel acceptance'),
-                      ),
-                  ],
-                ),
+              _AcceptedOfferBanner(
+                bid: bid,
+                order: widget.ordersByBid[bid.id],
+                busy: _busyIds.contains(bid.id),
+                optimistic: _acceptedOptimistic.contains(bid.id),
+                onCancelAcceptance: () =>
+                    _cancelAcceptance(context, ref, bid),
               ),
               const SizedBox(height: 12),
             ],
@@ -871,6 +929,126 @@ class _ListingOffersGroupState extends ConsumerState<_ListingOffersGroup> {
             ],
           ],
         ),
+    );
+  }
+}
+
+/// The accepted-offer banner on a listing group.
+///
+/// Unpaid: the reservation state, "Reserved for this buyer until they
+/// pay", with Cancel acceptance. Paid: "Paid", the order's fulfillment
+/// state with its latest tracking note, and a Track order button.
+/// Cancel acceptance never renders once paid: the listing is sold and
+/// the server refuses the cancel anyway.
+class _AcceptedOfferBanner extends StatelessWidget {
+  final Bid bid;
+  final Order? order;
+  final bool busy;
+  final bool optimistic;
+  final VoidCallback onCancelAcceptance;
+
+  const _AcceptedOfferBanner({
+    required this.bid,
+    required this.order,
+    required this.busy,
+    required this.optimistic,
+    required this.onCancelAcceptance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final paidOrder = _isPaid(order) ? order : null;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.tileBackground,
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  children: [
+                    Text(
+                      '${paidOrder != null ? 'Paid' : 'Accepted'}: '
+                      '${formatINR(bid.amount)} from ',
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    _CounterpartyName(
+                      uid: bid.buyerId,
+                      fallback: 'buyer',
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (paidOrder != null)
+                _paidChip()
+              else
+                _statusChip(
+                    optimistic ? BidStatus.accepted : bid.status),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (paidOrder != null) ...[
+            Text(
+              'Payment completed · ${paidOrder.status.label}',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            if (paidOrder.trackingId != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                paidOrder.trackingId!,
+                style: textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => _openTracking(context, paidOrder.id),
+              child: const Text('Track order'),
+            ),
+          ] else ...[
+            Text(
+              'Reserved for this buyer until they pay.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (busy)
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Confirming…'),
+                ],
+              )
+            else
+              TextButton(
+                onPressed: onCancelAcceptance,
+                child: const Text('Cancel acceptance'),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }
