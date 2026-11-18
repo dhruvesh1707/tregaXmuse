@@ -145,6 +145,8 @@ false` for clients).
 | liveAt / soldAt | timestamp? | lifecycle markers; `soldAt` starts the 48h clock to `archived` |
 | createdAt | timestamp | |
 | city | string | denormalized from the seller's pickup address at publish time; drives Trega Express eligibility |
+| weightKg | number? | packed parcel weight in kg, captured in the sell flow (prefilled from category defaults, editable); absent on listings published before parcel capture shipped |
+| lengthCm / breadthCm / heightCm | number? | packed box dimensions in cm, same capture; caps 0.1 to 50 kg and 1 to 200 cm per side, enforced in the sell flow and clamped server-side |
 
 Write rule of thumb: clients create with `status: "draft"`; the
 `onListingCreate` trigger flips it to `live` immediately and notifies
@@ -191,6 +193,26 @@ Never on the public listing doc. Readable only by the seller and admins
 |---|---|---|
 | pickupAddress | map | `line1`, `line2` (optional landmark), `city`, `state`, `pincode` |
 | updatedAt | timestamp | |
+
+### `shiprocketPickups/{sellerUid}`
+
+Versioned Shiprocket pickup locations, one record per seller.
+Shiprocket has no API to edit a pickup location's address, so each
+address change mints a new versioned nickname. Written only via the
+Admin SDK (`ensurePickupLocation` in `shiprocket.ts`); no client rule
+exists, so clients can neither read nor write it.
+
+| Field | Type | Notes |
+|---|---|---|
+| nickname | string | current Shiprocket `pickup_location`: `TREGA-<uid>` (v1), then `TREGA-<uid>-v2`, `-v3`, ... |
+| version | number | 1 for the first address, incremented on every address change |
+| addressHash | string | SHA-256 hex of the normalized address (`line1\|line2\|city\|state\|pincode`, trimmed and lowercased); a matching hash reuses the nickname |
+| updatedAt | timestamp | last version minted |
+
+Known limitation: a new version applies only to shipments created
+after the address change. Shiprocket orders already created keep
+their original pickup location; moving one needs a manual change in
+the Shiprocket panel.
 
 ### `bids/{id}`
 | Field | Type | Notes |
@@ -503,7 +525,9 @@ Shiprocket courier integration (`trega_functions/src/shiprocket.ts`):
 - `onOrderPaid` (Firestore trigger on `orders/{orderId}` updates): when
   `paymentStatus` flips to `SUCCESS`, creates a Shiprocket shipment and
   schedules pickup from the seller automatically. Steps: ensure the
-  seller pickup location (`TREGA-<sellerUid>`), create an adhoc order
+  seller pickup location (versioned nickname, see
+  `shiprocketPickups/{sellerUid}` above, so address changes reach
+  Shiprocket), create an adhoc order
   (Shiprocket `order_id` is the Trega order doc id), pick a courier
   from the serviceability response (Blue Dart for Rs 10,000+ orders
   when available, else highest-rated with earliest ETD), assign an AWB
@@ -523,9 +547,11 @@ Shiprocket courier integration (`trega_functions/src/shiprocket.ts`):
 - Secrets: `SHIPROCKET_API_EMAIL`, `SHIPROCKET_API_PASSWORD` (API user
   created in the panel with Buyer Details Access ALLOWED),
   `SHIPROCKET_WEBHOOK_KEY`. No sandbox exists: every call is live.
-- Parcel weight/dimensions come from category defaults in
-  `FREIGHT_DEFAULTS` (listings carry no weight); wrong weights cause
-  Shiprocket weight discrepancy charges.
+- Parcel weight/dimensions come from the listing's own parcel fields
+  (`weightKg`, `lengthCm`, `breadthCm`, `heightCm`), captured in the
+  sell flow; category defaults in `FREIGHT_DEFAULTS` apply only when a
+  listing has no usable parcel fields. Wrong weights cause Shiprocket
+  weight discrepancy charges.
 
 ## Storage
 `listingMedia/{listingId}/{filename}`, listing photos and videos.

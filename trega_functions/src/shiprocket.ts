@@ -4,9 +4,14 @@
  * Flow: when an order's payment flips to SUCCESS, the `onOrderPaid`
  * trigger creates a Shiprocket shipment automatically:
  *
- *   1. Ensure a Shiprocket pickup location exists for the seller
- *      (nickname `TREGA-<sellerUid>`, created from the listing's
- *      private pickup address on first use).
+ *   1. Ensure a Shiprocket pickup location exists for the seller.
+ *      Shiprocket has no API to edit a pickup location's address, so
+ *      locations are versioned: `TREGA-<sellerUid>` for the first
+ *      address, `TREGA-<sellerUid>-v2`, `-v3`, ... each time the
+ *      seller's pickup address changes. A `shiprocketPickups/{uid}`
+ *      record tracks the current nickname and an address hash, so an
+ *      address change always ships from the new address. Already
+ *      created Shiprocket orders are never moved to a new location.
  *   2. Create an adhoc order (Shiprocket `order_id` is the Trega order
  *      doc id, so webhook events map back exactly).
  *   3. Check courier serviceability and pick a courier: Blue Dart for
@@ -40,13 +45,15 @@
  * Shiprocket order_id is unique per account so a duplicate create is
  * rejected rather than double-booked.
  *
- * Weight/dimensions: listings carry no weight, so category defaults
- * apply (see FREIGHT_DEFAULTS). Wrong weights cause Shiprocket weight
- * discrepancy charges; capturing real weights in the sell flow is a
- * later improvement, not a launch blocker.
+ * Weight/dimensions: listings carry the seller's packed parcel size
+ * (`weightKg`, `lengthCm`, `breadthCm`, `heightCm`, prefilled from
+ * category defaults in the sell flow and editable there). Category
+ * defaults (see FREIGHT_DEFAULTS) apply only when a listing has no
+ * usable parcel fields, e.g. listings published before parcel capture
+ * shipped. Wrong weights cause Shiprocket weight discrepancy charges.
  */
 import * as admin from "firebase-admin";
-import { timingSafeEqual } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import {
@@ -231,9 +238,67 @@ async function listPickupNames(): Promise<Set<string>> {
 }
 
 /**
- * The pickup location nickname for a seller, creating it on first use.
- * The nickname is the seller uid, so it is stable and unique per
- * account; the human name, phone and address travel in the fields.
+ * SHA-256 hex of the normalized pickup address. Normalization trims
+ * and lowercases each line, so cosmetic edits (case, extra spaces) do
+ * not mint a new pickup location; a real address change does.
+ */
+function addressHash(addr: AddressMap): string {
+  const parts = [addr.line1, addr.line2, addr.city, addr.state, addr.pincode]
+    .map((p) => (p ?? "").trim().toLowerCase())
+    .join("|");
+  return createHash("sha256").update(parts).digest("hex");
+}
+
+/**
+ * Creates one pickup location. A duplicate-name failure means the
+ * location already exists (a retried attempt whose record write never
+ * landed), so it is treated as success and the nickname is reused;
+ * every other failure is rethrown.
+ */
+async function createPickupLocation(
+  nickname: string,
+  sellerName: string,
+  sellerPhone: string,
+  sellerEmail: string | undefined,
+  addr: AddressMap
+): Promise<void> {
+  try {
+    await srRequest("/settings/company/addpickup", {
+      method: "POST",
+      body: {
+        pickup_location: nickname,
+        name: sellerName,
+        email: sellerEmail ?? "contact@trega.in",
+        phone: sellerPhone,
+        address: addr.line1,
+        address_2: addr.line2 ?? "",
+        city: addr.city,
+        state: addr.state,
+        country: "India",
+        pin_code: addr.pincode,
+      },
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message.toLowerCase() : "";
+    const duplicate =
+      /already exists|duplicate|already added|already present/.test(message);
+    if (!duplicate) throw e;
+    logger.warn("Shiprocket pickup location already exists, reusing it", {
+      nickname,
+    });
+  }
+  pickupCache?.names.add(nickname);
+}
+
+/**
+ * The pickup location nickname for a seller, creating it on first use
+ * and minting a versioned nickname whenever the pickup address
+ * changes. Shiprocket offers no edit endpoint for pickup locations,
+ * so the current nickname and address hash live in
+ * `shiprocketPickups/{sellerUid}` (Admin SDK only, see
+ * FIRESTORE_MODEL.md). A seller with no record but a pre-existing
+ * `TREGA-<uid>` location gets `-v2`: the unknown v1 address is never
+ * trusted.
  */
 async function ensurePickupLocation(
   sellerUid: string,
@@ -242,26 +307,49 @@ async function ensurePickupLocation(
   sellerEmail: string | undefined,
   addr: AddressMap
 ): Promise<string> {
-  const nickname = `TREGA-${sellerUid}`;
+  const db = admin.firestore();
+  const recRef = db.collection("shiprocketPickups").doc(sellerUid);
+  const hash = addressHash(addr);
+  const rec = await recRef.get();
+  if (rec.exists) {
+    const data = rec.data() as Record<string, unknown>;
+    const nickname = data.nickname;
+    if (data.addressHash === hash && typeof nickname === "string" && nickname) {
+      return nickname;
+    }
+    const version =
+      (typeof data.version === "number" ? data.version : 1) + 1;
+    const next = `TREGA-${sellerUid}-v${version}`;
+    await createPickupLocation(next, sellerName, sellerPhone, sellerEmail, addr);
+    await recRef.set({
+      nickname: next,
+      version,
+      addressHash: hash,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return next;
+  }
   const names = await listPickupNames();
-  if (names.has(nickname)) return nickname;
-  await srRequest("/settings/company/addpickup", {
-    method: "POST",
-    body: {
-      pickup_location: nickname,
-      name: sellerName,
-      email: sellerEmail ?? "contact@trega.in",
-      phone: sellerPhone,
-      address: addr.line1,
-      address_2: addr.line2 ?? "",
-      city: addr.city,
-      state: addr.state,
-      country: "India",
-      pin_code: addr.pincode,
-    },
+  const base = `TREGA-${sellerUid}`;
+  if (names.has(base)) {
+    const next = `${base}-v2`;
+    await createPickupLocation(next, sellerName, sellerPhone, sellerEmail, addr);
+    await recRef.set({
+      nickname: next,
+      version: 2,
+      addressHash: hash,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return next;
+  }
+  await createPickupLocation(base, sellerName, sellerPhone, sellerEmail, addr);
+  await recRef.set({
+    nickname: base,
+    version: 1,
+    addressHash: hash,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-  pickupCache?.names.add(nickname);
-  return nickname;
+  return base;
 }
 
 // ------------------------------------------------------------- helpers ---
@@ -313,8 +401,10 @@ function shiprocketOrderDate(d: Date): string {
 
 /**
  * Default parcel weight (kg) and box dimensions (cm) per category.
- * Listings carry no weight, so these stand in until the sell flow
- * captures real weights. Charge weight minimum is 0.5 kg.
+ * Used only when a listing has no usable parcel fields (listings
+ * published before the sell flow captured parcel size). The sell
+ * flow prefills these same values per category; keep the two tables
+ * in sync. Charge weight minimum is 0.5 kg.
  */
 const FREIGHT_DEFAULTS: Record<
   string,
@@ -328,6 +418,7 @@ const FREIGHT_DEFAULTS: Record<
   fashion: { weight: 0.5, length: 30, breadth: 22, height: 5 },
   furniture: { weight: 10, length: 60, breadth: 50, height: 40 },
   homeappliances: { weight: 8, length: 55, breadth: 45, height: 40 },
+  appliances: { weight: 8, length: 55, breadth: 45, height: 40 },
   cycles: { weight: 12, length: 120, breadth: 25, height: 70 },
   watches: { weight: 0.5, length: 18, breadth: 12, height: 8 },
   collectibles: { weight: 1, length: 30, breadth: 22, height: 12 },
@@ -335,16 +426,53 @@ const FREIGHT_DEFAULTS: Record<
   others: { weight: 1, length: 30, breadth: 22, height: 12 },
 };
 
-function freightFor(categoryId: unknown): {
+/** Parcel caps shared with the sell flow validation (same numbers). */
+const PARCEL_MIN_WEIGHT_KG = 0.1;
+const PARCEL_MAX_WEIGHT_KG = 50;
+const PARCEL_MIN_DIM_CM = 1;
+const PARCEL_MAX_DIM_CM = 200;
+
+function clampParcel(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function parcelNumber(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Parcel weight and dimensions for a shipment. The listing's own
+ * parcel fields win when all four are present and numeric; values
+ * outside the caps are clamped into range. Anything else (missing
+ * fields, non-numeric values, no listing doc) falls back to the
+ * category default. Never throws: a bad parcel must never block
+ * shipping.
+ */
+function freightFor(listing: Record<string, unknown> | undefined): {
   weight: number;
   length: number;
   breadth: number;
   height: number;
 } {
-  const key = String(categoryId ?? "")
+  const key = String(listing?.categoryId ?? "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-  return FREIGHT_DEFAULTS[key] ?? FREIGHT_DEFAULTS.others;
+  const fallback = FREIGHT_DEFAULTS[key] ?? FREIGHT_DEFAULTS.others;
+  if (!listing) return fallback;
+  const weight = parcelNumber(listing.weightKg);
+  const length = parcelNumber(listing.lengthCm);
+  const breadth = parcelNumber(listing.breadthCm);
+  const height = parcelNumber(listing.heightCm);
+  if (weight === null || length === null || breadth === null || height === null) {
+    return fallback;
+  }
+  return {
+    weight: clampParcel(weight, PARCEL_MIN_WEIGHT_KG, PARCEL_MAX_WEIGHT_KG),
+    length: clampParcel(length, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
+    breadth: clampParcel(breadth, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
+    height: clampParcel(height, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
+  };
 }
 
 // ------------------------------------------------------ courier choice ---
@@ -465,7 +593,7 @@ async function runShipmentSteps(orderId: string): Promise<void> {
   const buyer = buyerSnap?.data() as Record<string, unknown> | undefined;
   const buyerEmail =
     typeof buyer?.email === "string" && buyer.email ? buyer.email : undefined;
-  const freight = freightFor(listing?.categoryId);
+  const freight = freightFor(listing);
   const title = String(
     listing?.title ?? order.listingTitle ?? "Trega order"
   ).slice(0, 100);

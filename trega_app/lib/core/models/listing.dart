@@ -65,6 +65,14 @@ class Listing {
   /// Drives Trega Express eligibility (badge on cards, banner on detail).
   /// Empty for listings published before this field existed.
   final String city;
+  /// Packed parcel size for courier shipping, captured in the sell
+  /// flow (prefilled from category defaults, editable by the seller).
+  /// Null for listings published before parcel capture shipped; the
+  /// shipment backend falls back to category defaults then.
+  final double? weightKg;
+  final double? lengthCm;
+  final double? breadthCm;
+  final double? heightCm;
   final DateTime createdAt;
   final int viewsCount;
   final int likesCount;
@@ -80,6 +88,10 @@ class Listing {
     this.status = ListingStatus.live,
     this.acceptedBidId,
     this.city = '',
+    this.weightKg,
+    this.lengthCm,
+    this.breadthCm,
+    this.heightCm,
     required this.createdAt,
     this.viewsCount = 0,
     this.likesCount = 0,
@@ -125,7 +137,11 @@ class Listing {
       int? likesCount,
       ListingStatus? status,
       String? acceptedBidId,
-      String? city,}) {
+      String? city,
+      double? weightKg,
+      double? lengthCm,
+      double? breadthCm,
+      double? heightCm,}) {
     return Listing(
       id: id,
       product: product,
@@ -136,6 +152,10 @@ class Listing {
       status: status ?? this.status,
       acceptedBidId: acceptedBidId ?? this.acceptedBidId,
       city: city ?? this.city,
+      weightKg: weightKg ?? this.weightKg,
+      lengthCm: lengthCm ?? this.lengthCm,
+      breadthCm: breadthCm ?? this.breadthCm,
+      heightCm: heightCm ?? this.heightCm,
       createdAt: createdAt,
       viewsCount: viewsCount,
       likesCount: likesCount ?? this.likesCount,
@@ -151,7 +171,8 @@ class Listing {
 /// `sellerId`, `title`, `description`, `categoryId`, `price`,
 /// `condition` (`brand_new`…), `photos[]`, `videoUrl?`, `status`
 /// (`draft`→`live` immediately on publish; `pending` legacy;
-/// `sold` on payment, `archived` 48h later; `rejected`), `viewCount`, `createdAt`.
+/// `sold` on payment, `archived` 48h later; `rejected`), `viewCount`, `createdAt`,
+/// `weightKg?`, `lengthCm?`, `breadthCm?`, `heightCm?` (packed parcel size).
 ///
 /// Additive (client-managed) fields not in the canonical doc:
 /// `likedBy[]` / `likesCount` (wishlist). `negotiable`/`biddingEnabled` are
@@ -189,6 +210,10 @@ extension ListingFirestore on Listing {
       status: ListingStatusLabel.fromWire(data['status'] as String? ?? ''),
       acceptedBidId: data['acceptedBidId'] as String?,
       city: data['city'] as String? ?? '',
+      weightKg: (data['weightKg'] as num?)?.toDouble(),
+      lengthCm: (data['lengthCm'] as num?)?.toDouble(),
+      breadthCm: (data['breadthCm'] as num?)?.toDouble(),
+      heightCm: (data['heightCm'] as num?)?.toDouble(),
       createdAt: firestoreDate(data['createdAt']),
       viewsCount: data['viewCount'] as int? ?? 0,
       likesCount: data['likesCount'] as int? ?? 0,
@@ -210,6 +235,10 @@ extension ListingFirestore on Listing {
       'condition': product.condition.wireValue,
       'photos': product.imageUrls,
       'videoUrl': product.videoUrl,
+      if (weightKg != null) 'weightKg': weightKg,
+      if (lengthCm != null) 'lengthCm': lengthCm,
+      if (breadthCm != null) 'breadthCm': breadthCm,
+      if (heightCm != null) 'heightCm': heightCm,
       'viewCount': 0,
       'likedBy': <String>[],
       'likesCount': 0,
