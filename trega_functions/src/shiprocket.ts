@@ -2,7 +2,10 @@
  * Shiprocket courier integration (Bigfoot Retail Solutions).
  *
  * Flow: when an order's payment flips to SUCCESS, the `onOrderPaid`
- * trigger creates a Shiprocket shipment automatically:
+ * trigger holds the order for parcel info (see the parcel hold note
+ * below) instead of shipping at once. Once the seller submits parcel
+ * info, or the 12 hour hold expires, `createShipmentForOrder` creates
+ * the Shiprocket shipment:
  *
  *   1. Ensure a Shiprocket pickup location exists for the seller.
  *      Shiprocket has no API to edit a pickup location's address, so
@@ -26,6 +29,14 @@
  * hyperlocal), and auto-creating a standard courier shipment as well
  * would ship the order twice. Such orders get
  * `shipmentStatus: "manual"` and no Shiprocket calls are made.
+ *
+ * Parcel hold: a paid standard order waits in `shipmentStatus:
+ * "awaiting_parcel"` with a 12 hour `parcelDeadline` while the seller
+ * is asked for the packed weight and box size. `submitParcelInfo`
+ * ships the order at once; the hourly `shipAwaitingParcels` sweep
+ * ships overdue orders with category defaults. Express orders skip
+ * the hold but the seller is still asked for parcel info, since the
+ * team needs the weight for the manual Quick booking.
  *
  * Tracking updates arrive on the `courierTracking` webhook (panel
  * configured, `x-api-key` token auth, no HMAC) and move the order
@@ -51,12 +62,12 @@
  * Shiprocket order_id is unique per account so a duplicate create is
  * rejected rather than double-booked.
  *
- * Weight/dimensions: listings carry the seller's packed parcel size
- * (`weightKg`, `lengthCm`, `breadthCm`, `heightCm`, prefilled from
- * category defaults in the sell flow and editable there). Category
- * defaults (see FREIGHT_DEFAULTS) apply only when a listing has no
- * usable parcel fields, e.g. listings published before parcel capture
- * shipped. Wrong weights cause Shiprocket weight discrepancy charges.
+ * Weight/dimensions: the order's own parcel fields win (written by
+ * `submitParcelInfo` after the sale), then the listing's parcel
+ * fields, then category defaults (see FREIGHT_DEFAULTS). Category
+ * defaults apply only when neither has usable parcel fields, e.g.
+ * orders shipped by the sweep before the seller replied. Wrong
+ * weights cause Shiprocket weight discrepancy charges.
  */
 import * as admin from "firebase-admin";
 import { createHash, timingSafeEqual } from "crypto";
@@ -69,6 +80,7 @@ import {
   SHIPROCKET_BASE,
 } from "./config";
 import { queueNotification, NotificationType } from "./notify";
+import { assertDocId } from "./validate";
 
 type AddressMap = {
   name?: string;
@@ -407,10 +419,8 @@ function shiprocketOrderDate(d: Date): string {
 
 /**
  * Default parcel weight (kg) and box dimensions (cm) per category.
- * Used only when a listing has no usable parcel fields (listings
- * published before the sell flow captured parcel size). The sell
- * flow prefills these same values per category; keep the two tables
- * in sync. Charge weight minimum is 0.5 kg.
+ * Used only when neither the order nor the listing has usable parcel
+ * fields. Charge weight minimum is 0.5 kg.
  */
 const FREIGHT_DEFAULTS: Record<
   string,
@@ -432,11 +442,14 @@ const FREIGHT_DEFAULTS: Record<
   others: { weight: 1, length: 30, breadth: 22, height: 12 },
 };
 
-/** Parcel caps shared with the sell flow validation (same numbers). */
+/** Parcel caps enforced by `submitParcelInfo` and the app parcel prompt. */
 const PARCEL_MIN_WEIGHT_KG = 0.1;
 const PARCEL_MAX_WEIGHT_KG = 50;
 const PARCEL_MIN_DIM_CM = 1;
 const PARCEL_MAX_DIM_CM = 200;
+
+/** How long a paid standard order waits for parcel info before the sweep ships it. */
+const PARCEL_HOLD_MS = 12 * 60 * 60 * 1000;
 
 function clampParcel(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -447,15 +460,68 @@ function parcelNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** One parcel value from client input, rejected when outside the caps. */
+function assertParcelValue(
+  value: unknown,
+  name: string,
+  min: number,
+  max: number,
+  unit: string
+): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < min ||
+    value > max
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${name} must be between ${min} and ${max} ${unit}.`
+    );
+  }
+  return value;
+}
+
 /**
- * Parcel weight and dimensions for a shipment. The listing's own
- * parcel fields win when all four are present and numeric; values
- * outside the caps are clamped into range. Anything else (missing
- * fields, non-numeric values, no listing doc) falls back to the
- * category default. Never throws: a bad parcel must never block
+ * The parcel fields of one doc (order or listing), clamped into the
+ * caps. Null unless all four fields are present and numeric, so a
+ * half-filled record never ships on guessed dimensions.
+ */
+function parcelFrom(
+  record: Record<string, unknown> | undefined
+): {
+  weight: number;
+  length: number;
+  breadth: number;
+  height: number;
+} | null {
+  if (!record) return null;
+  const weight = parcelNumber(record.weightKg);
+  const length = parcelNumber(record.lengthCm);
+  const breadth = parcelNumber(record.breadthCm);
+  const height = parcelNumber(record.heightCm);
+  if (weight === null || length === null || breadth === null || height === null) {
+    return null;
+  }
+  return {
+    weight: clampParcel(weight, PARCEL_MIN_WEIGHT_KG, PARCEL_MAX_WEIGHT_KG),
+    length: clampParcel(length, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
+    breadth: clampParcel(breadth, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
+    height: clampParcel(height, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
+  };
+}
+
+/**
+ * Parcel weight and dimensions for a shipment. The order's own parcel
+ * fields win when all four are present and numeric, then the listing's
+ * parcel fields, then the category default. Values outside the caps
+ * are clamped into range. Never throws: a bad parcel must never block
  * shipping.
  */
-function freightFor(listing: Record<string, unknown> | undefined): {
+function freightFor(
+  order: Record<string, unknown> | undefined,
+  listing: Record<string, unknown> | undefined
+): {
   weight: number;
   length: number;
   breadth: number;
@@ -465,20 +531,7 @@ function freightFor(listing: Record<string, unknown> | undefined): {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
   const fallback = FREIGHT_DEFAULTS[key] ?? FREIGHT_DEFAULTS.others;
-  if (!listing) return fallback;
-  const weight = parcelNumber(listing.weightKg);
-  const length = parcelNumber(listing.lengthCm);
-  const breadth = parcelNumber(listing.breadthCm);
-  const height = parcelNumber(listing.heightCm);
-  if (weight === null || length === null || breadth === null || height === null) {
-    return fallback;
-  }
-  return {
-    weight: clampParcel(weight, PARCEL_MIN_WEIGHT_KG, PARCEL_MAX_WEIGHT_KG),
-    length: clampParcel(length, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
-    breadth: clampParcel(breadth, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
-    height: clampParcel(height, PARCEL_MIN_DIM_CM, PARCEL_MAX_DIM_CM),
-  };
+  return parcelFrom(order) ?? parcelFrom(listing) ?? fallback;
 }
 
 // ------------------------------------------------------ courier choice ---
@@ -599,7 +652,7 @@ async function runShipmentSteps(orderId: string): Promise<void> {
   const buyer = buyerSnap?.data() as Record<string, unknown> | undefined;
   const buyerEmail =
     typeof buyer?.email === "string" && buyer.email ? buyer.email : undefined;
-  const freight = freightFor(listing);
+  const freight = freightFor(order, listing);
   const title = String(
     listing?.title ?? order.listingTitle ?? "Trega order"
   ).slice(0, 100);
@@ -818,7 +871,17 @@ export async function createShipmentForOrder(
   }
 }
 
-/** Trigger entry: fires on every order update, acts only on the payment flip. */
+/**
+ * Trigger entry: fires on every order update, acts only on the payment
+ * flip. A paid standard order is held for parcel info
+ * (`shipmentStatus: "awaiting_parcel"` with a 12 hour `parcelDeadline`)
+ * and the seller is asked for the packed weight and box size; the
+ * shipment is created when the seller replies (`submitParcelInfo`) or
+ * when the hourly sweep fires after the deadline. A paid express order
+ * is marked `manual` as before (no Shiprocket calls), and the seller
+ * is still asked for parcel info, since the team needs the weight for
+ * the manual Quick booking. Never throws.
+ */
 export async function onOrderPaidHandler(
   orderId: string,
   before: Record<string, unknown> | undefined,
@@ -828,8 +891,43 @@ export async function onOrderPaidHandler(
   if (before?.paymentStatus === "SUCCESS") return;
   if (after.paymentStatus !== "SUCCESS") return;
   if (after.shipmentStatus) return;
+  const db = admin.firestore();
+  const orderRef = db.collection("orders").doc(orderId);
+  const sellerId = typeof after.sellerId === "string" ? after.sellerId : "";
+  const isExpress = after.deliveryType === "express";
+  const listingTitle =
+    typeof after.listingTitle === "string" && after.listingTitle.trim()
+      ? after.listingTitle.trim()
+      : null;
+  const itemRef = listingTitle ? `"${listingTitle}"` : "your order";
   try {
-    await createShipmentForOrder(orderId);
+    const batch = db.batch();
+    if (isExpress) {
+      batch.update(orderRef, {
+        shipmentStatus: "manual",
+        shipmentError: admin.firestore.FieldValue.delete(),
+      });
+    } else {
+      batch.update(orderRef, {
+        shipmentStatus: "awaiting_parcel",
+        parcelDeadline: admin.firestore.Timestamp.fromMillis(
+          Date.now() + PARCEL_HOLD_MS
+        ),
+      });
+    }
+    if (sellerId) {
+      queueNotification(batch, sellerId, {
+        type: NotificationType.parcelInfoNeeded,
+        title: isExpress
+          ? "Add parcel details for quick delivery"
+          : "Add parcel details to ship your order",
+        body: isExpress
+          ? `Payment received for ${itemRef}. Add the packed weight and box size so the team can book the quick delivery.`
+          : `Payment received for ${itemRef}. Add the packed weight and box size so the courier can be booked. If you do not add them within 12 hours, the order ships with standard parcel sizes.`,
+        data: { orderId },
+      });
+    }
+    await batch.commit();
   } catch (e) {
     logger.error("Shiprocket onOrderPaid failed", {
       orderId,
@@ -838,7 +936,132 @@ export async function onOrderPaidHandler(
   }
 }
 
-/** Admin retry for a failed shipment. Resumes from the stored step. */
+/**
+ * Seller submits the packed parcel size after a sale. The caller must
+ * own the order's listing (checked against both the order and the
+ * listing docs). The four fields are written on the order doc; a
+ * standard order still awaiting parcel info ships at once, in this
+ * same process. Express orders only record the fields, the team books
+ * those manually via Quick and needs the weight for the booking.
+ */
+export async function submitParcelInfoHandler(
+  uid: string,
+  input: {
+    orderId?: string;
+    weightKg?: unknown;
+    lengthCm?: unknown;
+    breadthCm?: unknown;
+    heightCm?: unknown;
+  }
+): Promise<{ submitted: true; shipmentCreated: boolean }> {
+  const { orderId } = input;
+  assertDocId(orderId, "orderId");
+  const weightKg = assertParcelValue(
+    input.weightKg,
+    "Weight",
+    PARCEL_MIN_WEIGHT_KG,
+    PARCEL_MAX_WEIGHT_KG,
+    "kg"
+  );
+  const lengthCm = assertParcelValue(
+    input.lengthCm,
+    "Length",
+    PARCEL_MIN_DIM_CM,
+    PARCEL_MAX_DIM_CM,
+    "cm"
+  );
+  const breadthCm = assertParcelValue(
+    input.breadthCm,
+    "Breadth",
+    PARCEL_MIN_DIM_CM,
+    PARCEL_MAX_DIM_CM,
+    "cm"
+  );
+  const heightCm = assertParcelValue(
+    input.heightCm,
+    "Height",
+    PARCEL_MIN_DIM_CM,
+    PARCEL_MAX_DIM_CM,
+    "cm"
+  );
+
+  const db = admin.firestore();
+  const orderRef = db.collection("orders").doc(orderId);
+  const orderSnap = await orderRef.get();
+  const order = orderSnap.data();
+  if (!orderSnap.exists || !order) {
+    throw new HttpsError("not-found", "Order not found.");
+  }
+  const listingId = typeof order.listingId === "string" ? order.listingId : "";
+  if (!listingId) {
+    throw new HttpsError("not-found", "Listing not found.");
+  }
+  const listingSnap = await db.collection("listings").doc(listingId).get();
+  const listing = listingSnap.data();
+  if (!listingSnap.exists || !listing) {
+    throw new HttpsError("not-found", "Listing not found.");
+  }
+  if (listing.sellerId !== uid || order.sellerId !== uid) {
+    throw new HttpsError(
+      "permission-denied",
+      "Only the seller can add parcel details."
+    );
+  }
+
+  await orderRef.update({ weightKg, lengthCm, breadthCm, heightCm });
+
+  let shipmentCreated = false;
+  if (
+    order.deliveryType !== "express" &&
+    order.shipmentStatus === "awaiting_parcel"
+  ) {
+    const result = await createShipmentForOrder(orderId);
+    shipmentCreated = result.created;
+  }
+  return { submitted: true as const, shipmentCreated };
+}
+
+/**
+ * Hourly: ship paid orders whose 12 hour parcel hold expired without
+ * a seller reply. Category defaults apply when no parcel fields exist
+ * (see `freightFor`). Single-field query on `shipmentStatus` plus an
+ * in-code deadline filter, no composite index needed. At most 100
+ * orders attempted per run; the next run catches the rest. Orders
+ * with no `parcelDeadline` are skipped, their hold cannot be proven.
+ */
+export async function shipAwaitingParcelsHandler(): Promise<{
+  shipped: number;
+}> {
+  const db = admin.firestore();
+  const now = Date.now();
+  const snap = await db
+    .collection("orders")
+    .where("shipmentStatus", "==", "awaiting_parcel")
+    .limit(200)
+    .get();
+  let attempted = 0;
+  let shipped = 0;
+  for (const doc of snap.docs) {
+    if (attempted >= 100) break;
+    const deadlineMs =
+      (
+        doc.data().parcelDeadline as
+          | admin.firestore.Timestamp
+          | undefined
+      )?.toMillis?.() ?? 0;
+    if (deadlineMs === 0 || deadlineMs > now) continue;
+    attempted++;
+    const result = await createShipmentForOrder(doc.id);
+    if (result.created) shipped++;
+  }
+  return { shipped };
+}
+
+/**
+ * Admin retry for a failed shipment, or force-book an order still
+ * awaiting parcel info (ships with category defaults when the seller
+ * never replied). Resumes from the stored step.
+ */
 export async function retryShipmentHandler(
   isAdmin: boolean,
   orderId: unknown
@@ -856,7 +1079,8 @@ export async function retryShipmentHandler(
     if (!snap.exists) return "missing";
     const d = snap.data() as Record<string, unknown>;
     if (d.paymentStatus !== "SUCCESS") return "not_paid";
-    if (d.shipmentStatus !== "failed") return "not_failed";
+    const st = d.shipmentStatus as string | undefined;
+    if (st !== "failed" && st !== "awaiting_parcel") return "not_failed";
     if (!credentials()) return "not_configured";
     tx.update(ref, {
       shipmentStatus: "creating",
@@ -871,7 +1095,7 @@ export async function retryShipmentHandler(
   if (claim === "not_failed") {
     throw new HttpsError(
       "failed-precondition",
-      "Shipment is not in a failed state."
+      "Shipment is not in a failed or awaiting-parcel state."
     );
   }
   if (claim === "not_configured") {

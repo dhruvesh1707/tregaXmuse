@@ -103,10 +103,18 @@ export interface Order {
   srShipmentId?: number;
   awbCode?: string;
   courierName?: string;
-  /** Creation state machine: creating, pickup_scheduled, failed. */
+  /** Creation state machine: creating, pickup_scheduled, failed, awaiting_parcel, manual. */
   shipmentStatus?: string;
   shipmentStep?: string;
   shipmentError?: string;
+  /** Packed parcel size entered by the seller after payment. */
+  weightKg?: number;
+  lengthCm?: number;
+  breadthCm?: number;
+  heightCm?: number;
+  /** Deadline (ISO) for the seller to enter the parcel size. The order
+   * books automatically after this time. */
+  parcelDeadline?: string; // ISO
   pickupScheduledDate?: string;
   /** Estimated delivery, as returned by Shiprocket (human date string). */
   etd?: string;

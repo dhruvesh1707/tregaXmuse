@@ -36,7 +36,8 @@ NotificationTarget? pendingNotificationTarget;
 /// - kyc_verified / kyc_rejected -> KYC screen
 /// - order         -> order tracking (or Orders when no order id)
 /// - shipment_update / payment_received / fulfillment_update /
-///   dispute_filed / dispute_resolved / settlement_paid -> order tracking
+///   dispute_filed / dispute_resolved / settlement_paid /
+///   parcel_info_needed -> order tracking
 /// - acceptance_expired -> Bids & Offers
 /// - campaign      -> the linked listing or category (admin broadcasts)
 NotificationTarget? targetForNotification({
@@ -92,6 +93,7 @@ NotificationTarget? targetForNotification({
     case 'dispute_filed':
     case 'dispute_resolved':
     case 'settlement_paid':
+    case 'parcel_info_needed':
       if (orderId != null) {
         return NotificationTarget(OrderTrackingScreen.routeName, orderId);
       }

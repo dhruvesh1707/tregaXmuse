@@ -1,10 +1,10 @@
-/// Packed parcel size for courier shipping, captured in the sell flow.
+/// Packed parcel size for courier shipping, captured after the sale.
 ///
-/// The sell flow prefills these values from the category table below and
-/// the seller can adjust them. The shipment backend
-/// (`trega_functions/src/shiprocket.ts`, `freightFor`) uses the listing's
-/// own parcel fields when present and falls back to its
-/// `FREIGHT_DEFAULTS` table otherwise, so keep the two tables in sync:
+/// The seller prompt on the order tracking view prefills these values
+/// from the category table below and the seller can adjust them. The shipment backend
+/// (`trega_functions/src/shiprocket.ts`, `freightFor`) uses the order's
+/// own parcel fields when present, then the listing's, and falls back to
+/// its `FREIGHT_DEFAULTS` table otherwise, so keep the two tables in sync:
 /// same per-category values, same caps.
 class ParcelSize {
   /// Packed weight in kilograms.

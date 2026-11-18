@@ -8,7 +8,9 @@ import 'package:timelines_plus/timelines_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/firebase/functions_service.dart';
 import '../../../core/models/order.dart';
+import '../../../core/models/parcel_size.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -175,6 +177,13 @@ class _TrackingContent extends ConsumerWidget {
             const Duration(hours: 72) &&
         order.disputeStatus != 'open' &&
         order.disputeStatus != 'resolved';
+    // The parcel size is on the order once the seller answers the
+    // after-sale prompt (or the hold window ends and the server
+    // records the defaults). Until then the seller sees the prompt.
+    final hasParcel = order.weightKg != null &&
+        order.lengthCm != null &&
+        order.breadthCm != null &&
+        order.heightCm != null;
 
     return TregaScaffold(
       appBar: _EspressoHeader(
@@ -282,6 +291,22 @@ class _TrackingContent extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 16),
+          if (isSeller && order.paymentStatus == 'SUCCESS' && !hasParcel) ...[
+            _ParcelPromptCard(
+              order: order,
+              categoryId: live?.product.categoryId,
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (isSeller && hasParcel) ...[
+            _ParcelSummaryCard(
+              weightKg: order.weightKg!,
+              lengthCm: order.lengthCm!,
+              breadthCm: order.breadthCm!,
+              heightCm: order.heightCm!,
+            ),
+            const SizedBox(height: 16),
+          ],
           // Terminal orders (cancelled, returned, payment pending) have
           // no timeline position. They used to render the full timeline
           // as completed, which read as a delivered order; they now get
@@ -661,6 +686,341 @@ class _SettlementCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '${formatINR(order.sellerPayout!)} · $label',
+            style: textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Seller-only prompt for the packed parcel size, shown on the tracking
+/// view once the order is paid and no parcel size is on the order yet.
+///
+/// The fields prefill from the listing category's defaults and the
+/// seller adjusts them to the packed box. Submitting calls the
+/// `submitParcelInfo` callable; the card then shows the saved summary.
+/// While the order waits (`awaiting_parcel`) the deadline note says
+/// booking proceeds automatically when the hold window runs out.
+class _ParcelPromptCard extends ConsumerStatefulWidget {
+  final Order order;
+  final String? categoryId;
+
+  const _ParcelPromptCard({required this.order, this.categoryId});
+
+  @override
+  ConsumerState<_ParcelPromptCard> createState() => _ParcelPromptCardState();
+}
+
+class _ParcelPromptCardState extends ConsumerState<_ParcelPromptCard> {
+  final _weightController = TextEditingController();
+  final _lengthController = TextEditingController();
+  final _breadthController = TextEditingController();
+  final _heightController = TextEditingController();
+  bool _weightTouched = false;
+  bool _lengthTouched = false;
+  bool _breadthTouched = false;
+  bool _heightTouched = false;
+  bool _submitting = false;
+  bool _saved = false;
+  String? _error;
+  ParcelSize? _submitted;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefill();
+  }
+
+  @override
+  void didUpdateWidget(_ParcelPromptCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The listing loads after the order, so the category can arrive
+    // late. Untouched fields take the new category's defaults, fields
+    // the seller already edited keep the seller's values.
+    if (widget.categoryId != oldWidget.categoryId) _prefill();
+  }
+
+  @override
+  void dispose() {
+    _weightController.dispose();
+    _lengthController.dispose();
+    _breadthController.dispose();
+    _heightController.dispose();
+    super.dispose();
+  }
+
+  /// Fills untouched fields with the category's defaults, `others`
+  /// when the category is unknown.
+  void _prefill() {
+    final defaults = ParcelDefaults.forCategory(widget.categoryId);
+    if (!_weightTouched) {
+      _weightController.text = ParcelDefaults.formatNumber(defaults.weightKg);
+    }
+    if (!_lengthTouched) {
+      _lengthController.text = ParcelDefaults.formatNumber(defaults.lengthCm);
+    }
+    if (!_breadthTouched) {
+      _breadthController.text =
+          ParcelDefaults.formatNumber(defaults.breadthCm);
+    }
+    if (!_heightTouched) {
+      _heightController.text = ParcelDefaults.formatNumber(defaults.heightCm);
+    }
+  }
+
+  /// Parcel validation error to show, or null when the parcel is valid.
+  /// Caps match the backend (`shiprocket.ts`, `freightFor`).
+  String? _parcelError() {
+    final weight = double.tryParse(_weightController.text.trim());
+    final length = double.tryParse(_lengthController.text.trim());
+    final breadth = double.tryParse(_breadthController.text.trim());
+    final height = double.tryParse(_heightController.text.trim());
+    if (weight == null || length == null || breadth == null || height == null) {
+      return 'Enter the packed weight and box size for courier shipping.';
+    }
+    if (weight < ParcelDefaults.minWeightKg ||
+        weight > ParcelDefaults.maxWeightKg) {
+      return 'Packed weight must be between 0.1 and 50 kg.';
+    }
+    for (final side in [length, breadth, height]) {
+      if (side < ParcelDefaults.minDimensionCm ||
+          side > ParcelDefaults.maxDimensionCm) {
+        return 'Each box side must be between 1 and 200 cm.';
+      }
+    }
+    return null;
+  }
+
+  Future<void> _submit() async {
+    if (_submitting) return;
+    final error = _parcelError();
+    if (error != null) {
+      setState(() => _error = error);
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final parcel = ParcelSize(
+      weightKg: double.parse(_weightController.text.trim()),
+      lengthCm: double.parse(_lengthController.text.trim()),
+      breadthCm: double.parse(_breadthController.text.trim()),
+      heightCm: double.parse(_heightController.text.trim()),
+    );
+    try {
+      await ref.read(functionsServiceProvider).submitParcelInfo(
+            orderId: widget.order.id,
+            weightKg: parcel.weightKg,
+            lengthCm: parcel.lengthCm,
+            breadthCm: parcel.breadthCm,
+            heightCm: parcel.heightCm,
+          );
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _saved = true;
+        _submitted = parcel;
+      });
+      await showTregaToast(
+        context,
+        'Parcel size saved. Courier booking will proceed.',
+        title: 'Saved',
+        kind: TregaToastKind.success,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = functionsErrorMessage(e);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final submitted = _submitted;
+    if (_saved && submitted != null) {
+      return _ParcelSummaryCard(
+        weightKg: submitted.weightKg,
+        lengthCm: submitted.lengthCm,
+        breadthCm: submitted.breadthCm,
+        heightCm: submitted.heightCm,
+      );
+    }
+    final textTheme = Theme.of(context).textTheme;
+    final order = widget.order;
+    final deadline = order.parcelDeadline;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: AppShadows.card,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Parcel size', style: textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Pack the item and enter the packed weight and box size so the courier can be booked.',
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          if (order.shipmentStatus == 'awaiting_parcel') ...[
+            const SizedBox(height: 8),
+            Text(
+              deadline == null
+                  ? 'Booking proceeds automatically after 12 hours if you do not answer.'
+                  : 'If you do not answer by ${formatDayTime(deadline)}, booking proceeds automatically.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _weightController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[0-9.]'),
+                    ),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Weight (kg)',
+                    hintText: '0.5',
+                  ),
+                  onChanged: (_) => _weightTouched = true,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _lengthController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[0-9.]'),
+                    ),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Length (cm)',
+                    hintText: '20',
+                  ),
+                  onChanged: (_) => _lengthTouched = true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _breadthController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[0-9.]'),
+                    ),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Breadth (cm)',
+                    hintText: '12',
+                  ),
+                  onChanged: (_) => _breadthTouched = true,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _heightController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[0-9.]'),
+                    ),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Height (cm)',
+                    hintText: '8',
+                  ),
+                  onChanged: (_) => _heightTouched = true,
+                ),
+              ),
+            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+            ),
+          ],
+          const SizedBox(height: 16),
+          TregaButton(
+            label: _submitting ? 'Saving…' : 'Save parcel size',
+            onPressed: _submitting ? null : _submit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Saved parcel summary, shown to the seller once the size is on the
+/// order, in place of the prompt form.
+class _ParcelSummaryCard extends StatelessWidget {
+  final double weightKg;
+  final double lengthCm;
+  final double breadthCm;
+  final double heightCm;
+
+  const _ParcelSummaryCard({
+    required this.weightKg,
+    required this.lengthCm,
+    required this.breadthCm,
+    required this.heightCm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final w = ParcelDefaults.formatNumber(weightKg);
+    final l = ParcelDefaults.formatNumber(lengthCm);
+    final b = ParcelDefaults.formatNumber(breadthCm);
+    final h = ParcelDefaults.formatNumber(heightCm);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: AppShadows.card,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Parcel size', style: textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            '$w kg, $l x $b x $h cm',
             style: textTheme.bodyMedium,
           ),
         ],

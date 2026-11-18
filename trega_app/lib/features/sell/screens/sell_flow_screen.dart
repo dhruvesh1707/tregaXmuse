@@ -14,7 +14,6 @@ import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/marketplace/fee_config.dart';
 import '../../../core/models/category.dart';
-import '../../../core/models/parcel_size.dart';
 import '../../../core/models/product.dart';
 import '../../../core/models/saved_address.dart';
 import '../../../core/theme/app_colors.dart';
@@ -127,17 +126,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   // Payout UPI ID, prefilled from the seller's saved value, saved back
   // on publish. Owner-only, like the pickup address.
   final _upiController = TextEditingController();
-  // Packed parcel size for courier shipping, prefilled from category
-  // defaults when a category is picked. A field the seller already
-  // edited is never overwritten by a later prefill.
-  final _weightController = TextEditingController();
-  final _lengthController = TextEditingController();
-  final _breadthController = TextEditingController();
-  final _heightController = TextEditingController();
-  bool _weightTouched = false;
-  bool _lengthTouched = false;
-  bool _breadthTouched = false;
-  bool _heightTouched = false;
   String? _selectedSavedAddressId;
 
   String? _categoryId;
@@ -163,10 +151,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     _addrStateController.dispose();
     _addrPinController.dispose();
     _upiController.dispose();
-    _weightController.dispose();
-    _lengthController.dispose();
-    _breadthController.dispose();
-    _heightController.dispose();
     super.dispose();
   }
 
@@ -197,69 +181,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
     final digits = _priceController.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.isEmpty) return null;
     return double.tryParse(digits);
-  }
-
-  /// Fills untouched parcel fields with the picked category's defaults.
-  /// Fields the seller already edited keep the seller's values, even
-  /// when the category changes later.
-  void _prefillParcelFields() {
-    if (_categoryId == null) return;
-    final defaults = ParcelDefaults.forCategory(_categoryId);
-    if (!_weightTouched) {
-      _weightController.text = ParcelDefaults.formatNumber(defaults.weightKg);
-    }
-    if (!_lengthTouched) {
-      _lengthController.text = ParcelDefaults.formatNumber(defaults.lengthCm);
-    }
-    if (!_breadthTouched) {
-      _breadthController.text =
-          ParcelDefaults.formatNumber(defaults.breadthCm);
-    }
-    if (!_heightTouched) {
-      _heightController.text = ParcelDefaults.formatNumber(defaults.heightCm);
-    }
-  }
-
-  /// Parcel validation error to show, or null when the parcel is valid.
-  /// Caps match the backend (`shiprocket.ts`, `freightFor`).
-  String? _parcelError() {
-    final weight = double.tryParse(_weightController.text.trim());
-    final length = double.tryParse(_lengthController.text.trim());
-    final breadth = double.tryParse(_breadthController.text.trim());
-    final height = double.tryParse(_heightController.text.trim());
-    if (weight == null || length == null || breadth == null || height == null) {
-      return 'Enter the packed weight and box size for courier shipping.';
-    }
-    if (weight < ParcelDefaults.minWeightKg ||
-        weight > ParcelDefaults.maxWeightKg) {
-      return 'Packed weight must be between 0.1 and 50 kg.';
-    }
-    for (final side in [length, breadth, height]) {
-      if (side < ParcelDefaults.minDimensionCm ||
-          side > ParcelDefaults.maxDimensionCm) {
-        return 'Each box side must be between 1 and 200 cm.';
-      }
-    }
-    return null;
-  }
-
-  /// Parsed parcel, only valid after [_parcelError] returns null.
-  ParcelSize _parsedParcel() => ParcelSize(
-        weightKg: double.parse(_weightController.text.trim()),
-        lengthCm: double.parse(_lengthController.text.trim()),
-        breadthCm: double.parse(_breadthController.text.trim()),
-        heightCm: double.parse(_heightController.text.trim()),
-      );
-
-  /// One-line parcel summary for the review step, empty when invalid.
-  String _parcelSummary() {
-    if (_parcelError() != null) return '';
-    final p = _parsedParcel();
-    final w = ParcelDefaults.formatNumber(p.weightKg);
-    final l = ParcelDefaults.formatNumber(p.lengthCm);
-    final b = ParcelDefaults.formatNumber(p.breadthCm);
-    final h = ParcelDefaults.formatNumber(p.heightCm);
-    return '$w kg, $l x $b x $h cm';
   }
 
   Category? _selectedCategory(List<Category> categories) {
@@ -298,11 +219,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       case 2:
         if (_titleController.text.trim().isEmpty) {
           setState(() => _error = 'Give your item a title.');
-          return false;
-        }
-        final parcelError = _parcelError();
-        if (parcelError != null) {
-          setState(() => _error = parcelError);
           return false;
         }
         return true;
@@ -359,10 +275,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       _addrStateController,
       _addrPinController,
       _upiController,
-      _weightController,
-      _lengthController,
-      _breadthController,
-      _heightController,
     ]) {
       c.addListener(_saveDraft);
     }
@@ -409,10 +321,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
           'state': _addrStateController.text,
           'pin': _addrPinController.text,
           'upi': _upiController.text,
-          'weight': _weightController.text,
-          'length': _lengthController.text,
-          'breadth': _breadthController.text,
-          'height': _heightController.text,
           'photos': _pickedMedia.map((m) => m.path).toList(),
         }),
       );
@@ -457,16 +365,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
         fill(_addrStateController, data['state']);
         fill(_addrPinController, data['pin']);
         fill(_upiController, data['upi']);
-        fill(_weightController, data['weight']);
-        fill(_lengthController, data['length']);
-        fill(_breadthController, data['breadth']);
-        fill(_heightController, data['height']);
-        // Restored parcel values count as seller-edited, so a later
-        // category change never overwrites them with fresh defaults.
-        _weightTouched = nonEmpty(data['weight']);
-        _lengthTouched = nonEmpty(data['length']);
-        _breadthTouched = nonEmpty(data['breadth']);
-        _heightTouched = nonEmpty(data['height']);
         _pickedMedia
           ..clear()
           ..addAll(
@@ -476,9 +374,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
           );
         _draftRestored = true;
       });
-      // A restored category with no saved parcel values still gets the
-      // category defaults, so the Details step is never blank.
-      if (mounted) _prefillParcelFields();
     } catch (_) {}
   }
 
@@ -508,14 +403,6 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       _addrStateController.clear();
       _addrPinController.clear();
       _upiController.clear();
-      _weightController.clear();
-      _lengthController.clear();
-      _breadthController.clear();
-      _heightController.clear();
-      _weightTouched = false;
-      _lengthTouched = false;
-      _breadthTouched = false;
-      _heightTouched = false;
       _pickedMedia.clear();
       _selectedSavedAddressId = null;
       _error = null;
@@ -632,12 +519,6 @@ static bool _isValidUpi(String upi) =>
       setState(() => _error = 'Pick a category for your listing.');
       return;
     }
-    final parcelError = _parcelError();
-    if (parcelError != null) {
-      setState(() => _error = parcelError);
-      return;
-    }
-    final parcel = _parsedParcel();
     if (line1.length < 6) {
       setState(() => _error =
           'Add your house/flat and street so we can pick up the item.',);
@@ -707,10 +588,6 @@ static bool _isValidUpi(String upi) =>
         condition: _condition.wireValue,
         negotiable: _negotiable,
         city: city,
-        weightKg: parcel.weightKg,
-        lengthCm: parcel.lengthCm,
-        breadthCm: parcel.breadthCm,
-        heightCm: parcel.heightCm,
       );
 
       // 2) Upload media to Storage, then attach URLs to the listing.
@@ -1009,7 +886,6 @@ static bool _isValidUpi(String upi) =>
                                       _navCount++;
                                       _step = 1;
                                     });
-                                    _prefillParcelFields();
                                     _saveDraft();
                                   },
                                 ),
@@ -1184,102 +1060,6 @@ static bool _isValidUpi(String upi) =>
                               'Usage, age, defects, what’s included…',
                           alignLabelWithHint: true,
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Parcel size',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Packed weight and box size for courier shipping. Typical values for this category are filled in, adjust them if your parcel differs.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _weightController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true,),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9.]'),),
-                              ],
-                              decoration: const InputDecoration(
-                                labelText: 'Weight (kg)',
-                                hintText: '0.5',
-                              ),
-                              onChanged: (_) => _weightTouched = true,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _lengthController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true,),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9.]'),),
-                              ],
-                              decoration: const InputDecoration(
-                                labelText: 'Length (cm)',
-                                hintText: '20',
-                              ),
-                              onChanged: (_) => _lengthTouched = true,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _breadthController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true,),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9.]'),),
-                              ],
-                              decoration: const InputDecoration(
-                                labelText: 'Breadth (cm)',
-                                hintText: '12',
-                              ),
-                              onChanged: (_) => _breadthTouched = true,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _heightController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true,),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9.]'),),
-                              ],
-                              decoration: const InputDecoration(
-                                labelText: 'Height (cm)',
-                                hintText: '8',
-                              ),
-                              onChanged: (_) => _heightTouched = true,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                     ),
@@ -1513,7 +1293,6 @@ static bool _isValidUpi(String upi) =>
                     negotiable: _negotiable,
                     description: _descriptionController.text.trim(),
                     photoCount: _pickedMedia.length,
-                    parcelSummary: _parcelSummary(),
                     addressLine:
                         '${_addrLine1Controller.text.trim()}, ${_addrCityController.text.trim()} ${_addrPinController.text.trim()}'
                             .trim(),
@@ -1593,7 +1372,6 @@ class _ReviewSummary extends StatelessWidget {
   final bool negotiable;
   final String description;
   final int photoCount;
-  final String parcelSummary;
   final String addressLine;
 
   const _ReviewSummary({
@@ -1604,7 +1382,6 @@ class _ReviewSummary extends StatelessWidget {
     required this.negotiable,
     required this.description,
     required this.photoCount,
-    required this.parcelSummary,
     required this.addressLine,
   });
 
@@ -1662,8 +1439,6 @@ class _ReviewSummary extends StatelessWidget {
               row('Category', categoryName),
               const Divider(height: 1),
               row('Condition', conditionLabel),
-              const Divider(height: 1),
-              row('Parcel', parcelSummary),
               const Divider(height: 1),
               row(
                 'Price',

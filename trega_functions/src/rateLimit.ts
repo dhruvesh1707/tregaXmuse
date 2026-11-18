@@ -18,6 +18,8 @@ import * as logger from "firebase-functions/logger";
  * - loose (`views`): listing view recording; generous because normal
  *   browsing opens many listings (count inflation is prevented by the
  *   handler's 1h per-viewer-per-listing cooldown, not by this tier).
+ * - `parcelInfo`: seller parcel submissions after a sale, 20/hour; a
+ *   normal sale needs one submission, the headroom covers retries.
  * - destructive (`deleteAccount`): 3/day per account.
  *
  * Backoff, not lockout: exceeding the limit blocks for
@@ -57,6 +59,7 @@ const DEFAULT_RULES: Record<string, RateLimitRule> = {
   listingDelete: { limit: 10, windowSec: 3600, blockBaseSec: 300, blockMaxSec: 3600 },
   shipmentRetry: { limit: 20, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 1800 },
   disputes: { limit: 10, windowSec: 3600, blockBaseSec: 300, blockMaxSec: 3600 },
+  parcelInfo: { limit: 20, windowSec: 3600, blockBaseSec: 60, blockMaxSec: 1800 },
 };
 
 /**

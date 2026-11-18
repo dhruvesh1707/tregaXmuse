@@ -105,6 +105,19 @@ class Order {
   final String? courierName;
   final String? shipmentStatus;
   final String? etd;
+  /// Packed parcel size for courier shipping, sent by the seller after
+  /// payment from the tracking screen prompt. Null until the seller
+  /// answers; the shipment backend falls back to category defaults
+  /// when the hold window runs out.
+  final double? weightKg;
+  final double? lengthCm;
+  final double? breadthCm;
+  final double? heightCm;
+  /// Deadline for the seller's parcel answer, stamped server-side when
+  /// the order starts waiting for it. Booking proceeds automatically
+  /// after this time when the seller has not answered. Null on orders
+  /// that never waited for parcel info.
+  final DateTime? parcelDeadline;
   /// The accepted bid this order was placed from, when the order came
   /// from an accepted bid. Lets the Bids & Offers screen match a paid
   /// order back to its offer.
@@ -150,6 +163,11 @@ class Order {
     this.courierName,
     this.shipmentStatus,
     this.etd,
+    this.weightKg,
+    this.lengthCm,
+    this.breadthCm,
+    this.heightCm,
+    this.parcelDeadline,
     this.bidId,
     this.paymentStatus,
     this.deliveredAt,
@@ -198,7 +216,8 @@ class Order {
 /// Canonical fields: `listingId`, `bidId?`, `buyerId`, `sellerId`, `amount`,
 /// `currency`, `paymentStatus`, `status`, `cfOrderId?`, `trackingNote?`,
 /// `listingTitle?`, `listingPhotoUrl?`, `awbCode?`, `courierName?`,
-/// `shipmentStatus?`, `etd?`, `paidAt?`, `deliveredAt?`, `disputeStatus?`,
+/// `shipmentStatus?`, `etd?`, `weightKg?`, `lengthCm?`, `breadthCm?`,
+/// `heightCm?`, `parcelDeadline?`, `paidAt?`, `deliveredAt?`, `disputeStatus?`,
 /// `settlementStatus?`, `settlementReference?`, `refundStatus?`,
 /// `fees.sellerPayout?`, `createdAt`.
 /// Orders are created server-side by the `createCashfreeOrder` callable,
@@ -237,6 +256,13 @@ extension OrderFirestore on Order {
       courierName: data['courierName'] as String?,
       shipmentStatus: data['shipmentStatus'] as String?,
       etd: data['etd'] as String?,
+      weightKg: (data['weightKg'] as num?)?.toDouble(),
+      lengthCm: (data['lengthCm'] as num?)?.toDouble(),
+      breadthCm: (data['breadthCm'] as num?)?.toDouble(),
+      heightCm: (data['heightCm'] as num?)?.toDouble(),
+      parcelDeadline: data['parcelDeadline'] == null
+          ? null
+          : firestoreDate(data['parcelDeadline']),
       bidId: data['bidId'] as String?,
       paymentStatus: data['paymentStatus'] as String?,
       deliveredAt: data['deliveredAt'] == null

@@ -312,10 +312,6 @@ class FirestoreService {
     required String condition,
     bool negotiable = true,
     String city = '',
-    double? weightKg,
-    double? lengthCm,
-    double? breadthCm,
-    double? heightCm,
   }) async {
     final ref = await _listings.add({
       'sellerId': sellerId,
@@ -326,10 +322,6 @@ class FirestoreService {
       'city': city,
       'condition': condition,
       'negotiable': negotiable,
-      if (weightKg != null) 'weightKg': weightKg,
-      if (lengthCm != null) 'lengthCm': lengthCm,
-      if (breadthCm != null) 'breadthCm': breadthCm,
-      if (heightCm != null) 'heightCm': heightCm,
       'photos': <String>[],
       'viewCount': 0,
       'likedBy': <String>[],

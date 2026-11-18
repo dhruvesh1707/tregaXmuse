@@ -69,6 +69,8 @@ import {
   handleShiprocketWebhook,
   onOrderPaidHandler,
   retryShipmentHandler,
+  shipAwaitingParcelsHandler,
+  submitParcelInfoHandler,
 } from "./shiprocket";
 import {
   fileDisputeHandler,
@@ -408,16 +410,21 @@ export const updateOrderFulfillment = onCall(async (request) => {
 
 // ---------------------------------------------------------- Shiprocket ---
 // Courier integration (see shiprocket.ts). When an order's payment flips
-// to SUCCESS, onOrderPaid creates the Shiprocket shipment and schedules
-// pickup from the seller automatically; tracking updates arrive on the
-// courierTracking webhook and move the order forward. The webhook
-// function is deliberately NOT named *shiprocket*: Shiprocket rejects
-// callback URLs containing `shiprocket`, `kartrocket`, `sr` or `kr`.
+// to SUCCESS, onOrderPaid holds the standard order for parcel info
+// (12 hours) and asks the seller for the packed weight and box size.
+// The seller's reply ships it at once, otherwise the hourly
+// shipAwaitingParcels sweep ships it with category defaults when the
+// hold expires. Express orders stay manual for Quick booking. Tracking
+// updates arrive on the courierTracking webhook and move the order
+// forward. The webhook function is deliberately NOT named *shiprocket*:
+// Shiprocket rejects callback URLs containing `shiprocket`,
+// `kartrocket`, `sr` or `kr`.
 
 /**
- * Paid order → Shiprocket shipment + seller pickup, fully automatic.
- * No-ops on every update except the payment flip, and never throws:
- * a failed shipment lands on the order doc for the admin to retry.
+ * Paid order: hold a standard order for parcel info (12 hours) or mark
+ * an express order manual, and ask the seller for the packed parcel
+ * size in both cases. No-ops on every update except the payment flip,
+ * and never throws.
  */
 export const onOrderPaid = onDocumentUpdated(
   {
@@ -433,7 +440,7 @@ export const onOrderPaid = onDocumentUpdated(
   }
 );
 
-/** Admin retry for a failed shipment. Resumes from the stored step. */
+/** Admin retry for a failed shipment, or force-book an order awaiting parcel info. */
 export const retryShipment = onCall(
   { secrets: [SHIPROCKET_API_EMAIL, SHIPROCKET_API_PASSWORD] },
   async (request) => {
@@ -441,6 +448,44 @@ export const retryShipment = onCall(
     await rateLimit("shipmentRetry", { uid, ip: ipOf(request) });
     const isAdmin = request.auth?.token?.admin === true;
     return retryShipmentHandler(isAdmin, request.data?.orderId);
+  }
+);
+
+/**
+ * Seller submits the packed parcel size after a sale. A standard order
+ * still awaiting parcel info ships at once; express orders only record
+ * the fields for the manual Quick booking. Shiprocket secrets are
+ * declared because a submission can trigger shipment creation.
+ */
+export const submitParcelInfo = onCall(
+  { secrets: [SHIPROCKET_API_EMAIL, SHIPROCKET_API_PASSWORD] },
+  async (request) => {
+    const uid = requireAuthUid(request);
+    await rateLimit("parcelInfo", { uid, ip: ipOf(request) });
+    return submitParcelInfoHandler(uid, {
+      orderId: request.data?.orderId,
+      weightKg: request.data?.weightKg,
+      lengthCm: request.data?.lengthCm,
+      breadthCm: request.data?.breadthCm,
+      heightCm: request.data?.heightCm,
+    });
+  }
+);
+
+/**
+ * Hourly: ship paid orders whose 12 hour parcel hold expired without
+ * a seller reply, using category defaults. Shiprocket secrets are
+ * declared because the sweep creates shipments.
+ */
+export const shipAwaitingParcels = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    region: "asia-south1",
+    secrets: [SHIPROCKET_API_EMAIL, SHIPROCKET_API_PASSWORD],
+  },
+  async () => {
+    const { shipped } = await shipAwaitingParcelsHandler();
+    logger.info("shipAwaitingParcels: shipped orders", { shipped });
   }
 );
 

@@ -6,7 +6,7 @@ import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import StatusBadge, { prettyStatus } from '../components/StatusBadge';
 import Modal from '../components/Modal';
-import { formatAddressLines, formatINR, timeAgo } from '../utils/format';
+import { formatAddressLines, formatDateTime, formatINR, timeAgo } from '../utils/format';
 
 const PAGE_SIZE = 20;
 const TABS: Array<{ key: string; label: string }> = [
@@ -248,6 +248,17 @@ export default function Orders() {
     },
   ];
 
+  const parcelParts: string[] = [];
+  if (editing?.weightKg != null) parcelParts.push(`${editing.weightKg} kg`);
+  if (
+    editing?.lengthCm != null &&
+    editing?.breadthCm != null &&
+    editing?.heightCm != null
+  ) {
+    parcelParts.push(`${editing.lengthCm} x ${editing.breadthCm} x ${editing.heightCm} cm`);
+  }
+  const parcelSummary = parcelParts.length > 0 ? parcelParts.join(' · ') : null;
+
   return (
     <div className="space-y-5">
       <div>
@@ -387,6 +398,11 @@ export default function Orders() {
                 <div className="mb-1 text-xs font-semibold text-stone-700">
                   Shipment (Shiprocket)
                 </div>
+                {parcelSummary && (
+                  <div className="mb-2 text-xs leading-relaxed text-stone-600">
+                    Parcel: {parcelSummary}
+                  </div>
+                )}
                 {editing.awbCode ? (
                   <div className="text-xs leading-relaxed text-stone-600">
                     <div>
@@ -423,6 +439,25 @@ export default function Orders() {
                 ) : editing.shipmentStatus === 'creating' ? (
                   <div className="text-xs text-stone-400">
                     Shipment is being created…
+                  </div>
+                ) : editing.shipmentStatus === 'awaiting_parcel' ? (
+                  <div className="text-xs leading-relaxed">
+                    <div className="text-stone-600">
+                      Waiting for the seller to enter the parcel size.
+                      {editing.parcelDeadline ? (
+                        <> Books automatically after {formatDateTime(editing.parcelDeadline)}.</>
+                      ) : (
+                        <> Books automatically after the deadline.</>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={retry}
+                      disabled={retrying}
+                      className="mt-2 rounded-lg bg-trega-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-trega-700 disabled:opacity-60"
+                    >
+                      {retrying ? 'Retrying…' : 'Retry now with defaults'}
+                    </button>
                   </div>
                 ) : editing.shipmentStatus === 'manual' ? (
                   <div className="text-xs leading-relaxed text-stone-600">

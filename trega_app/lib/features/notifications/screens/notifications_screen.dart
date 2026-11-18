@@ -58,6 +58,8 @@ class _NotificationsScreenState
         return PhosphorIconsRegular.gavel;
       case 'order':
         return PhosphorIconsRegular.truck;
+      case 'parcel_info_needed':
+        return PhosphorIconsRegular.package;
       case 'listing':
         return PhosphorIconsRegular.sealCheck;
       default:

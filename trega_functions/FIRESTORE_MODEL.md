@@ -109,7 +109,9 @@ missing/invalid tier falls back to the bundled defaults in
 
 Tiers: `kycOtp` (5/hr per account+IP), `kycVerify` (10/10min),
 `bootstrap` (5/hr), `webhook` (120/hr per IP), `adminOps` (120/hr),
-`bids` (60/hr), `payments` (30/hr), `deleteAccount` (3/day).
+`bids` (60/hr), `payments` (30/hr), `deleteAccount` (3/day),
+`views` (300/hr), `listingDelete` (10/hr), `shipmentRetry` (20/hr),
+`disputes` (10/hr), `parcelInfo` (20/hr).
 Exceeding a limit blocks with exponential backoff
 (`blockBaseSec * 2^(violations-1)`, capped at `blockMaxSec`); a clean
 window resets the violation count, so backoff never becomes a lockout.
@@ -145,8 +147,8 @@ false` for clients).
 | liveAt / soldAt | timestamp? | lifecycle markers; `soldAt` starts the 48h clock to `archived` |
 | createdAt | timestamp | |
 | city | string | denormalized from the seller's pickup address at publish time; drives Trega Express eligibility |
-| weightKg | number? | packed parcel weight in kg, captured in the sell flow (prefilled from category defaults, editable); absent on listings published before parcel capture shipped |
-| lengthCm / breadthCm / heightCm | number? | packed box dimensions in cm, same capture; caps 0.1 to 50 kg and 1 to 200 cm per side, enforced in the sell flow and clamped server-side |
+| weightKg | number? | packed parcel weight in kg, legacy: captured in the sell flow only by the build that shipped parcel capture; the sell flow no longer asks, new listings carry no parcel fields, and the shipment backend reads the order's parcel fields first |
+| lengthCm / breadthCm / heightCm | number? | packed box dimensions in cm, same legacy capture; caps 0.1 to 50 kg and 1 to 200 cm per side, enforced by the after-sale parcel prompt and clamped server-side |
 
 Write rule of thumb: clients create with `status: "draft"`; the
 `onListingCreate` trigger flips it to `live` immediately and notifies
@@ -249,9 +251,12 @@ the Shiprocket panel.
 | srOrderId / srShipmentId | number? | Shiprocket order / shipment ids, written when the shipment is created (see Shiprocket below) |
 | awbCode | string? | courier AWB, written on AWB assignment (this debits the Shiprocket wallet) |
 | courierName | string? | e.g. `Delhivery Surface` |
-| shipmentStatus | string? | creation state machine: `creating` \| `pickup_scheduled` \| `failed` \| `manual` (`manual` = express order, team books Shiprocket Quick by hand, no automatic shipment); absent until the first creation attempt |
+| shipmentStatus | string? | creation state machine: `awaiting_parcel` \| `creating` \| `pickup_scheduled` \| `failed` \| `manual` (`awaiting_parcel` = paid standard order waiting up to 12h for the seller's parcel size; `manual` = express order, team books Shiprocket Quick by hand, no automatic shipment); absent until the payment flip |
 | shipmentStep | string? | last step reached: `pickup_location` \| `create_order` \| `assign_awb` \| `request_pickup` \| `done` |
 | shipmentError | string? | failure message when `shipmentStatus` is `failed`; deleted on success |
+| weightKg | number? | packed parcel weight in kg, written by the `submitParcelInfo` callable after the sale; absent until the seller answers |
+| lengthCm / breadthCm / heightCm | number? | packed box dimensions in cm, same capture |
+| parcelDeadline | timestamp? | end of the 12-hour parcel hold, stamped when the order starts waiting; the hourly `shipAwaitingParcels` sweep ships the order with category defaults after this time |
 | pickupScheduledDate | string? | Shiprocket pickup date string |
 | etd | string? | estimated delivery date string from Shiprocket |
 | paidAt | timestamp? | |
@@ -345,7 +350,7 @@ Tap targets (see `trega_app/lib/core/notifications/notification_router.dart`):
 `bid_received` → Offers Received tab · `outbid` → listing detail ·
 `bid_accepted` → checkout · `bid_rejected` → My Offers tab ·
 `listing_flagged` → My Listings · `kyc_verified`/`kyc_rejected` → KYC screen ·
-`order_update` → order tracking.
+`order_update` → order tracking · `parcel_info_needed` → order tracking.
 
 Writers (all in `trega_functions/src/marketplace.ts`):
 - `onBidCreate` trigger → `bid_received` to the seller; `outbid` to the
@@ -373,6 +378,10 @@ Writers (in `trega_functions/src/disputes.ts`):
 - `markSettlementPaid` callable → `settlement_paid` to the seller.
 
 Writers (in `trega_functions/src/shiprocket.ts`):
+- `onOrderPaid` trigger → `parcel_info_needed` to the seller on
+  payment, asking for the packed weight and box size (standard orders
+  wait for the answer, express orders need it for the manual Quick
+  booking).
 - `onOrderPaid` trigger → `shipment_update` to the buyer and the seller
   when pickup is scheduled.
 - `courierTracking` webhook → `shipment_update` to the buyer on
@@ -523,11 +532,16 @@ Account (`trega_functions/src/account.ts`):
 Shiprocket courier integration (`trega_functions/src/shiprocket.ts`):
 
 - `onOrderPaid` (Firestore trigger on `orders/{orderId}` updates): when
-  `paymentStatus` flips to `SUCCESS`, creates a Shiprocket shipment and
-  schedules pickup from the seller automatically, except express orders
-  (`deliveryType: "express"`), which get `shipmentStatus: "manual"` and
-  are booked by hand via Shiprocket Quick so the order never ships
-  twice. Steps: ensure the
+  `paymentStatus` flips to `SUCCESS`, a standard order is held for
+  parcel info (`shipmentStatus: "awaiting_parcel"` with a 12-hour
+  `parcelDeadline`) and the seller is asked for the packed weight and
+  box size; the shipment is created when the seller replies (see
+  `submitParcelInfo`) or when the hourly `shipAwaitingParcels` sweep
+  fires after the deadline. Express orders
+  (`deliveryType: "express"`) get `shipmentStatus: "manual"` and are
+  booked by hand via Shiprocket Quick so the order never ships twice,
+  and the seller is still asked for parcel info since the team needs
+  the weight for the Quick booking. Shipment steps: ensure the
   seller pickup location (versioned nickname, see
   `shiprocketPickups/{sellerUid}` above, so address changes reach
   Shiprocket), create an adhoc order
@@ -538,8 +552,21 @@ Shiprocket courier integration (`trega_functions/src/shiprocket.ts`):
   stored ids; failures land as `shipmentStatus: "failed"` on the order
   doc and never break payment. No-ops entirely until the Shiprocket
   secrets are set.
+- `submitParcelInfo({orderId, weightKg, lengthCm, breadthCm, heightCm})`
+  (seller-only callable, rate tier `parcelInfo`): the seller sends the
+  packed parcel size after the sale, from the prompt on the order
+  tracking view. Caps 0.1 to 50 kg and 1 to 200 cm per side are
+  enforced; the fields are written on the order doc, and a standard
+  order still awaiting parcel info ships at once. Express orders only
+  record the fields.
+- `shipAwaitingParcels` (hourly schedule): ships paid orders whose
+  12-hour parcel hold expired without a seller reply, with category
+  defaults. Single-field query on `shipmentStatus`, deadline filtered
+  in code, at most 100 orders per run; no composite index needed.
 - `retryShipment({orderId})` (admin-only callable, rate tier
-  `shipmentRetry`): retries a failed shipment from the stored step.
+  `shipmentRetry`): retries a failed shipment from the stored step, or
+  force-books an order still awaiting parcel info (ships with category
+  defaults when the seller never replied).
 - `courierTracking` (HTTPS webhook, `x-api-key` token auth): Shiprocket
   tracking events move the order forward (pickup_scheduled, picked_up,
   in_transit, delivered, cancelled, returned; forward-only, terminal
@@ -550,11 +577,13 @@ Shiprocket courier integration (`trega_functions/src/shiprocket.ts`):
 - Secrets: `SHIPROCKET_API_EMAIL`, `SHIPROCKET_API_PASSWORD` (API user
   created in the panel with Buyer Details Access ALLOWED),
   `SHIPROCKET_WEBHOOK_KEY`. No sandbox exists: every call is live.
-- Parcel weight/dimensions come from the listing's own parcel fields
-  (`weightKg`, `lengthCm`, `breadthCm`, `heightCm`), captured in the
-  sell flow; category defaults in `FREIGHT_DEFAULTS` apply only when a
-  listing has no usable parcel fields. Wrong weights cause Shiprocket
-  weight discrepancy charges.
+- Parcel weight/dimensions come from the order's own parcel fields
+  (`weightKg`, `lengthCm`, `breadthCm`, `heightCm`), sent by the seller
+  after the sale; then the listing's parcel fields (legacy, only on
+  listings published while the sell flow captured them); category
+  defaults in `FREIGHT_DEFAULTS` apply only when neither has usable
+  parcel fields. Wrong weights cause Shiprocket weight discrepancy
+  charges.
 
 ## Storage
 `listingMedia/{listingId}/{filename}`, listing photos and videos.

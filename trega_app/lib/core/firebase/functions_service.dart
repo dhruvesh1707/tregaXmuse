@@ -33,6 +33,10 @@ String functionsErrorMessage(Object e, {String fallback = 'Something went wrong.
 /// - `fileDispute` ({orderId, reason, description, photoUrls?}) ->
 ///   {filed}, buyer reports a problem with a delivered order inside
 ///   the 72-hour window; one report per order, enforced server-side
+/// - `submitParcelInfo` ({orderId, weightKg, lengthCm, breadthCm,
+///   heightCm}) -> {submitted, shipmentCreated}, seller sends the packed
+///   parcel size after payment so the courier booking can proceed; the
+///   server validates the caps and the order state
 /// - `recordListingView` ({listingId}) -> {counted, viewCount}, IG-style
 ///   view counter: call only after 3s of continuous detail visibility
 /// - `deleteAccount` () -> {deleted}, wipes the account completely
@@ -153,6 +157,26 @@ class FunctionsService {
       'reason': reason,
       'description': description,
       'photoUrls': photoUrls,
+    });
+  }
+
+  /// Sends the packed parcel size for a paid order (seller only). The
+  /// server validates the caps, writes the size onto the order, and
+  /// lets the waiting courier booking proceed. The seller answers from
+  /// the prompt on the order tracking screen, after the sale.
+  Future<void> submitParcelInfo({
+    required String orderId,
+    required double weightKg,
+    required double lengthCm,
+    required double breadthCm,
+    required double heightCm,
+  }) async {
+    await _functions.httpsCallable('submitParcelInfo').call({
+      'orderId': orderId,
+      'weightKg': weightKg,
+      'lengthCm': lengthCm,
+      'breadthCm': breadthCm,
+      'heightCm': heightCm,
     });
   }
 

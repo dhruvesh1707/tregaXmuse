@@ -21,6 +21,7 @@ export const NotificationType = {
   bidRejected: "bid_rejected",
   listingFlagged: "listing_flagged",
   shipmentUpdate: "shipment_update",
+  parcelInfoNeeded: "parcel_info_needed",
   paymentReceived: "payment_received",
   fulfillmentUpdate: "fulfillment_update",
   disputeFiled: "dispute_filed",
