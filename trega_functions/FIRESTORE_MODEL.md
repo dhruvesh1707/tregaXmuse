@@ -249,7 +249,7 @@ the Shiprocket panel.
 | srOrderId / srShipmentId | number? | Shiprocket order / shipment ids, written when the shipment is created (see Shiprocket below) |
 | awbCode | string? | courier AWB, written on AWB assignment (this debits the Shiprocket wallet) |
 | courierName | string? | e.g. `Delhivery Surface` |
-| shipmentStatus | string? | creation state machine: `creating` \| `pickup_scheduled` \| `failed`; absent until the first creation attempt |
+| shipmentStatus | string? | creation state machine: `creating` \| `pickup_scheduled` \| `failed` \| `manual` (`manual` = express order, team books Shiprocket Quick by hand, no automatic shipment); absent until the first creation attempt |
 | shipmentStep | string? | last step reached: `pickup_location` \| `create_order` \| `assign_awb` \| `request_pickup` \| `done` |
 | shipmentError | string? | failure message when `shipmentStatus` is `failed`; deleted on success |
 | pickupScheduledDate | string? | Shiprocket pickup date string |
@@ -524,7 +524,10 @@ Shiprocket courier integration (`trega_functions/src/shiprocket.ts`):
 
 - `onOrderPaid` (Firestore trigger on `orders/{orderId}` updates): when
   `paymentStatus` flips to `SUCCESS`, creates a Shiprocket shipment and
-  schedules pickup from the seller automatically. Steps: ensure the
+  schedules pickup from the seller automatically, except express orders
+  (`deliveryType: "express"`), which get `shipmentStatus: "manual"` and
+  are booked by hand via Shiprocket Quick so the order never ships
+  twice. Steps: ensure the
   seller pickup location (versioned nickname, see
   `shiprocketPickups/{sellerUid}` above, so address changes reach
   Shiprocket), create an adhoc order

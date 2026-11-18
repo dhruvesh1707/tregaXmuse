@@ -424,6 +424,12 @@ export default function Orders() {
                   <div className="text-xs text-stone-400">
                     Shipment is being created…
                   </div>
+                ) : editing.shipmentStatus === 'manual' ? (
+                  <div className="text-xs leading-relaxed text-stone-600">
+                    Express order, no automatic shipment. Book delivery
+                    manually via Shiprocket Quick, then update the order
+                    status with the tracking details.
+                  </div>
                 ) : (
                   <div className="text-xs text-stone-400">
                     No shipment yet. Created automatically when the order is

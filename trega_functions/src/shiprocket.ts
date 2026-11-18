@@ -21,6 +21,12 @@
  *   4. Assign an AWB (this debits the Shiprocket wallet) and request
  *      pickup from the seller's address.
  *
+ * Express orders (`deliveryType: "express"`) skip this flow entirely:
+ * the team books them manually via Shiprocket Quick (same-day
+ * hyperlocal), and auto-creating a standard courier shipment as well
+ * would ship the order twice. Such orders get
+ * `shipmentStatus: "manual"` and no Shiprocket calls are made.
+ *
  * Tracking updates arrive on the `courierTracking` webhook (panel
  * configured, `x-api-key` token auth, no HMAC) and move the order
  * forward through pickup_scheduled, picked_up, in_transit,
@@ -775,6 +781,16 @@ export async function createShipmentForOrder(
     if (d.paymentStatus !== "SUCCESS") return "not_paid";
     const st = d.shipmentStatus as string | undefined;
     if (st === "creating" || st === "pickup_scheduled") return "already";
+    if (d.deliveryType === "express") {
+      // Express orders are fulfilled manually via Shiprocket Quick.
+      // Mark manual so the admin panel shows the Quick instruction;
+      // never auto-create a standard shipment for them.
+      tx.update(orderRef, {
+        shipmentStatus: "manual",
+        shipmentError: admin.firestore.FieldValue.delete(),
+      });
+      return "manual_express";
+    }
     if (st === "failed") return "failed_awaiting_retry";
     if (!credentials()) return "not_configured";
     tx.update(orderRef, {
