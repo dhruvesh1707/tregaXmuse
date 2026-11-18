@@ -7,6 +7,11 @@
          if a plugin (image_picker) declares them, or Play blocks the release. -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
+    <!-- Play infers android.hardware.screen.portrait as required from a
+         bundled library manifest, which hides the app from tablets,
+         desktops and XR devices. Mark it optional: the app stays
+         portrait, Play just stops filtering devices. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
     <application
         android:label="trega"
         android:name="${applicationName}"
