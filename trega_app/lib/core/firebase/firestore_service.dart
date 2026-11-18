@@ -343,6 +343,15 @@ class FirestoreService {
         .map((doc) => doc.data());
   }
 
+  /// One-shot read of the `config/app` doc (force-update minimum builds,
+  /// minAndroidBuild/minIosBuild). Null when the doc doesn't exist,
+  /// callers fall back to the bundled defaults. One-shot on purpose: the
+  /// splash gate needs a single bounded read, not a stream.
+  Future<Map<String, dynamic>?> getAppConfig() async {
+    final doc = await _db.collection('config').doc('app').get();
+    return doc.data();
+  }
+
   /// Console-owned `config/fees` doc (public read): marketplace pricing,
   /// seller/buyer fee percents, fixed delivery fee, GST. Null when the doc
   /// doesn't exist, callers fall back to [FeeConfig.defaults].

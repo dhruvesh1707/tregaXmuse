@@ -21,10 +21,10 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** Read-only view of config/fees and config/delivery. Writes are console-only
+/** Read-only view of config/fees, config/delivery and config/app. Writes are console-only
  *  (firestore.rules sets `allow write: if false` on config/*). */
 export default function Settings() {
-  const { fees, delivery, loading, error } = useAppConfig();
+  const { fees, delivery, appVersion, loading, error } = useAppConfig();
 
   return (
     <div className="space-y-5">
@@ -102,6 +102,20 @@ export default function Settings() {
                     <p className="text-sm text-stone-500">No cities configured.</p>
                   )}
                 </div>
+              </div>
+            ) : (
+              <p className="text-sm text-stone-500">Not set. The app uses bundled defaults.</p>
+            )}
+          </Section>
+
+          <Section title="Force update">
+            {appVersion ? (
+              <div className="space-y-3">
+                <div>
+                  <Row label="Minimum Android build">{appVersion.minAndroidBuild}</Row>
+                  <Row label="Minimum iOS build">{appVersion.minIosBuild}</Row>
+                </div>
+                <p className="text-sm text-stone-500">0 means unenforced for that platform.</p>
               </div>
             ) : (
               <p className="text-sm text-stone-500">Not set. The app uses bundled defaults.</p>

@@ -22,6 +22,7 @@ import { db, functions } from './firebase';
 import type {
   AdminUser,
   AppConfig,
+  AppVersionConfig,
   Bid,
   Campaign,
   Category,
@@ -320,6 +321,13 @@ function mapDeliveryConfig(d: DocumentData): DeliveryConfig {
   };
 }
 
+function mapAppVersionConfig(d: DocumentData): AppVersionConfig {
+  return {
+    minAndroidBuild: typeof d.minAndroidBuild === 'number' ? d.minAndroidBuild : 0,
+    minIosBuild: typeof d.minIosBuild === 'number' ? d.minIosBuild : 0,
+  };
+}
+
 // ── Pagination helpers ───────────────────────────────────────────────────
 export interface Paged<T> {
   rows: T[];
@@ -586,11 +594,12 @@ export function useCampaigns(page: number, pageSize: number): Paged<Campaign> {
   });
 }
 
-/** App config (config/fees + config/delivery), real-time. Writes are
+/** App config (config/fees + config/delivery + config/app), real-time. Writes are
  *  console-only (firestore.rules), this hook reads only. */
 export function useAppConfig(): AppConfig & { loading: boolean; error: string | null } {
   const [fees, setFees] = useState<FeeConfig | null>(null);
   const [delivery, setDelivery] = useState<DeliveryConfig | null>(null);
+  const [appVersion, setAppVersion] = useState<AppVersionConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -617,13 +626,23 @@ export function useAppConfig(): AppConfig & { loading: boolean; error: string | 
       },
       onErr,
     );
+    const unsubAppVersion = onSnapshot(
+      doc(db, 'config', 'app'),
+      (snap) => {
+        setAppVersion(snap.exists() ? mapAppVersionConfig(snap.data()) : null);
+        setError(null);
+        setLoading(false);
+      },
+      onErr,
+    );
     return () => {
       unsubFees();
       unsubDelivery();
+      unsubAppVersion();
     };
   }, []);
 
-  return { fees, delivery, loading, error };
+  return { fees, delivery, appVersion, loading, error };
 }
 
 export function useCategories() {

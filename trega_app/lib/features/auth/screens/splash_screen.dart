@@ -9,9 +9,11 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/navigation/deep_link.dart';
 import '../../../core/notifications/notification_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/update/force_update.dart';
 import '../../home/screens/home_screen.dart';
 import 'onboarding_screen.dart';
 import 'profile_setup_screen.dart';
+import 'update_required_screen.dart';
 
 /// Launch screen: routes based on the persisted session, home (or profile
 /// setup for a fresh account) when signed in, onboarding when signed out.
@@ -98,8 +100,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           .timeout(const Duration(seconds: 3))
           .then<void>((_) {})
           .catchError((_) {}),
+      // Force-update gate, overlapped with the entrance delay so it adds
+      // no launch latency beyond its own 4s timeout. Fails open.
+      isForceUpdateRequired(ref.read(firestoreServiceProvider)),
     ]);
     if (!mounted) return;
+    if (results[3] as bool) {
+      Navigator.of(context)
+          .pushReplacementNamed(UpdateRequiredScreen.routeName);
+      return;
+    }
     final user = results[0] as User?;
 
     String next;

@@ -230,10 +230,18 @@ export interface DeliveryConfig {
   cutoffHour: number; // 24h local hour, e.g. 21
 }
 
+/** config/app, minimum enforced app builds. Console-only writes. A
+ *  value of 0 means unenforced for that platform. */
+export interface AppVersionConfig {
+  minAndroidBuild: number;
+  minIosBuild: number;
+}
+
 /** Combined app config for the Settings page. */
 export interface AppConfig {
   fees: FeeConfig | null;
   delivery: DeliveryConfig | null;
+  appVersion: AppVersionConfig | null;
 }
 
 /** campaigns/{id}, one broadcast push, written by the sendCampaign callable. */

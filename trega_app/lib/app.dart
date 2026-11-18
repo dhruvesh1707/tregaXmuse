@@ -7,6 +7,7 @@ import 'features/auth/screens/onboarding_screen.dart';
 import 'features/auth/screens/phone_auth_screen.dart';
 import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/auth/screens/splash_screen.dart';
+import 'features/auth/screens/update_required_screen.dart';
 import 'features/bids/screens/bids_offers_screen.dart';
 import 'features/checkout/screens/checkout_screen.dart';
 import 'features/home/screens/home_screen.dart';
@@ -54,6 +55,8 @@ class TregaApp extends StatelessWidget {
     switch (settings.name) {
       case SplashScreen.routeName:
         builder = (_) => const SplashScreen();
+      case UpdateRequiredScreen.routeName:
+        builder = (_) => const UpdateRequiredScreen();
       case OnboardingScreen.routeName:
         builder = (_) => const OnboardingScreen();
       case PhoneAuthScreen.routeName:

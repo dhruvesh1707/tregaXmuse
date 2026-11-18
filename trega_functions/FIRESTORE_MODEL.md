@@ -62,6 +62,43 @@ client-side (bid docs carry ids only); the listing seller card shows
 
 Seed: Gaming, Mobiles, Laptops, Cameras, Music, Fashion, Furniture, Home Appliances, Cycles, Watches, Collectibles, Books, Others.
 
+### `config/app`
+
+Single doc. Public read, console-only write (see `firestore.rules`).
+Strict force-update gate, one minimum build number per platform. No
+Cloud Function is involved, and no rules change is needed, the existing
+public `config/{docId}` read already covers this doc (only
+`config/rateLimits` is excluded from it). The app's bundled default is
+unenforced.
+
+| Field | Type | Notes |
+|---|---|---|
+| minAndroidBuild | number | integer, minimum Android build number, `0` or absent means unenforced |
+| minIosBuild | number | integer, minimum iOS build number, `0` or absent means unenforced |
+
+Enforcement is per platform. At launch (splash flow) the app reads this
+doc and compares the installed build number (integer, from
+`package_info_plus`) against the minimum for its platform. An installed
+build below the minimum is blocked on a non-dismissible update-required
+screen. Version names are never compared, build numbers only. An absent
+doc, an absent field, or `0` means unenforced for that platform.
+
+Fail open: a fetch error, timeout, unparseable build number, or missing
+doc or field means the app proceeds normally and re-checks on the next
+launch. A transient failure never locks users out.
+
+**Operational rule:** raise a minimum ONLY after the target build is
+live where users get it, the Play Store for Android, the sideload
+distribution channel for iOS. Raising it earlier leaves users on a
+dead-end update screen with no newer build to install. Only builds
+containing the check can be forced, so enforcement bites from the
+release AFTER the one that ships the check.
+
+Update targets: Android opens
+`https://play.google.com/store/apps/details?id=com.trega.trega`. iOS has
+no store link, the app is sideloaded with no App Store entry, so the
+iOS screen is message-only plus a re-check.
+
 ### `config/delivery`
 
 Single doc. Public read, console-only write (see `firestore.rules`).
