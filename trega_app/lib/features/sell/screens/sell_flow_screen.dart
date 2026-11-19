@@ -13,6 +13,7 @@ import '../../../core/widgets/trega_scaffold.dart';
 import '../../../core/widgets/trega_app_bar.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/marketplace/fee_config.dart';
+import '../../../core/listings/listing_questions.dart';
 import '../../../core/models/category.dart';
 import '../../../core/models/product.dart';
 import '../../../core/models/saved_address.dart';
@@ -129,6 +130,14 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   String? _selectedSavedAddressId;
 
   String? _categoryId;
+  /// Guided description answers, keyed by question id, plus the
+  /// optional questions the seller chose to skip. Cleared whenever
+  /// the category changes, since each category has its own set. The
+  /// purchase date also keeps its raw year and month picks under
+  /// sub-keys; the combined string lives under the question id.
+  final Map<String, String> _specAnswers = {};
+  final Set<String> _skippedQuestions = {};
+  final Map<String, TextEditingController> _specTextControllers = {};
   Condition _condition = Condition.likeNew;
   bool _negotiable = true;
   bool _publishing = false;
@@ -142,6 +151,9 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
 
   @override
   void dispose() {
+    for (final c in _specTextControllers.values) {
+      c.dispose();
+    }
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
@@ -220,6 +232,16 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
         if (_titleController.text.trim().isEmpty) {
           setState(() => _error = 'Give your item a title.');
           return false;
+        }
+        if (_categoryId != null) {
+          final missing = questionsForCategory(_categoryId!)
+              .where((q) => q.required && !_isQuestionAnswered(q))
+              .toList();
+          if (missing.isNotEmpty) {
+            final names = missing.map((q) => q.label).join(' and ');
+            setState(() => _error = 'Answer $names to continue.');
+            return false;
+          }
         }
         return true;
       case 3:
@@ -321,6 +343,8 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
           'state': _addrStateController.text,
           'pin': _addrPinController.text,
           'upi': _upiController.text,
+          'answers': _specAnswers,
+          'skipped': _skippedQuestions.toList(),
           'photos': _pickedMedia.map((m) => m.path).toList(),
         }),
       );
@@ -351,6 +375,34 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
       setState(() {
         _step = (data['step'] as int? ?? 0).clamp(0, _lastStep);
         _categoryId = data['categoryId'] as String?;
+        // Restore only answers whose question ids exist for the
+        // restored category, so a stale draft never shows answers
+        // from a different question set.
+        if (_categoryId != null) {
+          final validIds = questionsForCategory(_categoryId!)
+              .map((q) => q.id)
+              .toSet();
+          final rawAnswers =
+              data['answers'] as Map<String, dynamic>? ?? const {};
+          for (final e in rawAnswers.entries) {
+            final v = e.value;
+            // The purchase date stores its raw year and month picks
+            // under sub-keys; restore them with the combined answer.
+            final isPurchaseSubKey = (e.key == purchaseDateYearKey ||
+                    e.key == purchaseDateMonthKey) &&
+                validIds.contains(purchaseDateId);
+            if ((validIds.contains(e.key) || isPurchaseSubKey) &&
+                v is String &&
+                v.trim().isNotEmpty) {
+              _specAnswers[e.key] = v;
+            }
+          }
+          final rawSkipped =
+              (data['skipped'] as List?)?.cast<String>() ?? const [];
+          _skippedQuestions.addAll(
+            rawSkipped.where((id) => validIds.contains(id)),
+          );
+        }
         _condition = Condition.values.firstWhere(
           (c) => c.wireValue == data['condition'],
           orElse: () => Condition.likeNew,
@@ -378,10 +430,58 @@ class _SellFlowScreenState extends ConsumerState<SellFlowScreen> {
   }
 
   Future<void> _clearDraft() async {
+    _resetSpecAnswers();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_draftKey);
     } catch (_) {}
+  }
+
+  /// Clears answers, skipped marks and cached text controllers. Used
+  /// when the category changes and when the draft is cleared.
+  void _resetSpecAnswers() {
+    for (final c in _specTextControllers.values) {
+      c.dispose();
+    }
+    _specTextControllers.clear();
+    _specAnswers.clear();
+    _skippedQuestions.clear();
+  }
+
+  /// Cached controller for a text question, seeded from its answer.
+  /// Controllers live in State so the step transition remount loses
+  /// nothing. Disposed by [_resetSpecAnswers] and [dispose].
+  TextEditingController _specTextController(ListingQuestion q) {
+    return _specTextControllers.putIfAbsent(
+      q.id,
+      () => TextEditingController(text: _specAnswers[q.id] ?? ''),
+    );
+  }
+
+  /// Whether a question counts as answered. Normally that means a
+  /// non-empty answer, but the purchase date counts as answered when
+  /// a year is picked, even "Don't remember", because its stored
+  /// combined string is empty in that case.
+  bool _isQuestionAnswered(ListingQuestion q) {
+    if (q.id == purchaseDateId) {
+      return (_specAnswers[purchaseDateYearKey]?.trim().isNotEmpty ??
+          false);
+    }
+    return (_specAnswers[q.id]?.trim().isNotEmpty ?? false);
+  }
+
+  /// Answered, non-skipped specs keyed by question label, in question
+  /// order. The detail screen shows the key as-is in its
+  /// Specifications table.
+  Map<String, String> _answeredSpecs() {
+    if (_categoryId == null) return const {};
+    final result = <String, String>{};
+    for (final q in questionsForCategory(_categoryId!)) {
+      if (_skippedQuestions.contains(q.id)) continue;
+      final value = _specAnswers[q.id]?.trim();
+      if (value != null && value.isNotEmpty) result[q.label] = value;
+    }
+    return result;
   }
 
   /// Discards the draft and resets the form to a clean start.
@@ -515,6 +615,11 @@ static bool _isValidUpi(String upi) =>
           'Minimum listing price is ${formatINR(minPrice)}. The shared delivery fee needs covering.',);
       return;
     }
+    if (_descriptionController.text.trim().length < 40) {
+      setState(() => _error =
+          'Add a few lines about the item so buyers can trust it. At least 40 characters.',);
+      return;
+    }
     if (_categoryId == null) {
       setState(() => _error = 'Pick a category for your listing.');
       return;
@@ -588,6 +693,7 @@ static bool _isValidUpi(String upi) =>
         condition: _condition.wireValue,
         negotiable: _negotiable,
         city: city,
+        specs: _answeredSpecs(),
       );
 
       // 2) Upload media to Storage, then attach URLs to the listing.
@@ -645,6 +751,375 @@ static bool _isValidUpi(String upi) =>
         _publishing = false;
         _error = 'Could not publish. Check your connection and try again.';
       });
+    }
+  }
+
+  /// Guided questions for the selected category, with a live preview
+  /// of the description they compose. Unknown categories (admin-added)
+  /// get no section, the description field works as before.
+  Widget _buildQuestionSection() {
+    if (_categoryId == null) return const SizedBox.shrink();
+    final questions = questionsForCategory(_categoryId!);
+    if (questions.isEmpty) return const SizedBox.shrink();
+    final answered = questions.where(_isQuestionAnswered).length;
+    final composed = composeDescription(_categoryId!, _specAnswers);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        Text(
+          'Help buyers trust your listing',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Takes about 30 seconds',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Answered $answered of ${questions.length}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: answered / questions.length,
+            minHeight: 6,
+            backgroundColor: AppColors.divider,
+            valueColor: const AlwaysStoppedAnimation<Color>(
+              AppColors.accent,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        for (final q in questions) ...[
+          _buildQuestionCard(q),
+          const SizedBox(height: 12),
+        ],
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.divider),
+            boxShadow: AppShadows.soft,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your description',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                composed.isEmpty
+                    ? 'Answer a question to see your description build itself.'
+                    : composed,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: composed.isEmpty
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        TregaButton(
+          label: 'Use my answers',
+          onPressed: composed.isEmpty
+              ? null
+              : () {
+                  setState(() {
+                    _descriptionController.text = composed;
+                    _error = null;
+                  });
+                  _saveDraft();
+                },
+        ),
+      ],
+    );
+  }
+
+  /// One question card: label plus a Required tag, chips for choice
+  /// questions (tap again to deselect), a short field for text
+  /// questions, two chip rows for the purchase date, and a Skip link
+  /// on optional ones. A skipped question is excluded from the preview
+  /// and from specs, and can be undone.
+  Widget _buildQuestionCard(ListingQuestion q) {
+    final skipped = _skippedQuestions.contains(q.id);
+    final selected = _specAnswers[q.id];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: AppShadows.soft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  q.label,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              if (q.required)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentSoft,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Required',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
+                ),
+            ],
+          ),
+          if (skipped) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'Skipped',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _skippedQuestions.remove(q.id));
+                    _saveDraft();
+                  },
+                  child: const Text('Undo'),
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            if (q.type == QuestionType.purchaseDate)
+              _buildPurchaseDateRows(q)
+            else if (q.type == QuestionType.choice)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final option in q.options)
+                    _specChoiceChip(
+                      label: option,
+                      selected: selected == option,
+                      onTap: () {
+                        setState(() {
+                          if (_specAnswers[q.id] == option) {
+                            _specAnswers.remove(q.id);
+                          } else {
+                            _specAnswers[q.id] = option;
+                            _skippedQuestions.remove(q.id);
+                          }
+                        });
+                        _saveDraft();
+                      },
+                    ),
+                ],
+              )
+            else
+              TextField(
+                controller: _specTextController(q),
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: q.placeholder ?? '',
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    if (value.trim().isEmpty) {
+                      _specAnswers.remove(q.id);
+                    } else {
+                      _specAnswers[q.id] = value;
+                      _skippedQuestions.remove(q.id);
+                    }
+                  });
+                  _saveDraft();
+                },
+              ),
+            if (!q.required) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _skippedQuestions.add(q.id);
+                      _specAnswers.remove(q.id);
+                      _specTextControllers[q.id]?.clear();
+                    });
+                    _saveDraft();
+                  },
+                  child: const Text('Skip'),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// A single-select chip with the question card styling. Tapping a
+  /// selected chip calls onTap again, so callers can deselect. A null
+  /// onTap renders the chip disabled.
+  Widget _specChoiceChip({
+    required String label,
+    required bool selected,
+    required VoidCallback? onTap,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onTap == null ? null : (_) => onTap(),
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.tileBackground,
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : AppColors.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+      side: BorderSide(
+        color: selected ? AppColors.primary : AppColors.divider,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+    );
+  }
+
+  /// Two chip rows for the purchase date card: year, then month. The
+  /// month row is only tappable once a real year is picked, because a
+  /// month without a year means nothing. Picking a non-year ("Don't
+  /// remember", "Before 2022") or clearing the year also clears the
+  /// month.
+  Widget _buildPurchaseDateRows(ListingQuestion q) {
+    final year = _specAnswers[purchaseDateYearKey];
+    final month = _specAnswers[purchaseDateMonthKey];
+    final yearIsReal = year != null && RegExp(r'^\d{4}$').hasMatch(year);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Year',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final option in q.options)
+              _specChoiceChip(
+                label: option,
+                selected: year == option,
+                onTap: () => _onPurchaseYearPicked(option),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Month',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final option in q.monthOptions)
+              _specChoiceChip(
+                label: option,
+                selected: month == option,
+                onTap: yearIsReal
+                    ? () => _onPurchaseMonthPicked(option)
+                    : null,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _onPurchaseYearPicked(String option) {
+    setState(() {
+      if (_specAnswers[purchaseDateYearKey] == option) {
+        _specAnswers.remove(purchaseDateYearKey);
+        _specAnswers.remove(purchaseDateMonthKey);
+      } else {
+        _specAnswers[purchaseDateYearKey] = option;
+        if (!RegExp(r'^\d{4}$').hasMatch(option)) {
+          _specAnswers.remove(purchaseDateMonthKey);
+        }
+      }
+      _syncPurchaseDateAnswer();
+    });
+    _saveDraft();
+  }
+
+  void _onPurchaseMonthPicked(String option) {
+    setState(() {
+      if (_specAnswers[purchaseDateMonthKey] == option) {
+        _specAnswers.remove(purchaseDateMonthKey);
+      } else {
+        _specAnswers[purchaseDateMonthKey] = option;
+      }
+      _syncPurchaseDateAnswer();
+    });
+    _saveDraft();
+  }
+
+  /// Recomputes the combined purchase date string from the year and
+  /// month picks and stores it under the purchase date question id.
+  /// Empty when no usable year is picked.
+  void _syncPurchaseDateAnswer() {
+    final combined = combinePurchaseDate(
+      _specAnswers[purchaseDateYearKey],
+      _specAnswers[purchaseDateMonthKey],
+    );
+    if (combined.isEmpty) {
+      _specAnswers.remove(purchaseDateId);
+    } else {
+      _specAnswers[purchaseDateId] = combined;
     }
   }
 
@@ -880,6 +1355,11 @@ static bool _isValidUpi(String upi) =>
                                   // Continue button below the fold.
                                   onTap: () {
                                     setState(() {
+                                      // A new category means a new
+                                      // question set, drop old answers.
+                                      if (_categoryId != c.id) {
+                                        _resetSpecAnswers();
+                                      }
                                       _categoryId = c.id;
                                       _error = null;
                                       _direction = 1;
@@ -1048,6 +1528,8 @@ static bool _isValidUpi(String upi) =>
                           }
                         },
                       ),
+                      const SizedBox(height: 12),
+                      _buildQuestionSection(),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _descriptionController,

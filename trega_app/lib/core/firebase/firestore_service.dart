@@ -312,6 +312,7 @@ class FirestoreService {
     required String condition,
     bool negotiable = true,
     String city = '',
+    Map<String, String> specs = const {},
   }) async {
     final ref = await _listings.add({
       'sellerId': sellerId,
@@ -322,6 +323,7 @@ class FirestoreService {
       'city': city,
       'condition': condition,
       'negotiable': negotiable,
+      if (specs.isNotEmpty) 'specs': specs,
       'photos': <String>[],
       'viewCount': 0,
       'likedBy': <String>[],

@@ -170,7 +170,8 @@ false` for clients).
 |---|---|---|
 | sellerId | string | users/{uid} |
 | title | string | |
-| description | string | |
+| description | string | 40 to 1000 chars, enforced in firestore.rules on create and on owner update when changed; the sell flow also enforces it at publish |
+| specs | map<string, string>? | Category answers from the sell flow question step, keyed by question label (e.g. Storage, RAM). Shown as the Specifications table on the listing detail screen. Absent on listings published before this shipped and on listings where the seller skipped every question. |
 | categoryId | string | categories/{id} |
 | price | number | INR |
 | condition | string | `brand_new` \| `like_new` \| `good` \| `fair` |

@@ -82,11 +82,21 @@ service cloud.firestore {
              .data.kycStatus == 'verified'
         && request.resource.data.keys().hasAll(
              ['sellerId', 'title', 'description', 'categoryId',
-              'price', 'condition', 'photos', 'status']);
+              'price', 'condition', 'photos', 'status'])
+        && request.resource.data.description is string
+        && request.resource.data.description.size() >= 40
+        && request.resource.data.description.size() <= 1000;
       allow update: if signedIn() && (
         // Owner editing their own non-live listing (status untouched).
+        // A changed description must be 40 to 1000 chars; an unchanged
+        // description (for example a like) is not rechecked.
         (resource.data.sellerId == request.auth.uid
-          && request.resource.data.status == resource.data.status)
+          && request.resource.data.status == resource.data.status
+          && (!request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['description'])
+              || (request.resource.data.description is string
+                && request.resource.data.description.size() >= 40
+                && request.resource.data.description.size() <= 1000)))
         ||
         // Anyone liking: only like counters may change, and likedBy may
         // only gain/lose the caller's own uid. Views are server-only

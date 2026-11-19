@@ -197,7 +197,8 @@ extension ListingFirestore on Listing {
             ConditionLabel.fromWire(data['condition'] as String? ?? ''),
         imageUrls: firestoreStringList(data['photos']),
         videoUrl: data['videoUrl'] as String?,
-        specs: const {},
+        specs: (data['specs'] as Map<String, dynamic>? ?? const {})
+            .map((k, v) => MapEntry(k, v.toString())),
       ),
       seller: AppUser(
         id: data['sellerId'] as String? ?? '',
@@ -235,6 +236,7 @@ extension ListingFirestore on Listing {
       'condition': product.condition.wireValue,
       'photos': product.imageUrls,
       'videoUrl': product.videoUrl,
+      if (product.specs.isNotEmpty) 'specs': product.specs,
       if (weightKg != null) 'weightKg': weightKg,
       if (lengthCm != null) 'lengthCm': lengthCm,
       if (breadthCm != null) 'breadthCm': breadthCm,
